@@ -208,9 +208,9 @@
 }
 
 .lw-button--lg {
-  min-height: 3.1rem;
-  padding: var(--lw-space-2) var(--lw-space-10);
-  font-size: var(--lw-font-size-xl);
+  min-height: 2.75rem;
+  padding: var(--lw-space-1) var(--lw-space-8);
+  font-size: var(--lw-font-size-lg);
 }
 
 /* Champs de formulaire ------------------------------------------------------------------------- */

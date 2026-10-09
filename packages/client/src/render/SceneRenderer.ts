@@ -47,6 +47,9 @@ const PALETTE = {
 };
 const FONT_DISPLAY = tokens.font.family.display;
 const FONT_FLAVOR = tokens.font.family.flavor;
+/** Taille des noms sur la carte, en pixels CSS : discrets comme sur un atlas. */
+const LABEL_MAX_PX = 17;
+const LABEL_MIN_PX = 9;
 
 /** Dessine la carte, les mines, les bâtiments, l'aperçu de construction et les noms. */
 export class SceneRenderer {
@@ -249,52 +252,83 @@ export class SceneRenderer {
     }
   }
 
+  /**
+   * Noms des royaumes, à la manière d'un atlas : discrets, jamais superposés.
+   * Les plus grands royaumes (et le sien) sont placés en priorité ; un nom qui chevaucherait
+   * un nom déjà placé n'est pas dessiné à cette échelle (il apparaît en zoomant).
+   */
   private drawLabels(state: SceneState): void {
     const ctx = this.ctx;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.lineJoin = "round";
-    for (const label of state.labels) {
+    const zoom = this.camera.zoom;
+    const ordered = [...state.labels].sort((a, b) => {
+      if (a.owner === state.myId) return -1;
+      if (b.owner === state.myId) return 1;
+      return b.size - a.size;
+    });
+    const placed: [number, number, number, number][] = [];
+    const overlaps = (x0: number, y0: number, x1: number, y1: number): boolean =>
+      placed.some(([a0, b0, a1, b1]) => x0 < a1 && x1 > a0 && y0 < b1 && y1 > b0);
+
+    for (const label of ordered) {
       const player = state.players.get(label.owner);
       if (!player || !player.alive) continue;
-      const fontPx = Math.min(30, label.size * this.camera.zoom * 0.3);
-      if (fontPx < 8) continue;
+      const span = label.size * zoom; // largeur approximative du territoire à l'écran
+      let fontPx = Math.min(LABEL_MAX_PX, span * 0.17);
+      if (fontPx < LABEL_MIN_PX) continue;
       const [sx, sy] = this.camera.worldToScreen(label.x + 0.5, label.y + 0.5);
       if (
-        sx < -200 ||
-        sy < -50 ||
-        sx > this.camera.viewWidth + 200 ||
-        sy > this.camera.viewHeight + 50
+        sx < -150 ||
+        sy < -40 ||
+        sx > this.camera.viewWidth + 150 ||
+        sy > this.camera.viewHeight + 40
       ) {
         continue;
       }
-      const mine = player.id === state.myId;
-      const nameY = sy - fontPx * 0.45;
+      // Le nom ne doit pas déborder largement de son territoire.
       ctx.font = `${fontPx}px ${FONT_DISPLAY}`;
-      ctx.lineWidth = Math.max(2.5, fontPx / 4);
+      const fit = (span * 1.4) / Math.max(1, ctx.measureText(player.name).width);
+      if (fit < 1) {
+        fontPx *= fit;
+        if (fontPx < LABEL_MIN_PX) continue;
+        ctx.font = `${fontPx}px ${FONT_DISPLAY}`;
+      }
+      const withShield = player.race !== null && fontPx >= 12;
+      const nameWidth = ctx.measureText(player.name).width;
+      const shieldWidth = withShield ? fontPx * 1.3 : 0;
+      const half = (nameWidth + shieldWidth) / 2 + 3;
+      const top = sy - fontPx * 1.05;
+      const bottom = sy + fontPx * 0.95;
+      if (overlaps(sx - half, top, sx + half, bottom)) continue;
+      placed.push([sx - half, top, sx + half, bottom]);
+
+      const mine = player.id === state.myId;
+      const nameX = sx + shieldWidth / 2;
+      const nameY = sy - fontPx * 0.4;
+      ctx.lineWidth = Math.max(2, fontPx / 5);
       ctx.strokeStyle = PALETTE.labelHalo;
       ctx.fillStyle = mine ? PALETTE.labelSelf : PALETTE.label;
-      ctx.strokeText(player.name, sx, nameY);
-      ctx.fillText(player.name, sx, nameY);
-      if (player.race && fontPx >= 11) {
-        const nameWidth = ctx.measureText(player.name).width;
+      ctx.strokeText(player.name, nameX, nameY);
+      ctx.fillText(player.name, nameX, nameY);
+      if (withShield && player.race) {
         this.drawShield(
-          sx - nameWidth / 2 - fontPx * 0.75,
+          nameX - nameWidth / 2 - fontPx * 0.65,
           nameY,
-          fontPx * 1.15,
+          fontPx * 1.05,
           raceColor(player.race),
           RACES[player.race].emblem,
         );
       }
-      const troopsPx = fontPx * 0.78;
+      const troopsPx = fontPx * 0.72;
       ctx.font = `italic ${troopsPx}px ${FONT_FLAVOR}`;
-      ctx.lineWidth = Math.max(2, troopsPx / 4);
+      ctx.lineWidth = Math.max(1.5, troopsPx / 5);
       ctx.strokeStyle = PALETTE.labelHalo;
-      ctx.fillStyle = PALETTE.inkSoft;
       const troops = formatNumber(player.troops);
-      ctx.strokeText(troops, sx, sy + fontPx * 0.5);
+      ctx.strokeText(troops, sx, sy + fontPx * 0.45);
       ctx.fillStyle = PALETTE.ink;
-      ctx.fillText(troops, sx, sy + fontPx * 0.5);
+      ctx.fillText(troops, sx, sy + fontPx * 0.45);
     }
   }
 }
