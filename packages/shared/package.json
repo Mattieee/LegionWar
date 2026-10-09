@@ -1,0 +1,13 @@
+{
+  "name": "@legionwar/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Protocole réseau client ↔ serveur de LegionWar et validation des messages.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@legionwar/engine": "*"
+  }
+}

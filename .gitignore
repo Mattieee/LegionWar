@@ -1,0 +1,24 @@
+# Dépendances et builds
+node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Environnement et secrets
+.env
+.env.*
+!.env.example
+
+# Journaux
+*.log
+npm-debug.log*
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+
+# Claude Code : réglages personnels non partagés
+.claude/settings.local.json
+CLAUDE.local.md

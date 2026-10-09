@@ -1,0 +1,10 @@
+{
+  "name": "@legionwar/engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Simulation déterministe de LegionWar (aucune dépendance au DOM ni à Node).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
