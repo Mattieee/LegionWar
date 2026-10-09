@@ -41,6 +41,7 @@ packages/design-system/
   src/css/fonts.css      polices embarquées (latin)
   src/css/base.css       la table, le papier, typographie, focus, accessibilité
   src/css/components.css composants .lw-*
+  src/assets/            grain de papier des panneaux (paper-grain.webp)
   src/css/index.css      point d'entrée (styles.css)
   test/tokens.test.ts    garde-fous (voir plus bas)
 ```
@@ -91,15 +92,16 @@ Les espacements, tailles de police, rayons, ombres, durées et z-index sont des 
 
 ### Carte (Canvas)
 
-| Élément           | Rendu                                                                                                                              |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Papier et terrain | Plaine, côte, forêt, collines et montagnes en teintes de papier ; grain stable par tuile                                           |
-| Mer               | Mer pâle, plus foncée au large ; **hachures côtières gravées** à 1, 3, 5 et 8 tuiles de la côte (`coastLine`, `coastLineStrength`) |
-| Royaumes          | **Lavis d'aquarelle** : pigment multiplié sur le papier, `washInterior` (36 %) au centre, `washEdge` (58 %) à 2 tuiles du bord     |
-| Frontières        | Encre teintée de la couleur du royaume (`borderInk`, 55 %)                                                                         |
-| Hors carte        | La table (`map.table`), une ombre portée de la feuille et un vignettage d'écran                                                    |
-| Bâtiments         | Gravés à l'encre, avec un **fanion** aux couleurs du propriétaire                                                                  |
-| Noms              | Capitales IM Fell sur un halo de papier ; écu de la race pour les seigneurs ; troupes en italique                                  |
+| Élément           | Rendu                                                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Papier et terrain | Plaine, côte, forêt, collines et montagnes en teintes de papier ; grain stable par tuile                                             |
+| Mer               | Mer pâle, plus foncée au large ; **hachures côtières gravées** à 1, 3, 5 et 8 tuiles de la côte (`coastLine`, `coastLineStrength`)   |
+| Royaumes          | **Lavis d'aquarelle** : pigment multiplié sur le papier, `washInterior` (36 %) au centre, `washEdge` (58 %) à 2 tuiles du bord       |
+| Frontières        | Encre teintée de la couleur du royaume (`borderInk`, 55 %)                                                                           |
+| Hors carte        | La table (`map.table`), une ombre portée de la feuille et un vignettage d'écran                                                      |
+| Bâtiments         | **Gravures** (`/art/buildings/*.webp`) marquées d'un petit **écu** aux couleurs du propriétaire ; 4,2 tuiles, jamais moins de 16 px  |
+| Haute mer         | **Rose des vents, monstres marins et navires gravés** (`/art/sea/*.webp`), à 50 % d'opacité, posés loin des côtes, stables par carte |
+| Noms              | Capitales IM Fell sur un halo de papier ; écu de la race pour les seigneurs ; troupes en italique                                    |
 
 ### Typographie
 

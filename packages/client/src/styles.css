@@ -22,14 +22,87 @@ body {
   align-items: center;
   gap: var(--lw-space-6);
   padding: var(--lw-space-8) var(--lw-space-4);
+  /* La feuille est posée sur une pile de vieux papiers tachés, assombrie vers les bords. */
+  background:
+    radial-gradient(
+      ellipse at 50% 40%,
+      transparent 35%,
+      color-mix(in srgb, var(--lw-bg-app) 75%, transparent)
+    ),
+    url("/art/paper-aged.webp") var(--lw-bg-app);
 }
 
 .menu__header {
   text-align: center;
 }
 
+/* Frontispice gravé : le titre s'inscrit dans le cartouche vide du haut de l'image. */
+.menu__frontispice {
+  container: frontispice / inline-size;
+  position: relative;
+  border: 1px solid var(--lw-border-default);
+  box-shadow:
+    0 0 0 4px var(--lw-bg-surface),
+    0 0 0 5px var(--lw-border-subtle);
+}
+
+.menu__frontispice-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 7;
+  object-fit: cover;
+  object-position: 50% 0;
+}
+
+.menu__title-block {
+  position: absolute;
+  top: 12%;
+  left: 37%;
+  width: 26%;
+  height: 26%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu__overline {
+  margin: 0;
+  font-family: var(--lw-font-family-display);
+  font-size: max(1.3cqi, var(--lw-font-size-xs));
+  letter-spacing: var(--lw-font-tracking-display);
+  color: var(--lw-text-secondary);
+}
+
+.menu__title {
+  margin: 0;
+  font-family: var(--lw-font-family-display);
+  font-size: 4.2cqi;
+  font-weight: var(--lw-font-weight-display);
+  letter-spacing: var(--lw-font-tracking-display);
+  line-height: 1;
+  color: var(--lw-text-primary);
+  text-shadow: 0 1px 0 var(--lw-text-emboss);
+}
+
+/* Trop étroit pour écrire dans le cartouche : le titre passe sous la gravure. */
+@container frontispice (max-width: 560px) {
+  .menu__title-block {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: var(--lw-space-3) 0 var(--lw-space-1);
+    background: var(--lw-bg-surface);
+  }
+
+  .menu__title {
+    font-size: var(--lw-font-size-display);
+  }
+}
+
 .menu__tagline {
-  margin-top: var(--lw-space-3);
+  margin-top: var(--lw-space-4);
   font-size: var(--lw-font-size-lg);
 }
 
@@ -63,6 +136,24 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--lw-space-3);
   margin-top: var(--lw-space-2);
+}
+
+/* Gravure de l'emblème du peuple, en vignette dans le coin de sa carte. */
+.menu__race {
+  position: relative;
+}
+
+.menu__race .lw-card__head {
+  padding-right: 56px;
+}
+
+.menu__race-emblem {
+  position: absolute;
+  top: var(--lw-space-2);
+  right: var(--lw-space-2);
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
 }
 
 .menu__row {
@@ -251,8 +342,51 @@ body {
   text-align: left;
 }
 
-.hud__build-btn .lw-kbd {
+.hud__build-btn {
+  grid-template-columns: auto auto 1fr;
+}
+
+.hud__build-btn .lw-kbd,
+.hud__build-icon {
   grid-row: span 2;
+  align-self: center;
+}
+
+.hud__build-icon {
+  width: 36px;
+  height: 36px;
+}
+
+.hud__build-btn:disabled .hud__build-icon {
+  opacity: 0.5;
+}
+
+/* Fin de partie : le titre s'inscrit dans le cartouche gravé. */
+.hud__end {
+  width: min(560px, 100%);
+  padding: var(--lw-space-5) var(--lw-space-6) var(--lw-space-6);
+}
+
+.hud__end-cartouche {
+  container: cartouche / inline-size;
+  position: relative;
+  aspect-ratio: 3 / 2;
+  margin-bottom: var(--lw-space-3);
+  background: center / contain no-repeat url("/art/cartouche-title.webp");
+}
+
+.hud__end-cartouche[data-outcome="victory"] {
+  background-image: url("/art/cartouche-victory.webp");
+}
+
+.hud__end-title {
+  position: absolute;
+  top: 47%;
+  left: 50%;
+  margin: 0;
+  font-size: 6.5cqi;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
 }
 
 .hud__build-name {

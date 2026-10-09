@@ -10,6 +10,8 @@ import {
 import type { Camera } from "./Camera";
 import { TABLE, type RGB, rgbCss } from "./colors";
 import type { Label } from "./Labels";
+import type { SeaOrnament } from "./SeaDecor";
+import { type Sprite, sprite } from "./Sprites";
 import type { TerritoryLayer } from "./TerritoryLayer";
 import { formatNumber } from "../ui/format";
 
@@ -60,6 +62,13 @@ const FONT_FLAVOR = tokens.font.family.flavor;
 /** Taille des noms sur la carte, en pixels CSS : discrets comme sur un atlas. */
 const LABEL_MAX_PX = 17;
 const LABEL_MIN_PX = 9;
+/** Largeur des bâtiments gravés : 4,2 tuiles, et jamais moins de 16 px à l'écran. */
+const BUILDING_TILES = 4.2;
+const BUILDING_MIN_PX = 16;
+/** Opacité des ornements marins : un décor de cartographe, en retrait du jeu. */
+const ORNAMENT_ALPHA = 0.5;
+/** En dessous de cette largeur à l'écran (px CSS), un ornement n'est plus qu'une tache. */
+const ORNAMENT_MIN_PX = 28;
 
 /** Dessine la carte, les mines, les bâtiments, l'aperçu de construction et les noms. */
 export class SceneRenderer {
@@ -71,6 +80,7 @@ export class SceneRenderer {
     readonly canvas: HTMLCanvasElement,
     private readonly camera: Camera,
     private readonly territory: TerritoryLayer,
+    private readonly ornaments: readonly SeaOrnament[] = [],
   ) {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D indisponible");
@@ -121,6 +131,8 @@ export class SceneRenderer {
     ctx.lineWidth = Math.max(0.25, 1.2 / this.camera.zoom);
     ctx.strokeStyle = PALETTE.ink;
     ctx.strokeRect(0, 0, width, this.territory.height);
+    ctx.imageSmoothingEnabled = true;
+    this.drawOrnaments();
 
     for (const mine of state.mines) {
       this.drawMine((mine % width) + 0.5, Math.floor(mine / width) + 0.5);
@@ -141,6 +153,27 @@ export class SceneRenderer {
       ctx.fillStyle = this.vignette;
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
+  }
+
+  /** Rose des vents, monstres et navires gravés au large. */
+  private drawOrnaments(): void {
+    const ctx = this.ctx;
+    const zoom = this.camera.zoom;
+    ctx.save();
+    ctx.globalAlpha = ORNAMENT_ALPHA;
+    for (const o of this.ornaments) {
+      if (o.size * zoom < ORNAMENT_MIN_PX) continue;
+      const art = sprite(o.sprite === "compass" ? "compass-rose" : `sea/${o.sprite}`);
+      const level = art.pick(o.size * zoom * this.dpr);
+      if (!level) continue;
+      const h = o.size * art.aspect;
+      ctx.save();
+      ctx.translate(o.x, o.y);
+      if (o.mirror && o.sprite !== "compass") ctx.scale(-1, 1);
+      ctx.drawImage(level, -o.size / 2, -h / 2, o.size, h);
+      ctx.restore();
+    }
+    ctx.restore();
   }
 
   /** Route d'une de ses barges : trait de cartographe en pointillés jusqu'à la plage. */
@@ -241,8 +274,52 @@ export class SceneRenderer {
     ctx.stroke();
   }
 
-  /** Bâtiments gravés à l'encre, avec un fanion aux couleurs du propriétaire. */
+  /** Bâtiment gravé, marqué d'un petit écu aux couleurs du propriétaire. */
   private drawBuilding(b: BuildingView, color: RGB): void {
+    const art = sprite(`buildings/${b.kind}`);
+    if (!art.ready) {
+      this.drawBuildingShape(b, color);
+      return;
+    }
+    const ctx = this.ctx;
+    const x = (b.tile % this.territory.width) + 0.5;
+    const y = Math.floor(b.tile / this.territory.width) + 0.5;
+    const w = Math.max(BUILDING_TILES, BUILDING_MIN_PX / this.camera.zoom);
+    const h = w * art.aspect;
+    ctx.save();
+    ctx.globalAlpha = b.done ? 1 : 0.45;
+    this.drawEngraving(art, x - w / 2, y - h * 0.6, w, h);
+    this.drawOwnerShield(x + w * 0.36, y + h * 0.28, w * 0.34, color);
+    ctx.restore();
+  }
+
+  private drawEngraving(art: Sprite, x: number, y: number, w: number, h: number): void {
+    const level = art.pick(w * this.camera.zoom * this.dpr);
+    if (level) this.ctx.drawImage(level, x, y, w, h);
+  }
+
+  /** Écu du propriétaire en coordonnées monde : émail de sa couleur, bordure à l'encre. */
+  private drawOwnerShield(cx: number, cy: number, w: number, color: RGB): void {
+    const ctx = this.ctx;
+    const h = w * 1.2;
+    const x = cx - w / 2;
+    const y = cy - h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w, y + h * 0.55);
+    ctx.quadraticCurveTo(x + w, y + h * 0.85, cx, y + h);
+    ctx.quadraticCurveTo(x, y + h * 0.85, x, y + h * 0.55);
+    ctx.closePath();
+    ctx.fillStyle = rgbCss(color);
+    ctx.fill();
+    ctx.lineWidth = w * 0.1;
+    ctx.strokeStyle = PALETTE.ink;
+    ctx.stroke();
+  }
+
+  /** Repli : bâtiment tracé à l'encre, avec un fanion aux couleurs du propriétaire. */
+  private drawBuildingShape(b: BuildingView, color: RGB): void {
     const ctx = this.ctx;
     const x = (b.tile % this.territory.width) + 0.5;
     const y = Math.floor(b.tile / this.territory.width) + 0.5;

@@ -64,7 +64,9 @@
 
 /* Cartouche (panneau) -------------------------------------------------------------------------- */
 .lw-panel {
-  background: var(--lw-bg-surface);
+  /* Fibre du papier : grain neutre multiplié sur la surface, sans en changer la teinte. */
+  background: url("../assets/paper-grain.webp") var(--lw-bg-surface);
+  background-blend-mode: multiply;
   border: 1px solid var(--lw-border-default);
   border-radius: var(--lw-radius-lg);
   box-shadow:

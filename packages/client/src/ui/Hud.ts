@@ -81,6 +81,7 @@ export class Hud {
               kind,
             ) => `<button class="lw-button hud__build-btn" data-kind="${kind}" aria-pressed="false">
               <span class="lw-kbd">${BUILD_KEYS[kind]}</span>
+              <img class="hud__build-icon" src="/art/buildings/${kind}.webp" alt="" width="256" height="256" />
               <span class="hud__build-name">${BUILDINGS[kind].name}</span>
               <span class="hud__build-cost lw-numeric" data-cost="${kind}"></span></button>`,
           )
@@ -88,8 +89,10 @@ export class Hud {
       </nav>
       <div class="hud__hover lw-text-sm" id="hud-hover"></div>
       <div class="lw-modal" id="hud-modal" hidden>
-        <div class="lw-panel lw-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="hud-modal-title">
-          <h2 class="lw-modal__title" id="hud-modal-title"></h2>
+        <div class="lw-panel lw-modal__dialog hud__end" role="dialog" aria-modal="true" aria-labelledby="hud-modal-title">
+          <div class="hud__end-cartouche" id="hud-modal-cartouche">
+            <h2 class="lw-modal__title hud__end-title" id="hud-modal-title"></h2>
+          </div>
           <p id="hud-modal-text"></p>
           <div class="lw-modal__actions">
             <button class="lw-button lw-button--primary" id="hud-modal-exit">Retour au menu</button>
@@ -169,9 +172,12 @@ export class Hud {
       .join("");
   }
 
-  showEnd(title: string, text: string): void {
+  /** Fin de partie : titre dans le cartouche de victoire (trompettes et lauriers) ou, en cas
+   * de défaite, dans le cartouche sobre du titre. */
+  showEnd(title: string, text: string, victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
+    this.$("#hud-modal-cartouche").dataset.outcome = victory ? "victory" : "defeat";
     this.$("#hud-modal-title").textContent = title;
     this.$("#hud-modal-text").textContent = text;
     this.$("#hud-modal").hidden = false;

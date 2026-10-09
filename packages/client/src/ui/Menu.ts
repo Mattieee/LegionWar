@@ -29,8 +29,13 @@ export function showMenu(root: HTMLElement, onStart: (choice: MenuChoice) => voi
   el.innerHTML = `
     <section class="lw-panel menu__sheet" aria-labelledby="menu-title">
       <header class="menu__header">
-        <p class="lw-overline">Atlas du continent de</p>
-        <h1 class="lw-display" id="menu-title">LegionWar</h1>
+        <div class="menu__frontispice">
+          <img class="menu__frontispice-art" src="/art/frontispice.webp" alt="" width="1536" height="1024" />
+          <div class="menu__title-block">
+            <p class="menu__overline">Atlas du continent de</p>
+            <h1 class="menu__title" id="menu-title">LegionWar</h1>
+          </div>
+        </div>
         <p class="menu__tagline lw-flavor">Levez vos bannières, et que la carte se teinte de vos couleurs.</p>
       </header>
       <div class="lw-ornament" aria-hidden="true">❦</div>
@@ -124,7 +129,8 @@ export function showMenu(root: HTMLElement, onStart: (choice: MenuChoice) => voi
 function raceCard(id: Race): string {
   const info = RACES[id];
   return `
-    <button type="button" class="lw-card" data-race="${id}" aria-pressed="false" style="--lw-card-accent: ${raceColor(id)}">
+    <button type="button" class="lw-card menu__race" data-race="${id}" aria-pressed="false" style="--lw-card-accent: ${raceColor(id)}">
+      <img class="menu__race-emblem" src="/art/emblems/${id}.webp" alt="" width="256" height="256" />
       <span class="lw-card__head">
         <span class="lw-shield lw-shield--lg lw-shield--hatched lw-tincture-${raceTincture(id)}" aria-hidden="true"><span>${info.emblem}</span></span>
         <span><span class="lw-card__title">${escapeHtml(info.name)}</span><br /><span class="lw-card__subtitle">${escapeHtml(info.people)}</span></span>

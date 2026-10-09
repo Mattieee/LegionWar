@@ -22,6 +22,7 @@ import { Camera } from "./render/Camera";
 import { type RGB, playerColor } from "./render/colors";
 import { type Label, computeLabels } from "./render/Labels";
 import { SceneRenderer } from "./render/SceneRenderer";
+import { placeSeaOrnaments } from "./render/SeaDecor";
 import { TerritoryLayer } from "./render/TerritoryLayer";
 import { formatNumber } from "./ui/format";
 import { Hud, type EventTone } from "./ui/Hud";
@@ -163,7 +164,12 @@ export class GameSession {
     this.territory = new TerritoryLayer(width, height, terrain, state, (owner) =>
       this.colorOf(owner),
     );
-    this.scene = new SceneRenderer(this.canvas, this.camera, this.territory);
+    this.scene = new SceneRenderer(
+      this.canvas,
+      this.camera,
+      this.territory,
+      placeSeaOrnaments(this.map),
+    );
     this.scene.resize();
     this.camera.fit(width, height);
     this.loading.remove();
@@ -241,11 +247,12 @@ export class GameSession {
         victory
           ? "Le continent de Valdren s'incline devant votre bannière."
           : `${this.nameOf(event.player)} règne désormais sur Valdren.`,
+        victory,
       );
       return;
     }
     if (event.type === "eliminated" && event.player === this.myId) {
-      hud.showEnd("Défaite", `Votre royaume est tombé face à ${this.nameOf(event.by)}.`);
+      hud.showEnd("Défaite", `Votre royaume est tombé face à ${this.nameOf(event.by)}.`, false);
     }
     const described = this.describe(event);
     if (described) hud.pushEvent(described[0], described[1]);
