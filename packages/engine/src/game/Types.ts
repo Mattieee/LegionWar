@@ -29,8 +29,13 @@ export interface GameConfig {
 /** Action d'un joueur. Tout ce qui modifie la simulation passe par un intent. */
 export type Intent =
   | { type: "spawn"; tile: number }
-  /** target = 0 → terres libres. */
-  | { type: "attack"; target: number; troops: number }
+  /**
+   * target = 0 → terres libres. `tile` (optionnel) = tuile visée : si la cible n'a aucune
+   * frontière terrestre commune, l'attaque part en barge vers cette tuile.
+   */
+  | { type: "attack"; target: number; troops: number; tile?: number }
+  /** Débarquement forcé vers la tuile visée, même si une frontière terrestre existe. */
+  | { type: "boat"; tile: number; troops: number }
   | { type: "build"; building: BuildingKind; tile: number };
 
 export interface StampedIntent {
@@ -74,8 +79,25 @@ export interface AttackView {
   troops: number;
 }
 
+export interface BoatView {
+  id: number;
+  owner: number;
+  /** Tuile d'eau où se trouve la barge. */
+  tile: number;
+  /** Tuile de terre où elle débarquera. */
+  landing: number;
+  /** Propriétaire de la tuile de débarquement au départ (0 = terres libres). */
+  target: number;
+  troops: number;
+}
+
+export type BoatRejection = "maxBoats" | "notCoastal" | "noRoute";
+
 export type GameEvent =
   | { type: "spawnPhaseEnd" }
+  | { type: "boatLaunched"; attacker: number; target: number; troops: number }
+  | { type: "boatLanded"; attacker: number; target: number }
+  | { type: "boatRejected"; player: number; reason: BoatRejection }
   | { type: "spawnRejected"; player: number }
   | { type: "attackStarted"; attacker: number; target: number; troops: number }
   | { type: "eliminated"; player: number; by: number; gold: number }
@@ -95,6 +117,7 @@ export interface TickResult {
   /** Liste complète des bâtiments, seulement si elle a changé (sinon null). */
   buildings: BuildingView[] | null;
   attacks: AttackView[];
+  boats: BoatView[];
   events: GameEvent[];
   /** Hash d'état (tous les 10 ticks) pour détecter les désynchronisations, sinon null. */
   hash: number | null;

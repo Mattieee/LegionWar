@@ -190,9 +190,14 @@ le défenseur perd sa densité moyenne (troupes / tuiles) par tuile prise
 - **Caravanes :** elles circulent sur des routes entre Comptoirs, Bourgs et Ports. Gain par étape : 10 k (chez soi), 25 k (autre seigneur), 35 k (allié), dégressif après la 9ᵉ étape.
 - **Piraterie :** un navire de guerre capture les nefs ennemies et empoche leur cargaison.
 
-## 10. Guerre navale [Prévu]
+## 10. Guerre navale
 
-- **Barge de transport :** débarquement ; au plus 3 en mer par seigneur. Si on l'annule, 25 % des troupes sont perdues.
+- **Barge de transport** [Proto] :
+  - **Lancement :** un clic sur une terre sans frontière terrestre commune envoie automatiquement une barge ; <kbd>B</kbd> force le débarquement sur la terre survolée. Les troupes engagées suivent le ratio d'attaque.
+  - **Route :** la plus courte en tuiles d'eau, depuis une côte du joueur jusqu'à la plage la plus proche de la terre visée (8 plages candidates au plus). Il faut une côte sur la même mer.
+  - **Vitesse et limite :** 3 tuiles par tick ; **3 barges** en mer au plus par seigneur (et 3 tentatives de lancement par tick).
+  - **Débarquement :** la plage est prise, puis l'assaut continue depuis cette tête de pont contre le propriétaire de la plage. Si la plage est déjà à soi à l'arrivée, les troupes rentrent sans perte.
+  - [Prévu] Annulation en mer (25 % de pertes), barges coulées par les navires de guerre.
 - **Navire de guerre :** 1 000 PV ; tire sur les barges en priorité ; se répare au port ; trois niveaux de vétérance.
 - **Noms par race :** Galère royale (Aldoria), Drakkar de guerre (Kharag), Navire spectral (Morvane), Voilier lunaire (Sylvanor).
 
@@ -262,6 +267,7 @@ C'est l'équivalent des armes nucléaires d'OpenFront.
 | Construire                 | <kbd>1</kbd> Bourg, <kbd>2</kbd> Tour, puis clic                         |
 | Annuler                    | <kbd>Échap</kbd>, clic droit                                             |
 | Caméra                     | Glisser, molette, <kbd>+</kbd> / <kbd>−</kbd>, <kbd>C</kbd> pour centrer |
+| Débarquer                  | Clic sur une terre au-delà de la mer, ou <kbd>B</kbd> sur la terre visée |
 
 Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, un glissement déplace la caméra.
 

@@ -35,6 +35,16 @@ export const TOWER_RANGE = 20;
 export const TOWER_LOSS_MULT = 4;
 export const TOWER_COST_MULT = 2.5;
 
+// Naval ---------------------------------------------------------------------------------------
+/** Barges de débarquement en mer simultanément, par seigneur. */
+export const MAX_BOATS = 3;
+/** Vitesse d'une barge, en tuiles d'eau par tick. */
+export const BOAT_TILES_PER_TICK = 3;
+/** Nombre maximal de plages candidates essayées pour un débarquement. */
+export const LANDING_CANDIDATES = 8;
+/** Tuiles de terre explorées au maximum pour trouver une plage depuis la tuile visée. */
+export const LANDING_SEARCH_LIMIT = 4000;
+
 export interface BuildingInfo {
   name: string;
   constructionTicks: number;

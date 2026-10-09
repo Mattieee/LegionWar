@@ -13,9 +13,19 @@ import type { Label } from "./Labels";
 import type { TerritoryLayer } from "./TerritoryLayer";
 import { formatNumber } from "../ui/format";
 
+/** Barge prête à dessiner : position interpolée en coordonnées monde (tuiles). */
+export interface BoatSprite {
+  owner: number;
+  troops: number;
+  landing: number;
+  x: number;
+  y: number;
+}
+
 export interface SceneState {
   players: ReadonlyMap<number, PlayerView>;
   buildings: readonly BuildingView[];
+  boats: readonly BoatSprite[];
   mines: readonly number[];
   labels: readonly Label[];
   myId: number | null;
@@ -116,15 +126,103 @@ export class SceneRenderer {
       this.drawMine((mine % width) + 0.5, Math.floor(mine / width) + 0.5);
     }
     for (const b of state.buildings) this.drawBuilding(b, state.colorOf(b.owner));
+    for (const boat of state.boats) {
+      if (boat.owner === state.myId) this.drawRoute(boat, width);
+    }
+    for (const boat of state.boats) this.drawBoat(boat, state.colorOf(boat.owner));
     if (state.hoverTile !== null) this.drawHover(state, width);
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawLabels(state);
+    this.drawBoatTroops(state);
 
     if (this.vignette) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = this.vignette;
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+  }
+
+  /** Route d'une de ses barges : trait de cartographe en pointillés jusqu'à la plage. */
+  private drawRoute(boat: BoatSprite, width: number): void {
+    const ctx = this.ctx;
+    const lx = (boat.landing % width) + 0.5;
+    const ly = Math.floor(boat.landing / width) + 0.5;
+    const unit = 1 / this.camera.zoom;
+    ctx.save();
+    ctx.strokeStyle = PALETTE.inkSoft;
+    ctx.lineWidth = 1.2 * unit;
+    ctx.setLineDash([5 * unit, 4 * unit]);
+    ctx.beginPath();
+    ctx.moveTo(boat.x, boat.y);
+    ctx.lineTo(lx, ly);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Croix de débarquement.
+    const s = Math.max(1.2, 5 * unit);
+    ctx.lineWidth = 1.6 * unit;
+    ctx.strokeStyle = PALETTE.ink;
+    ctx.beginPath();
+    ctx.moveTo(lx - s, ly - s);
+    ctx.lineTo(lx + s, ly + s);
+    ctx.moveTo(lx + s, ly - s);
+    ctx.lineTo(lx - s, ly + s);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** Barge gravée : coque, mât et voile aux couleurs du propriétaire. Taille lisible à tout zoom. */
+  private drawBoat(boat: BoatSprite, color: RGB): void {
+    const ctx = this.ctx;
+    const scale = Math.max(1.4, 9 / this.camera.zoom);
+    ctx.save();
+    ctx.translate(boat.x, boat.y);
+    ctx.scale(scale, scale);
+    ctx.lineWidth = 0.16;
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = PALETTE.ink;
+    // Coque.
+    ctx.beginPath();
+    ctx.moveTo(-1.3, 0.2);
+    ctx.lineTo(1.3, 0.2);
+    ctx.quadraticCurveTo(1, 0.9, 0, 0.9);
+    ctx.quadraticCurveTo(-1, 0.9, -1.3, 0.2);
+    ctx.closePath();
+    ctx.fillStyle = PALETTE.paper;
+    ctx.fill();
+    ctx.stroke();
+    // Mât.
+    ctx.beginPath();
+    ctx.moveTo(0, 0.2);
+    ctx.lineTo(0, -1.4);
+    ctx.stroke();
+    // Voile.
+    ctx.beginPath();
+    ctx.moveTo(0.08, -1.3);
+    ctx.quadraticCurveTo(0.9, -0.65, 0.08, 0.05);
+    ctx.closePath();
+    ctx.fillStyle = rgbCss(color);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** Effectif embarqué, en italique sous la barge (coordonnées écran). */
+  private drawBoatTroops(state: SceneState): void {
+    if (this.camera.zoom < 3) return;
+    const ctx = this.ctx;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.font = `italic 11px ${FONT_FLAVOR}`;
+    ctx.lineJoin = "round";
+    for (const boat of state.boats) {
+      const [sx, sy] = this.camera.worldToScreen(boat.x, boat.y);
+      const text = formatNumber(boat.troops);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = PALETTE.labelHalo;
+      ctx.strokeText(text, sx, sy + 10);
+      ctx.fillStyle = PALETTE.ink;
+      ctx.fillText(text, sx, sy + 10);
     }
   }
 

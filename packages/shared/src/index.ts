@@ -48,6 +48,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isValidTroops(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
 function isNonNegativeInt(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
@@ -70,10 +74,11 @@ export function isValidIntent(value: unknown): value is Intent {
     case "attack":
       return (
         isNonNegativeInt(value.target) &&
-        typeof value.troops === "number" &&
-        Number.isFinite(value.troops) &&
-        value.troops >= 0
+        isValidTroops(value.troops) &&
+        (value.tile === undefined || isNonNegativeInt(value.tile))
       );
+    case "boat":
+      return isNonNegativeInt(value.tile) && isValidTroops(value.troops);
     case "build":
       return (
         isNonNegativeInt(value.tile) &&

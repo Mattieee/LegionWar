@@ -45,6 +45,7 @@ Les joueurs de .io et de RTS nostalgiques de Warcraft III, pour des sessions de 
 | Client : menu, choix de race, rendu Canvas, caméra, HUD, classement, journal                      | ✅      |
 | Design system : tokens, composants `.lw-*`, polices embarquées, page de référence, tests WCAG     | ✅      |
 | Serveur relais WebSocket (lobby, tours, reconnexion) et tests                                     | ✅      |
+| Barges de débarquement (route maritime, tête de pont, 3 par seigneur) — avancé depuis la v0.4     | ✅      |
 | Multijoueur branché dans le client                                                                | ⏳ v0.2 |
 
 ## Feuille de route
@@ -54,7 +55,7 @@ Les joueurs de .io et de RTS nostalgiques de Warcraft III, pour des sessions de 
 | **v0.1** Prototype ✅       | Valider la boucle de jeu | Voir le tableau ci-dessus                                                                                             |
 | **v0.2** Multijoueur        | Jouer à plusieurs        | Écran de lobby, connexion du client au serveur relais, détection de désynchronisation (hash), reconnexion, spectateur |
 | **v0.3** Bâtiments complets | Profondeur économique    | Port, Comptoir et routes commerciales (caravanes), bâtiments propres à chaque race, amélioration des bâtiments        |
-| **v0.4** Naval              | Débarquements            | Barges de transport, navires de guerre, nefs marchandes                                                               |
+| **v0.4** Naval              | Débarquements            | ~~Barges de transport~~ (livré), navires de guerre, nefs marchandes                                                   |
 | **v0.5** Magie              | Le « nucléaire » fantasy | Sanctuaire, sorts mineur/majeur/ultime par race, Bastion runique (contre-sort), terres maudites                       |
 | **v0.6** Diplomatie         | Couche sociale           | Alliances, trahison, embargo, dons, emojis, messages rapides                                                          |
 | **v0.7** IA Seigneurs       | Adversaires crédibles    | Nations IA liées à la carte, 4 niveaux de difficulté                                                                  |

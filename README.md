@@ -23,15 +23,16 @@ Variables d'environnement du serveur (toutes optionnelles) : `PORT` (3001), `MAX
 
 ## Comment jouer
 
-| Action                                  | Commande                                             |
-| --------------------------------------- | ---------------------------------------------------- |
-| Choisir sa terre de départ              | Clic sur une terre libre                             |
-| Attaquer (terres libres ou voisin)      | Clic gauche sur la cible                             |
-| Ratio de troupes engagées               | Curseur, ou <kbd>T</kbd> / <kbd>Y</kbd>              |
-| Construire un Bourg / une Tour de garde | <kbd>1</kbd> / <kbd>2</kbd> puis clic sur vos terres |
-| Annuler la construction                 | <kbd>Échap</kbd> ou clic droit                       |
-| Déplacer la caméra / zoomer             | Glisser / molette, <kbd>+</kbd> <kbd>−</kbd>         |
-| Centrer sur votre royaume               | <kbd>C</kbd>                                         |
+| Action                                  | Commande                                              |
+| --------------------------------------- | ----------------------------------------------------- |
+| Choisir sa terre de départ              | Clic sur une terre libre                              |
+| Attaquer (terres libres ou voisin)      | Clic gauche sur la cible                              |
+| Ratio de troupes engagées               | Curseur, ou <kbd>T</kbd> / <kbd>Y</kbd>               |
+| Construire un Bourg / une Tour de garde | <kbd>1</kbd> / <kbd>2</kbd> puis clic sur vos terres  |
+| Annuler la construction                 | <kbd>Échap</kbd> ou clic droit                        |
+| Déplacer la caméra / zoomer             | Glisser / molette, <kbd>+</kbd> <kbd>−</kbd>          |
+| Centrer sur votre royaume               | <kbd>C</kbd>                                          |
+| Débarquer (terre au-delà de la mer)     | Clic sur la cible, ou <kbd>B</kbd> sur la terre visée |
 
 **Les quatre peuples :**
 

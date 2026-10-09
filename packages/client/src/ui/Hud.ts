@@ -6,6 +6,7 @@ import {
   costFor,
   modifiersOf,
   type AttackView,
+  type BoatView,
   type PlayerView,
 } from "@legionwar/engine";
 import { escapeHtml, formatNumber, formatPercent } from "./format";
@@ -20,6 +21,7 @@ export interface HudState {
   me: PlayerView | null;
   players: readonly PlayerView[];
   attacks: readonly AttackView[];
+  boats: readonly BoatView[];
   inSpawnPhase: boolean;
   ratio: number;
   buildMode: BuildingKind | null;
@@ -183,21 +185,25 @@ export class Hud {
   private renderAttacks(state: HudState): void {
     const me = state.me as PlayerView;
     const names = new Map(state.players.map((p) => [p.id, p.name]));
-    const rows = state.attacks
+    const row = (outgoing: boolean, icon: string, otherId: number, troops: number): string => {
+      const other = otherId === 0 ? "Terres libres" : (names.get(otherId) ?? "?");
+      return `<li class="hud__attack hud__attack--${outgoing ? "out" : "in"}">
+          <span>${icon} ${outgoing ? "→" : "←"} ${escapeHtml(other)}</span>
+          <span class="lw-numeric">${formatNumber(troops)}</span></li>`;
+    };
+    const land = state.attacks
       .filter((a) => a.attacker === me.id || a.target === me.id)
-      .slice(0, 6)
       .map((a) => {
         const outgoing = a.attacker === me.id;
-        const other = outgoing
-          ? a.target === 0
-            ? "Terres libres"
-            : names.get(a.target)
-          : names.get(a.attacker);
-        return `<li class="hud__attack hud__attack--${outgoing ? "out" : "in"}">
-          <span>${outgoing ? "⚔ →" : "⚠ ←"} ${escapeHtml(other ?? "?")}</span>
-          <span class="lw-numeric">${formatNumber(a.troops)}</span></li>`;
+        return row(outgoing, outgoing ? "⚔" : "⚠", outgoing ? a.target : a.attacker, a.troops);
       });
-    this.$("#hud-attacks").innerHTML = rows.join("");
+    const sea = state.boats
+      .filter((b) => b.owner === me.id || b.target === me.id)
+      .map((b) => {
+        const outgoing = b.owner === me.id;
+        return row(outgoing, "⛵", outgoing ? b.target : b.owner, b.troops);
+      });
+    this.$("#hud-attacks").innerHTML = [...sea, ...land].slice(0, 7).join("");
   }
 
   private renderBoard(state: HudState): void {

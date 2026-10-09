@@ -3,9 +3,12 @@ import {
   BuildingKind,
   GameMap,
   TERRAIN_NAMES,
+  TICK_MS,
   TOWER_RANGE,
   modifiersOf,
   type AttackView,
+  type BoatRejection,
+  type BoatView,
   type BuildRejection,
   type BuildingView,
   type GameConfig,
@@ -39,6 +42,12 @@ const REJECTION_TEXT: Record<BuildRejection, string> = {
   gold: "Or insuffisant.",
 };
 
+const BOAT_REJECTION_TEXT: Record<BoatRejection, string> = {
+  maxBoats: "Toutes vos barges sont déjà en mer (3 au maximum).",
+  notCoastal: "Aucune plage où débarquer près de cette terre.",
+  noRoute: "Aucune route maritime : il vous faut une côte sur la même mer.",
+};
+
 /** Une partie solo : worker de simulation + horloge locale + rendu + interface. */
 export class GameSession {
   private readonly container: HTMLElement;
@@ -61,6 +70,10 @@ export class GameSession {
   private playerList: PlayerView[] = [];
   private buildings: BuildingView[] = [];
   private attacks: AttackView[] = [];
+  private boats: BoatView[] = [];
+  /** Tuile précédente de chaque barge, pour interpoler son déplacement entre deux ticks. */
+  private boatFrom = new Map<number, number>();
+  private lastTickTime = 0;
   private mines: number[] = [];
   private labels: Label[] = [];
   private lastLabelTime = -Infinity;
@@ -181,6 +194,10 @@ export class GameSession {
     this.myId = result.players.find((p) => p.clientId === CLIENT_ID)?.id ?? null;
     if (result.buildings) this.buildings = result.buildings;
     this.attacks = result.attacks;
+    const previous = new Map(this.boats.map((b) => [b.id, b.tile]));
+    this.boatFrom = new Map(result.boats.map((b) => [b.id, previous.get(b.id) ?? b.tile]));
+    this.boats = result.boats;
+    this.lastTickTime = performance.now();
     this.inSpawnPhase = result.inSpawnPhase;
 
     const me = this.me();
@@ -196,6 +213,7 @@ export class GameSession {
       me,
       players: this.playerList,
       attacks: this.attacks,
+      boats: this.boats,
       inSpawnPhase: this.inSpawnPhase,
       ratio: this.ratio,
       buildMode: this.buildMode,
@@ -265,6 +283,21 @@ export class GameSession {
         return null;
       case "buildingRejected":
         return e.player === me ? [REJECTION_TEXT[e.reason], "bad"] : null;
+      case "boatLaunched":
+        if (e.attacker === me) {
+          return [`Vos barges prennent la mer avec ${formatNumber(e.troops)} troupes.`, "info"];
+        }
+        return e.target === me
+          ? [`Des barges de ${this.nameOf(e.attacker)} font voile vers vos côtes !`, "bad"]
+          : null;
+      case "boatLanded":
+        if (e.attacker === me)
+          return ["Débarquement réussi : la tête de pont est établie.", "good"];
+        return e.target === me
+          ? [`${this.nameOf(e.attacker)} débarque sur vos côtes !`, "bad"]
+          : null;
+      case "boatRejected":
+        return e.player === me ? [BOAT_REJECTION_TEXT[e.reason], "bad"] : null;
       case "win":
         return null;
     }
@@ -303,7 +336,18 @@ export class GameSession {
     const owner = this.territory.owner(tile);
     if (owner === me.id) return;
     const troops = Math.floor(me.troops * this.ratio);
-    if (troops >= 1) this.server.submit({ type: "attack", target: owner, troops });
+    // La tuile visée permet au moteur de lancer une barge si la cible n'a pas de frontière commune.
+    if (troops >= 1) this.server.submit({ type: "attack", target: owner, troops, tile });
+  }
+
+  /** Débarquement forcé sur la tuile survolée (touche B). */
+  private launchBoatAtHover(): void {
+    const me = this.me();
+    const tile = this.hoverTile;
+    if (!me || !me.alive || this.inSpawnPhase || tile === null || !this.map) return;
+    if (!this.map.isPassableLand(tile) || this.territory?.owner(tile) === me.id) return;
+    const troops = Math.floor(me.troops * this.ratio);
+    if (troops >= 1) this.server.submit({ type: "boat", tile, troops });
   }
 
   private onHover(sx: number, sy: number): void {
@@ -343,6 +387,9 @@ export class GameSession {
       case "c":
         this.centerOnMe();
         break;
+      case "b":
+        this.launchBoatAtHover();
+        break;
       case "+":
       case "=":
         this.camera.zoomAt(this.camera.viewWidth / 2, this.camera.viewHeight / 2, KEY_ZOOM_FACTOR);
@@ -372,9 +419,24 @@ export class GameSession {
       this.centeredOnSpawn = this.centerOnMe(8);
     }
     const me = this.me();
+    const width = this.map.width;
+    const progress = Math.min(1, (performance.now() - this.lastTickTime) / TICK_MS);
+    const boats = this.boats.map((b) => {
+      const from = this.boatFrom.get(b.id) ?? b.tile;
+      const fx = from % width;
+      const fy = Math.floor(from / width);
+      return {
+        owner: b.owner,
+        troops: b.troops,
+        landing: b.landing,
+        x: fx + ((b.tile % width) - fx) * progress + 0.5,
+        y: fy + (Math.floor(b.tile / width) - fy) * progress + 0.5,
+      };
+    });
     this.scene.draw({
       players: this.players,
       buildings: this.buildings,
+      boats,
       mines: this.mines,
       labels: this.labels,
       myId: this.myId,

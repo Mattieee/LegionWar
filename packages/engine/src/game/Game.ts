@@ -1,7 +1,11 @@
 import {
+  BOAT_TILES_PER_TICK,
   BUILDINGS,
   GOLD_PER_MINE_PER_TICK,
   HASH_INTERVAL,
+  LANDING_CANDIDATES,
+  LANDING_SEARCH_LIMIT,
+  MAX_BOATS,
   MIN_SPAWN_DISTANCE,
   MULTIPLAYER_SPAWN_PHASE_TICKS,
   SPAWN_ATTEMPTS,
@@ -24,11 +28,14 @@ import { generateMap } from "../map/MapGenerator";
 import { MAX_PLAYER_ID } from "../map/Terrain";
 import { Attack } from "./Attack";
 import { BotBrain } from "./BotAI";
+import { type Boat, SeaScratch, findSeaRoute, landingCandidates } from "./Naval";
 import { tribeName } from "./Names";
 import { Player } from "./Player";
 import {
   BuildingKind,
   type AttackView,
+  type BoatRejection,
+  type BoatView,
   type BuildRejection,
   type BuildingView,
   type GameConfig,
@@ -66,6 +73,12 @@ export class Game {
   private readonly byClient = new Map<string, Player>();
   private readonly brains: BotBrain[] = [];
   private attacks: Attack[] = [];
+  private boats: Boat[] = [];
+  private nextBoatId = 1;
+  /** Tentatives de lancement de barge pendant le tour courant, par joueur. */
+  private readonly boatAttempts = new Map<number, number>();
+  /** Tampon réutilisé par la recherche de route maritime (taille de la carte). */
+  private seaScratch: SeaScratch | null = null;
   private readonly buildings = new Map<number, Building>();
   private readonly buildingAt = new Map<number, number>();
   private readonly spawnCenters: number[] = [];
@@ -133,6 +146,7 @@ export class Game {
 
   /** Applique les intents d'un tour, avance d'un tick et renvoie les changements. */
   executeTurn(turn: Turn): TickResult {
+    this.boatAttempts.clear();
     for (const stamped of turn.intents) {
       const p = this.byClient.get(stamped.clientId);
       if (p) this.handleIntent(p, stamped.intent);
@@ -153,7 +167,20 @@ export class Game {
           Number.isInteger(intent.target) &&
           Number.isFinite(intent.troops)
         ) {
-          this.launchAttack(p, intent.target, intent.troops);
+          const tile =
+            intent.tile !== undefined && this.map.isValidRef(intent.tile) ? intent.tile : undefined;
+          this.launchAttack(p, intent.target, intent.troops, tile);
+        }
+        break;
+      case "boat":
+        if (
+          !this.inSpawnPhase &&
+          p.alive &&
+          this.map.isValidRef(intent.tile) &&
+          Number.isFinite(intent.troops)
+        ) {
+          const troops = p.removeTroops(intent.troops);
+          if (troops >= 1 && !this.launchBoat(p, intent.tile, troops)) p.addTroops(troops);
         }
         break;
       case "build":
@@ -173,6 +200,7 @@ export class Game {
       this.updateEconomy();
       this.updateConstructions();
       for (const brain of this.brains) brain.tick(this.ticks);
+      this.updateBoats();
       for (const attack of this.attacks) attack.tick();
       this.attacks = this.attacks.filter((a) => a.active);
       if (this.winner === null && this.ticks % WIN_CHECK_INTERVAL === 0) this.checkWin();
@@ -266,25 +294,44 @@ export class Game {
 
   // Attaques ------------------------------------------------------------------------------------
 
-  launchAttack(attacker: Player, targetId: number, requested: number): void {
+  /**
+   * Attaque terrestre ; si la cible n'a aucune frontière commune avec l'attaquant et qu'une
+   * tuile est visée, les troupes partent en barge vers cette tuile.
+   */
+  launchAttack(attacker: Player, targetId: number, requested: number, tile?: number): void {
     if (targetId === attacker.id) return;
     const target = targetId === 0 ? null : this.player(targetId);
     if (targetId !== 0 && (target === null || !target.alive)) return;
 
-    let troops = attacker.removeTroops(requested);
+    const troops = attacker.removeTroops(requested);
     if (troops < 1) return;
+    const leftover = this.commitAttack(attacker, targetId, troops);
+    if (leftover < 1) return;
+    if (tile !== undefined && this.map.owner(tile) === targetId) {
+      if (this.launchBoat(attacker, tile, leftover)) return;
+    }
+    attacker.addTroops(leftover);
+  }
+
+  /**
+   * Engage des troupes (déjà retirées à l'attaquant) contre une cible par la terre.
+   * Renvoie les troupes non engagées (0 si tout est parti, toutes s'il n'y a pas de front).
+   */
+  private commitAttack(attacker: Player, targetId: number, troops: number): number {
+    const target = targetId === 0 ? null : this.player(targetId);
+    let remaining = troops;
 
     // Deux attaques opposées s'annulent.
     if (target !== null) {
       for (const a of this.attacks) {
         if (a.active && a.attacker.id === targetId && a.targetId === attacker.id) {
-          const cancelled = Math.min(a.troops, troops);
+          const cancelled = Math.min(a.troops, remaining);
           a.troops -= cancelled;
-          troops -= cancelled;
+          remaining -= cancelled;
           if (a.troops < 1) a.active = false;
         }
       }
-      if (troops < 1) return;
+      if (remaining < 1) return 0;
     }
 
     // Une nouvelle attaque vers la même cible renforce l'attaque existante.
@@ -292,21 +339,101 @@ export class Game {
       (a) => a.active && a.attacker === attacker && a.targetId === targetId,
     );
     if (existing) {
-      existing.troops += troops;
+      existing.troops += remaining;
       existing.refreshFront();
-      return;
+      return 0;
     }
 
-    const attack = new Attack(this, this.nextAttackId++, attacker, targetId, troops);
-    if (!attack.init()) {
-      attacker.addTroops(troops);
-      return;
-    }
+    const attack = new Attack(this, this.nextAttackId++, attacker, targetId, remaining);
+    if (!attack.init()) return remaining;
     this.attacks.push(attack);
     attacker.everAttacked = true;
     if (attacker.kind === "human" || target?.kind === "human") {
-      this.events.push({ type: "attackStarted", attacker: attacker.id, target: targetId, troops });
+      this.events.push({
+        type: "attackStarted",
+        attacker: attacker.id,
+        target: targetId,
+        troops: remaining,
+      });
     }
+    return 0;
+  }
+
+  // Naval ---------------------------------------------------------------------------------------
+
+  /** Lance une barge (troupes déjà retirées) vers la côte la plus proche de `dst`. */
+  private launchBoat(attacker: Player, dst: number, troops: number): boolean {
+    const reject = (reason: BoatRejection): false => {
+      if (attacker.kind === "human") {
+        this.events.push({ type: "boatRejected", player: attacker.id, reason });
+      }
+      return false;
+    };
+    // Plafonne aussi les tentatives par tick : une rafale d'intents refusés ne doit pas faire
+    // ramer les autres clients (chaque tentative coûte une recherche de route).
+    const attempts = (this.boatAttempts.get(attacker.id) ?? 0) + 1;
+    this.boatAttempts.set(attacker.id, attempts);
+    if (
+      attempts > MAX_BOATS ||
+      this.boats.filter((b) => b.owner === attacker).length >= MAX_BOATS
+    ) {
+      return reject("maxBoats");
+    }
+    if (!this.map.isPassableLand(dst) || this.map.owner(dst) === attacker.id) {
+      return reject("notCoastal");
+    }
+    const candidates = landingCandidates(this.map, dst, LANDING_CANDIDATES, LANDING_SEARCH_LIMIT);
+    if (candidates.length === 0) return reject("notCoastal");
+
+    this.seaScratch ??= new SeaScratch(this.map.size);
+    const route = findSeaRoute(this.map, attacker.id, candidates, this.seaScratch);
+    if (route === null) return reject("noRoute");
+    const target = this.map.owner(route.landing);
+    this.boats.push({
+      id: this.nextBoatId++,
+      owner: attacker,
+      troops,
+      path: route.path,
+      step: 0,
+      landing: route.landing,
+      target,
+      done: false,
+    });
+    attacker.everAttacked = true;
+    if (attacker.kind === "human" || this.player(target)?.kind === "human") {
+      this.events.push({ type: "boatLaunched", attacker: attacker.id, target, troops });
+    }
+    return true;
+  }
+
+  private updateBoats(): void {
+    for (const boat of this.boats) {
+      if (!boat.owner.alive) {
+        boat.done = true;
+        continue;
+      }
+      boat.step = Math.min(boat.path.length - 1, boat.step + BOAT_TILES_PER_TICK);
+      if (boat.step === boat.path.length - 1) {
+        this.landBoat(boat);
+        boat.done = true;
+      }
+    }
+    this.boats = this.boats.filter((b) => !b.done);
+  }
+
+  /** Débarquement : la plage est prise, puis l'assaut continue depuis cette tête de pont. */
+  private landBoat(boat: Boat): void {
+    const attacker = boat.owner;
+    const owner = this.map.owner(boat.landing);
+    if (owner === attacker.id || !this.map.isPassableLand(boat.landing)) {
+      attacker.addTroops(boat.troops);
+      return;
+    }
+    this.conquer(boat.landing, attacker.id);
+    if (attacker.kind === "human" || this.player(owner)?.kind === "human") {
+      this.events.push({ type: "boatLanded", attacker: attacker.id, target: owner });
+    }
+    attacker.addTroops(this.commitAttack(attacker, owner, boat.troops));
   }
 
   /** Transfère tout le territoire restant du vaincu et son or au vainqueur. */
@@ -496,6 +623,15 @@ export class Game {
       h = mixHash(h, p.gold);
     }
     for (const a of this.attacks) h = mixHash(h, Math.floor(a.troops));
+    for (const b of this.boats) {
+      h = mixHash(h, b.id);
+      h = mixHash(h, b.owner.id);
+      h = mixHash(h, b.troops);
+      h = mixHash(h, b.path[b.step] as number);
+      h = mixHash(h, b.path.length - b.step);
+      h = mixHash(h, b.landing);
+      h = mixHash(h, b.target);
+    }
     return h >>> 0;
   }
 
@@ -545,6 +681,14 @@ export class Game {
       target: a.targetId,
       troops: Math.floor(a.troops),
     }));
+    const boats: BoatView[] = this.boats.map((b) => ({
+      id: b.id,
+      owner: b.owner.id,
+      tile: b.path[b.step] as number,
+      landing: b.landing,
+      target: b.target,
+      troops: b.troops,
+    }));
     const result: TickResult = {
       tick: this.ticks,
       inSpawnPhase: this.inSpawnPhase,
@@ -552,6 +696,7 @@ export class Game {
       players: this.playerViews(),
       buildings: this.buildingsDirty ? this.buildingViews() : null,
       attacks,
+      boats,
       events: this.events,
       hash: this.ticks % HASH_INTERVAL === 0 ? this.hash() : null,
       winner: this.winner,
