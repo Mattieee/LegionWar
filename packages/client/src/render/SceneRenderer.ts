@@ -1,12 +1,14 @@
+import { raceColor, tokenRgb, tokens } from "@legionwar/design-system";
 import {
   BuildingKind,
+  RACES,
   STRUCTURE_MIN_DIST,
   TOWER_RANGE,
   type BuildingView,
   type PlayerView,
 } from "@legionwar/engine";
 import type { Camera } from "./Camera";
-import { DEEP_WATER, type RGB, rgbCss } from "./colors";
+import { TABLE, type RGB, rgbCss } from "./colors";
 import type { Label } from "./Labels";
 import type { TerritoryLayer } from "./TerritoryLayer";
 import { formatNumber } from "../ui/format";
@@ -24,13 +26,33 @@ export interface SceneState {
   colorOf: (owner: number) => RGB;
 }
 
-const GOLD: RGB = [232, 194, 90];
-const INK = "rgba(28, 18, 10, 0.9)";
+/** Couleurs Canvas issues des tokens `map.*` et `heraldry.*` du design system. */
+const PALETTE = {
+  table: rgbCss(TABLE),
+  paper: rgbCss(tokenRgb("map.terrain.plain")),
+  mine: rgbCss(tokenRgb("map.mine")),
+  ink: rgbCss(tokenRgb("map.ink")),
+  inkSoft: rgbCss(tokenRgb("map.ink"), 0.55),
+  hover: rgbCss(tokenRgb("map.hover"), 0.85),
+  buildValid: rgbCss(tokenRgb("map.buildValid"), 0.9),
+  buildInvalid: rgbCss(tokenRgb("map.buildInvalid"), 0.9),
+  towerRange: rgbCss(tokenRgb("map.towerRange"), 0.85),
+  label: rgbCss(tokenRgb("map.label")),
+  labelSelf: rgbCss(tokenRgb("map.labelSelf")),
+  labelHalo: rgbCss(tokenRgb("map.labelHalo"), 0.9),
+  vignette: tokenRgb("map.vignette"),
+  sheetShadow: rgbCss(tokenRgb("map.vignette"), 0.6),
+  sable: rgbCss(tokenRgb("heraldry.sable")),
+  argent: rgbCss(tokenRgb("heraldry.argent")),
+};
+const FONT_DISPLAY = tokens.font.family.display;
+const FONT_FLAVOR = tokens.font.family.flavor;
 
-/** Dessine la carte, les mines, les bâtiments, le fantôme de construction et les noms. */
+/** Dessine la carte, les mines, les bâtiments, l'aperçu de construction et les noms. */
 export class SceneRenderer {
   private readonly ctx: CanvasRenderingContext2D;
   private dpr = 1;
+  private vignette: CanvasGradient | null = null;
 
   constructor(
     readonly canvas: HTMLCanvasElement,
@@ -48,6 +70,20 @@ export class SceneRenderer {
     this.canvas.width = Math.round(rect.width * this.dpr);
     this.canvas.height = Math.round(rect.height * this.dpr);
     this.camera.resize(rect.width, rect.height);
+    // Vignettage du papier : bords de l'écran assombris, calculé une fois par taille.
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+    const [r, g, b] = PALETTE.vignette;
+    this.vignette = this.ctx.createRadialGradient(
+      w / 2,
+      h / 2,
+      Math.min(w, h) * 0.35,
+      w / 2,
+      h / 2,
+      Math.hypot(w, h) * 0.6,
+    );
+    this.vignette.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
+    this.vignette.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.38)`);
   }
 
   draw(state: SceneState): void {
@@ -56,80 +92,106 @@ export class SceneRenderer {
     this.territory.flush();
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = rgbCss(DEEP_WATER);
+    ctx.fillStyle = PALETTE.table;
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.camera.apply(ctx, this.dpr);
+    // Ombre portée de la feuille sur la table.
+    ctx.shadowColor = PALETTE.sheetShadow;
+    ctx.shadowBlur = 18 * this.camera.zoom * this.dpr;
+    ctx.fillStyle = PALETTE.paper;
+    ctx.fillRect(0, 0, width, this.territory.height);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(this.territory.canvas, 0, 0);
+    ctx.lineWidth = Math.max(0.25, 1.2 / this.camera.zoom);
+    ctx.strokeStyle = PALETTE.ink;
+    ctx.strokeRect(0, 0, width, this.territory.height);
 
     for (const mine of state.mines) {
-      const owner = this.territory.owner(mine);
-      this.drawMine(
-        (mine % width) + 0.5,
-        Math.floor(mine / width) + 0.5,
-        owner ? state.colorOf(owner) : null,
-      );
+      this.drawMine((mine % width) + 0.5, Math.floor(mine / width) + 0.5);
     }
-    for (const b of state.buildings) {
-      this.drawBuilding(b, state.colorOf(b.owner));
-    }
+    for (const b of state.buildings) this.drawBuilding(b, state.colorOf(b.owner));
     if (state.hoverTile !== null) this.drawHover(state, width);
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawLabels(state);
+
+    if (this.vignette) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = this.vignette;
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
   }
 
-  private drawMine(x: number, y: number, ownerColor: RGB | null): void {
+  /** Mine d'or : petit tertre gravé. */
+  private drawMine(x: number, y: number): void {
     const ctx = this.ctx;
-    const r = 1.6;
     ctx.beginPath();
-    ctx.moveTo(x, y - r);
-    ctx.lineTo(x + r, y);
-    ctx.lineTo(x, y + r);
-    ctx.lineTo(x - r, y);
+    ctx.moveTo(x - 1.7, y + 1.2);
+    ctx.lineTo(x, y - 1.7);
+    ctx.lineTo(x + 1.7, y + 1.2);
     ctx.closePath();
-    ctx.fillStyle = rgbCss(GOLD);
+    ctx.fillStyle = PALETTE.mine;
     ctx.fill();
-    ctx.lineWidth = 0.35;
-    ctx.strokeStyle = ownerColor ? rgbCss(ownerColor) : INK;
+    ctx.lineWidth = 0.3;
+    ctx.strokeStyle = PALETTE.ink;
     ctx.stroke();
   }
 
+  /** Bâtiments gravés à l'encre, avec un fanion aux couleurs du propriétaire. */
   private drawBuilding(b: BuildingView, color: RGB): void {
     const ctx = this.ctx;
     const x = (b.tile % this.territory.width) + 0.5;
     const y = Math.floor(b.tile / this.territory.width) + 0.5;
     ctx.save();
-    ctx.globalAlpha = b.done ? 1 : 0.5;
+    ctx.globalAlpha = b.done ? 1 : 0.45;
     ctx.translate(x, y);
     ctx.lineWidth = 0.3;
-    ctx.strokeStyle = INK;
-    ctx.fillStyle = rgbCss(color);
+    ctx.strokeStyle = PALETTE.ink;
+    ctx.fillStyle = PALETTE.paper;
     ctx.beginPath();
     if (b.kind === BuildingKind.Bourg) {
-      // Maison à toit pointu.
-      ctx.moveTo(-1.6, 1.4);
-      ctx.lineTo(-1.6, -0.2);
-      ctx.lineTo(0, -1.8);
-      ctx.lineTo(1.6, -0.2);
-      ctx.lineTo(1.6, 1.4);
+      // Symbole de ville des cartes anciennes : enceinte ronde et clocher.
+      ctx.arc(0, 0.4, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-0.6, 0.4);
+      ctx.lineTo(-0.6, -1.2);
+      ctx.lineTo(0, -2);
+      ctx.lineTo(0.6, -1.2);
+      ctx.lineTo(0.6, 0.4);
     } else {
       // Tour crénelée.
-      ctx.moveTo(-1, 1.6);
-      ctx.lineTo(-1, -1.2);
-      ctx.lineTo(-1.4, -1.2);
-      ctx.lineTo(-1.4, -2);
-      ctx.lineTo(-0.5, -2);
-      ctx.lineTo(-0.5, -1.6);
-      ctx.lineTo(0.5, -1.6);
-      ctx.lineTo(0.5, -2);
-      ctx.lineTo(1.4, -2);
-      ctx.lineTo(1.4, -1.2);
-      ctx.lineTo(1, -1.2);
-      ctx.lineTo(1, 1.6);
+      ctx.moveTo(-0.9, 1.6);
+      ctx.lineTo(-0.9, -1.1);
+      ctx.lineTo(-1.2, -1.1);
+      ctx.lineTo(-1.2, -1.8);
+      ctx.lineTo(-0.4, -1.8);
+      ctx.lineTo(-0.4, -1.4);
+      ctx.lineTo(0.4, -1.4);
+      ctx.lineTo(0.4, -1.8);
+      ctx.lineTo(1.2, -1.8);
+      ctx.lineTo(1.2, -1.1);
+      ctx.lineTo(0.9, -1.1);
+      ctx.lineTo(0.9, 1.6);
     }
     ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Fanion du propriétaire.
+    ctx.beginPath();
+    ctx.moveTo(0, -2);
+    ctx.lineTo(0, -3.6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -3.6);
+    ctx.lineTo(1.8, -3.25);
+    ctx.lineTo(0, -2.9);
+    ctx.closePath();
+    ctx.fillStyle = rgbCss(color);
     ctx.fill();
     ctx.stroke();
     ctx.restore();
@@ -140,25 +202,51 @@ export class SceneRenderer {
     const tile = state.hoverTile as number;
     const x = tile % width;
     const y = Math.floor(tile / width);
-    ctx.lineWidth = Math.max(0.15, 1.5 / this.camera.zoom);
+    ctx.lineWidth = Math.max(0.15, 1.4 / this.camera.zoom);
     if (state.buildMode !== null) {
       const valid = state.myId !== null && this.territory.owner(tile) === state.myId;
-      const tone = valid ? "rgba(240, 210, 120, 0.9)" : "rgba(220, 60, 50, 0.9)";
-      ctx.strokeStyle = tone;
+      ctx.strokeStyle = valid ? PALETTE.buildValid : PALETTE.buildInvalid;
       ctx.setLineDash([0.8, 0.6]);
       ctx.beginPath();
       ctx.arc(x + 0.5, y + 0.5, STRUCTURE_MIN_DIST, 0, Math.PI * 2);
       ctx.stroke();
       if (state.buildMode === BuildingKind.Tour) {
-        ctx.strokeStyle = "rgba(120, 190, 255, 0.85)";
+        ctx.strokeStyle = PALETTE.towerRange;
+        ctx.setLineDash([2, 0.8, 0.3, 0.8]);
         ctx.beginPath();
         ctx.arc(x + 0.5, y + 0.5, state.towerRange || TOWER_RANGE, 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.setLineDash([]);
     }
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.strokeStyle = PALETTE.hover;
     ctx.strokeRect(x, y, 1, 1);
+  }
+
+  /** Écu héraldique dessiné en coordonnées écran. */
+  private drawShield(cx: number, cy: number, size: number, fill: string, glyph: string): void {
+    const ctx = this.ctx;
+    const w = size * 0.84;
+    const h = size;
+    const x = cx - w / 2;
+    const y = cy - h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w, y + h * 0.55);
+    ctx.quadraticCurveTo(x + w, y + h * 0.85, cx, y + h);
+    ctx.quadraticCurveTo(x, y + h * 0.85, x, y + h * 0.55);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.lineWidth = Math.max(1, size / 14);
+    ctx.strokeStyle = PALETTE.sable;
+    ctx.stroke();
+    if (glyph) {
+      ctx.font = `${size * 0.55}px serif`;
+      ctx.fillStyle = PALETTE.argent;
+      ctx.fillText(glyph, cx, cy + size * 0.02);
+    }
   }
 
   private drawLabels(state: SceneState): void {
@@ -169,7 +257,7 @@ export class SceneRenderer {
     for (const label of state.labels) {
       const player = state.players.get(label.owner);
       if (!player || !player.alive) continue;
-      const fontPx = Math.min(30, label.size * this.camera.zoom * 0.32);
+      const fontPx = Math.min(30, label.size * this.camera.zoom * 0.3);
       if (fontPx < 8) continue;
       const [sx, sy] = this.camera.worldToScreen(label.x + 0.5, label.y + 0.5);
       if (
@@ -181,16 +269,31 @@ export class SceneRenderer {
         continue;
       }
       const mine = player.id === state.myId;
-      ctx.font = `600 ${fontPx}px "Palatino Linotype", "Book Antiqua", Georgia, serif`;
-      ctx.lineWidth = Math.max(2, fontPx / 5);
-      ctx.strokeStyle = "rgba(15, 10, 6, 0.85)";
-      ctx.fillStyle = mine ? "#f3d27a" : "#f4ecdc";
-      ctx.strokeText(player.name, sx, sy - fontPx * 0.45);
-      ctx.fillText(player.name, sx, sy - fontPx * 0.45);
-      const troopsPx = fontPx * 0.8;
-      ctx.font = `${troopsPx}px Georgia, serif`;
+      const nameY = sy - fontPx * 0.45;
+      ctx.font = `${fontPx}px ${FONT_DISPLAY}`;
+      ctx.lineWidth = Math.max(2.5, fontPx / 4);
+      ctx.strokeStyle = PALETTE.labelHalo;
+      ctx.fillStyle = mine ? PALETTE.labelSelf : PALETTE.label;
+      ctx.strokeText(player.name, sx, nameY);
+      ctx.fillText(player.name, sx, nameY);
+      if (player.race && fontPx >= 11) {
+        const nameWidth = ctx.measureText(player.name).width;
+        this.drawShield(
+          sx - nameWidth / 2 - fontPx * 0.75,
+          nameY,
+          fontPx * 1.15,
+          raceColor(player.race),
+          RACES[player.race].emblem,
+        );
+      }
+      const troopsPx = fontPx * 0.78;
+      ctx.font = `italic ${troopsPx}px ${FONT_FLAVOR}`;
+      ctx.lineWidth = Math.max(2, troopsPx / 4);
+      ctx.strokeStyle = PALETTE.labelHalo;
+      ctx.fillStyle = PALETTE.inkSoft;
       const troops = formatNumber(player.troops);
       ctx.strokeText(troops, sx, sy + fontPx * 0.5);
+      ctx.fillStyle = PALETTE.ink;
       ctx.fillText(troops, sx, sy + fontPx * 0.5);
     }
   }

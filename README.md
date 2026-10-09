@@ -51,9 +51,11 @@ Pour gagner, il faut contrôler **80 % des terres**.
 | `npm run typecheck`               | Vérification TypeScript de tous les packages                          |
 | `npm run lint` / `npm run format` | ESLint / Prettier                                                     |
 | `npm run build`                   | Build de production du client (`packages/client/dist`)                |
+| `npm run tokens`                  | Régénère le CSS des tokens du design system                           |
 
 ```
-packages/engine   simulation déterministe (aucune dépendance DOM/Node)
+packages/engine          simulation déterministe (aucune dépendance DOM/Node)
+packages/design-system   tokens, composants CSS, polices
 packages/shared   protocole réseau et validation
 packages/server   relais WebSocket (lobbies, tours)
 packages/client   jeu navigateur (Vite, Canvas 2D, Web Worker)
@@ -65,6 +67,8 @@ packages/client   jeu navigateur (Vite, Canvas 2D, Web Worker)
 - [AGENTS.md](AGENTS.md) : règles de développement (humains et agents IA)
 - [docs/GDD.md](docs/GDD.md) : game design
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) : architecture technique
+- [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) : design system (référence vivante : http://localhost:5173/design-system.html)
+- [docs/CREDITS.md](docs/CREDITS.md) : licences des assets
 - [docs/reference/OpenFront_Analyse.md](docs/reference/OpenFront_Analyse.md) : analyse du jeu de référence
 
 ## Crédits

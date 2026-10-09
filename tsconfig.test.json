@@ -3,5 +3,11 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["packages/*/test/**/*.ts", "vitest.config.ts", "eslint.config.js"]
+  "include": [
+    "packages/*/test/**/*.ts",
+    "packages/*/scripts/**/*.ts",
+    "packages/client/vite.config.ts",
+    "vitest.config.ts",
+    "eslint.config.js"
+  ]
 }

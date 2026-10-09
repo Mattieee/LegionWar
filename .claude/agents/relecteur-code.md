@@ -19,7 +19,12 @@ Tu relis le code de LegionWar avec l'œil d'un développeur web senior. Lis d'ab
    - Boucle de rendu (60 fps) : pas d'allocation inutile par frame, pas de parcours complet de la carte à chaque frame.
    - Tick moteur : budget de 100 ms, viser moins de 5 ms.
 5. **Accessibilité et UX** : contrôles au clavier, `aria-*` sur l'interface, contraste, `prefers-reduced-motion`, textes en français.
-6. **Maintenabilité** : constantes de jeu centralisées, types stricts, pas de code mort, tests pour les nouvelles règles.
+6. **Design system** (`docs/DESIGN_SYSTEM.md`) :
+   - aucune couleur, police ou ombre en dur dans le client (CSS ou Canvas) : uniquement des tokens ;
+   - réutilisation des composants `.lw-*` plutôt que du CSS dupliqué ;
+   - états portés par l'ARIA ;
+   - tout nouveau composant générique est ajouté au package `design-system` et à la page de référence.
+7. **Maintenabilité** : constantes de jeu centralisées, types stricts, pas de code mort, tests pour les nouvelles règles.
 
 ## Méthode
 

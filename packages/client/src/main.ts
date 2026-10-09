@@ -1,3 +1,4 @@
+import "@legionwar/design-system/styles.css";
 import "./styles.css";
 import { GameSession } from "./GameSession";
 import { showMenu } from "./ui/Menu";

@@ -248,7 +248,7 @@ C'est l'équivalent des armes nucléaires d'OpenFront.
 ## 16. Direction artistique et audio
 
 - **Carte :** un parchemin de cartographe vivant. Terrain coloré par biome, frontières sombres, territoires teintés de la couleur héraldique du joueur.
-- **Interface :** bois sombre, liserés dorés, typographie à empattements (actuellement Palatino/Georgia ; une police libre de type _Cinzel_ est prévue). Emblèmes par race : ⚜ ⚒ ☠ ❦.
+- **Interface :** cartouches de cartographe en papier, capitales IM Fell et texte EB Garamond, voir [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). Emblèmes par race : ⚜ ⚒ ☠ ❦.
 - **Lisibilité :** le nom et les troupes sont affichés au cœur de chaque royaume, et les bâtiments ont une silhouette distincte (maison, tour crénelée).
 - **Audio** [Prévu] : musique orchestrale médiévale, cors de guerre au début d'une attaque, cloche à l'achèvement d'un bâtiment, sons de sort propres à chaque race.
 

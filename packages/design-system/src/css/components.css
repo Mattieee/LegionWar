@@ -1,0 +1,650 @@
+/*
+ * Composants LegionWar — direction « Atlas + Héraldique ».
+ * Convention BEM préfixée : .lw-bloc, .lw-bloc__element, .lw-bloc--variante.
+ * États via attributs ARIA ([aria-pressed], [aria-invalid], :disabled) plutôt que classes d'état.
+ * Uniquement des tokens sémantiques ou de domaine (--lw-bg-*, --lw-text-*, --lw-heraldry-*…) :
+ * jamais de couleur en dur. Les transparences passent par color-mix().
+ */
+
+/* Typographie ---------------------------------------------------------------------------------- */
+.lw-display {
+  font-family: var(--lw-font-family-display);
+  font-size: var(--lw-font-size-display);
+  font-weight: var(--lw-font-weight-display);
+  letter-spacing: var(--lw-font-tracking-display);
+  line-height: 1;
+  color: var(--lw-text-primary);
+  text-shadow: 0 1px 0 var(--lw-text-emboss);
+}
+
+.lw-title-1 {
+  font-size: var(--lw-font-size-2xl);
+}
+
+.lw-title-2 {
+  font-size: var(--lw-font-size-xl);
+}
+
+.lw-title-3 {
+  font-size: var(--lw-font-size-lg);
+}
+
+.lw-flavor {
+  font-family: var(--lw-font-family-flavor);
+  font-style: italic;
+  color: var(--lw-text-secondary);
+}
+
+.lw-text-sm {
+  font-size: var(--lw-font-size-sm);
+}
+
+.lw-text-xs {
+  font-size: var(--lw-font-size-xs);
+}
+
+.lw-text-muted {
+  color: var(--lw-text-secondary);
+}
+
+.lw-text-accent {
+  color: var(--lw-text-accent);
+}
+
+.lw-numeric {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.lw-overline {
+  font-family: var(--lw-font-family-display);
+  font-size: var(--lw-font-size-xs);
+  letter-spacing: var(--lw-font-tracking-display);
+  color: var(--lw-text-secondary);
+}
+
+/* Cartouche (panneau) -------------------------------------------------------------------------- */
+.lw-panel {
+  background: var(--lw-bg-surface);
+  border: 1px solid var(--lw-border-default);
+  border-radius: var(--lw-radius-lg);
+  box-shadow:
+    0 0 0 3px var(--lw-bg-surface),
+    0 0 0 4px var(--lw-border-default),
+    var(--lw-shadow-paper),
+    var(--lw-shadow-md);
+  padding: var(--lw-space-4) var(--lw-space-5);
+}
+
+.lw-panel--translucent {
+  background: color-mix(in srgb, var(--lw-bg-surface) 93%, transparent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--lw-bg-surface) 93%, transparent),
+    0 0 0 4px var(--lw-border-default),
+    var(--lw-shadow-paper),
+    var(--lw-shadow-md);
+  backdrop-filter: blur(2px);
+}
+
+.lw-panel--compact {
+  padding: var(--lw-space-3) var(--lw-space-4);
+}
+
+.lw-panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--lw-space-2);
+  margin-bottom: var(--lw-space-2);
+  padding-bottom: var(--lw-space-2);
+  border-bottom: 1px solid var(--lw-border-default);
+}
+
+/* Filets et ornements -------------------------------------------------------------------------- */
+.lw-divider {
+  border: 0;
+  height: 3px;
+  margin: var(--lw-space-3) 0;
+  border-top: 1px solid var(--lw-border-default);
+  border-bottom: 1px solid var(--lw-border-subtle);
+}
+
+/* Filet avec fleuron central : <div class="lw-ornament">❦</div> */
+.lw-ornament {
+  display: flex;
+  align-items: center;
+  gap: var(--lw-space-3);
+  margin: var(--lw-space-3) 0;
+  font-size: var(--lw-font-size-lg);
+  line-height: 1;
+  color: var(--lw-text-secondary);
+}
+
+.lw-ornament::before,
+.lw-ornament::after {
+  content: "";
+  flex: 1;
+  height: 0;
+  border-top: 1px solid var(--lw-border-default);
+}
+
+/* Bouton --------------------------------------------------------------------------------------- */
+.lw-button {
+  --_bg: var(--lw-action-secondary-bg);
+  --_bg-hover: var(--lw-action-secondary-bg-hover);
+  --_text: var(--lw-action-secondary-text);
+  --_border: var(--lw-action-secondary-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lw-space-2);
+  min-height: 2.5rem;
+  padding: var(--lw-space-1) var(--lw-space-5);
+  font-family: var(--lw-font-family-display);
+  font-size: var(--lw-font-size-md);
+  font-weight: var(--lw-font-weight-display);
+  letter-spacing: var(--lw-font-tracking-wide);
+  color: var(--_text);
+  background: var(--_bg);
+  border: 1px solid var(--_border);
+  border-radius: var(--lw-radius-pill);
+  box-shadow: var(--lw-shadow-sm);
+  cursor: pointer;
+  transition:
+    background var(--lw-duration-fast) var(--lw-easing-standard),
+    transform var(--lw-duration-fast) var(--lw-easing-standard),
+    box-shadow var(--lw-duration-fast) var(--lw-easing-standard);
+}
+
+.lw-button:hover:not(:disabled) {
+  background: var(--_bg-hover);
+}
+
+.lw-button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.lw-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lw-button[aria-pressed="true"] {
+  border-color: var(--lw-border-strong);
+  box-shadow:
+    inset 0 0 0 1px var(--lw-border-strong),
+    var(--lw-shadow-glow);
+}
+
+.lw-button--primary {
+  --_bg: var(--lw-action-primary-bg);
+  --_bg-hover: var(--lw-action-primary-bg-hover);
+  --_text: var(--lw-action-primary-text);
+  --_border: var(--lw-action-primary-border);
+  box-shadow:
+    inset 0 0 0 2px var(--lw-action-primary-bg),
+    inset 0 0 0 3px color-mix(in srgb, var(--lw-action-primary-text) 55%, transparent),
+    var(--lw-shadow-sm);
+}
+
+.lw-button--danger {
+  --_bg: var(--lw-action-danger-bg);
+  --_bg-hover: var(--lw-action-danger-bg-hover);
+  --_text: var(--lw-action-danger-text);
+  --_border: var(--lw-action-danger-border);
+}
+
+.lw-button--ghost {
+  --_bg: transparent;
+  --_bg-hover: var(--lw-bg-hover);
+  --_border: transparent;
+  box-shadow: none;
+}
+
+.lw-button--sm {
+  min-height: 1.85rem;
+  padding: 0 var(--lw-space-3);
+  font-size: var(--lw-font-size-sm);
+}
+
+.lw-button--lg {
+  min-height: 3.1rem;
+  padding: var(--lw-space-2) var(--lw-space-10);
+  font-size: var(--lw-font-size-xl);
+}
+
+/* Champs de formulaire ------------------------------------------------------------------------- */
+.lw-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lw-space-1);
+  min-width: 0;
+}
+
+.lw-field__label {
+  font-family: var(--lw-font-family-display);
+  font-size: var(--lw-font-size-sm);
+  letter-spacing: var(--lw-font-tracking-wide);
+  color: var(--lw-text-primary);
+}
+
+.lw-field__hint {
+  font-family: var(--lw-font-family-flavor);
+  font-size: var(--lw-font-size-xs);
+  font-style: italic;
+  color: var(--lw-text-secondary);
+}
+
+.lw-field__error {
+  min-height: 1.3em;
+  font-size: var(--lw-font-size-sm);
+  color: var(--lw-text-danger);
+}
+
+.lw-input,
+.lw-select {
+  font: inherit;
+  font-variant-numeric: lining-nums;
+  color: var(--lw-text-primary);
+  background: var(--lw-bg-inset);
+  border: 1px solid var(--lw-border-subtle);
+  border-bottom: 2px solid var(--lw-border-default);
+  border-radius: var(--lw-radius-md);
+  padding: var(--lw-space-2) var(--lw-space-3);
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--lw-border-strong) 18%, transparent);
+  transition: border-color var(--lw-duration-fast) var(--lw-easing-standard);
+}
+
+.lw-input:hover,
+.lw-select:hover {
+  border-color: var(--lw-border-hover);
+}
+
+.lw-input:focus,
+.lw-select:focus {
+  border-color: var(--lw-border-strong);
+}
+
+.lw-input[aria-invalid="true"] {
+  border-color: var(--lw-feedback-danger);
+  border-bottom-color: var(--lw-feedback-danger);
+}
+
+.lw-range {
+  width: 100%;
+  accent-color: var(--lw-text-accent);
+}
+
+/* Touche clavier ------------------------------------------------------------------------------- */
+.lw-kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 0.35em;
+  font-family: var(--lw-font-family-body);
+  font-size: 0.8em;
+  font-weight: var(--lw-font-weight-bold);
+  font-variant-numeric: lining-nums;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--lw-text-primary);
+  background: var(--lw-bg-raised);
+  border: 1px solid var(--lw-border-default);
+  border-bottom-width: 2px;
+  border-radius: var(--lw-radius-md);
+}
+
+/* Badge ---------------------------------------------------------------------------------------- */
+.lw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lw-space-1);
+  padding: 0 var(--lw-space-2);
+  font-family: var(--lw-font-family-display);
+  font-size: var(--lw-font-size-xs);
+  letter-spacing: var(--lw-font-tracking-wide);
+  color: var(--lw-text-primary);
+  border: 1px solid currentColor;
+  border-radius: var(--lw-radius-pill);
+}
+
+.lw-badge--success {
+  color: var(--lw-text-success);
+}
+
+.lw-badge--danger {
+  color: var(--lw-text-danger);
+}
+
+.lw-badge--info {
+  color: var(--lw-text-info);
+}
+
+/* Statistique (libellé / valeur) --------------------------------------------------------------- */
+.lw-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--lw-space-2);
+}
+
+.lw-stat__label {
+  font-family: var(--lw-font-family-flavor);
+  font-style: italic;
+  color: var(--lw-text-secondary);
+}
+
+.lw-stat__value {
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: var(--lw-font-weight-medium);
+}
+
+/* Jauge (remplissage hachuré, comme un lavis gravé) -------------------------------------------- */
+.lw-progress {
+  height: 8px;
+  overflow: hidden;
+  background: var(--lw-bg-inset);
+  border: 1px solid var(--lw-border-default);
+  border-radius: var(--lw-radius-sm);
+}
+
+.lw-progress__fill {
+  height: 100%;
+  width: 0;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--lw-progress-to) 80%, transparent) 0 2px,
+      transparent 2px 4px
+    ),
+    color-mix(in srgb, var(--lw-progress-from) 45%, transparent);
+  border-right: 1px solid var(--lw-progress-to);
+  transition: width var(--lw-duration-base) linear;
+}
+
+.lw-progress--danger .lw-progress__fill {
+  background:
+    repeating-linear-gradient(135deg, var(--lw-feedback-danger) 0 2px, transparent 2px 4px),
+    color-mix(in srgb, var(--lw-feedback-danger) 30%, transparent);
+}
+
+/* Écu héraldique --------------------------------------------------------------------------------
+ * <span class="lw-shield lw-tincture-azure"><span>⚜</span></span>
+ * Ajouter .lw-shield--hatched pour superposer la hachure héraldique de l'émail (accessibilité). */
+.lw-shield {
+  --_shape: polygon(0 0, 100% 0, 100% 55%, 88% 78%, 50% 100%, 12% 78%, 0 55%);
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.2em;
+  aspect-ratio: 5 / 6;
+  flex: none;
+  padding-bottom: 0.25em;
+  font-size: 1em;
+  line-height: 1;
+  color: var(--lw-heraldry-argent);
+  background: var(--lw-heraldry-sable);
+  clip-path: var(--_shape);
+}
+
+.lw-shield::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background: var(--lw-shield-hatch, none), var(--lw-shield-color, var(--lw-heraldry-argent));
+  clip-path: var(--_shape);
+}
+
+.lw-shield:not(.lw-shield--hatched)::before {
+  background: var(--lw-shield-color, var(--lw-heraldry-argent));
+}
+
+.lw-shield > * {
+  position: relative;
+  text-shadow: 0 1px 0 var(--lw-heraldry-sable);
+}
+
+.lw-shield--lg {
+  font-size: 1.8em;
+}
+
+/* Émaux (couleur + hachure Petra Sancta pour lire les armoiries sans la couleur). */
+.lw-tincture-or {
+  --lw-shield-color: var(--lw-heraldry-or);
+  --lw-banner-color: var(--lw-heraldry-or);
+  --lw-shield-hatch: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--lw-heraldry-sable) 45%, transparent) 0.9px,
+      transparent 1.3px
+    )
+    0 0 / 4px 4px;
+}
+
+.lw-tincture-argent {
+  --lw-shield-color: var(--lw-heraldry-argent);
+  --lw-banner-color: var(--lw-heraldry-argent);
+}
+
+.lw-tincture-gules {
+  --lw-shield-color: var(--lw-heraldry-gules);
+  --lw-banner-color: var(--lw-heraldry-gules);
+  --lw-shield-hatch: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--lw-heraldry-sable) 40%, transparent) 0 1px,
+    transparent 1px 4px
+  );
+}
+
+.lw-tincture-azure {
+  --lw-shield-color: var(--lw-heraldry-azure);
+  --lw-banner-color: var(--lw-heraldry-azure);
+  --lw-shield-hatch: repeating-linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--lw-heraldry-sable) 40%, transparent) 0 1px,
+    transparent 1px 4px
+  );
+}
+
+.lw-tincture-vert {
+  --lw-shield-color: var(--lw-heraldry-vert);
+  --lw-banner-color: var(--lw-heraldry-vert);
+  --lw-shield-hatch: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--lw-heraldry-sable) 40%, transparent) 0 1px,
+    transparent 1px 4px
+  );
+}
+
+.lw-tincture-purpure {
+  --lw-shield-color: var(--lw-heraldry-purpure);
+  --lw-banner-color: var(--lw-heraldry-purpure);
+  --lw-shield-hatch: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--lw-heraldry-sable) 40%, transparent) 0 1px,
+    transparent 1px 4px
+  );
+}
+
+.lw-tincture-sable {
+  --lw-shield-color: var(--lw-heraldry-sable);
+  --lw-banner-color: var(--lw-heraldry-sable);
+}
+
+.lw-tincture-tenne {
+  --lw-shield-color: var(--lw-heraldry-tenne);
+  --lw-banner-color: var(--lw-heraldry-tenne);
+  --lw-shield-hatch:
+    repeating-linear-gradient(
+      -45deg,
+      color-mix(in srgb, var(--lw-heraldry-sable) 35%, transparent) 0 1px,
+      transparent 1px 4px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--lw-heraldry-sable) 35%, transparent) 0 1px,
+      transparent 1px 4px
+    );
+}
+
+/* Bannière à queue d'aronde -------------------------------------------------------------------- */
+.lw-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lw-space-2);
+  padding: var(--lw-space-1) var(--lw-space-8) var(--lw-space-1) var(--lw-space-3);
+  font-family: var(--lw-font-family-display);
+  letter-spacing: var(--lw-font-tracking-wide);
+  color: var(--lw-heraldry-argent);
+  background: var(--lw-banner-color, var(--lw-heraldry-gules));
+  clip-path: polygon(0 0, 100% 0, calc(100% - 0.9em) 50%, 100% 100%, 0 100%);
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--lw-heraldry-sable) 60%, transparent);
+}
+
+/* Carte sélectionnable (race, mode de jeu…) ---------------------------------------------------- */
+.lw-card {
+  --lw-card-accent: var(--lw-border-default);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--lw-space-1);
+  padding: var(--lw-space-4);
+  text-align: left;
+  font: inherit;
+  color: var(--lw-text-primary);
+  background: var(--lw-bg-raised);
+  border: 1px solid var(--lw-border-subtle);
+  border-radius: var(--lw-radius-md);
+  box-shadow: var(--lw-shadow-sm);
+  cursor: pointer;
+  transition:
+    transform var(--lw-duration-base) var(--lw-easing-standard),
+    border-color var(--lw-duration-base) var(--lw-easing-standard),
+    box-shadow var(--lw-duration-base) var(--lw-easing-standard);
+}
+
+.lw-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--lw-border-hover);
+}
+
+.lw-card[aria-pressed="true"] {
+  border-color: var(--lw-border-strong);
+  box-shadow:
+    inset 0 0 0 1px var(--lw-border-strong),
+    inset 0 5px 0 var(--lw-card-accent),
+    var(--lw-shadow-md);
+}
+
+.lw-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--lw-space-3);
+  margin-bottom: var(--lw-space-1);
+}
+
+.lw-card__title {
+  font-family: var(--lw-font-family-display);
+  font-size: var(--lw-font-size-lg);
+  line-height: var(--lw-font-leading-tight);
+  color: var(--lw-text-primary);
+}
+
+.lw-card__subtitle {
+  font-family: var(--lw-font-family-flavor);
+  font-size: var(--lw-font-size-sm);
+  font-style: italic;
+  color: var(--lw-text-secondary);
+}
+
+.lw-card__body {
+  font-size: var(--lw-font-size-sm);
+  line-height: var(--lw-font-leading-normal);
+}
+
+.lw-card__list {
+  margin: var(--lw-space-1) 0 0;
+  padding-left: var(--lw-space-5);
+  font-size: var(--lw-font-size-sm);
+  color: var(--lw-text-success);
+}
+
+/* Notification / entrée de journal ------------------------------------------------------------- */
+.lw-toast {
+  padding: var(--lw-space-1) var(--lw-space-3);
+  font-family: var(--lw-font-family-flavor);
+  font-size: var(--lw-font-size-sm);
+  font-style: italic;
+  color: var(--lw-text-primary);
+  background: color-mix(in srgb, var(--lw-bg-surface) 94%, transparent);
+  border: 1px solid var(--lw-border-subtle);
+  border-left: 4px solid var(--lw-feedback-warning);
+  border-radius: 0 var(--lw-radius-md) var(--lw-radius-md) 0;
+  box-shadow: var(--lw-shadow-sm);
+}
+
+.lw-toast--good {
+  border-left-color: var(--lw-feedback-success);
+}
+
+.lw-toast--bad {
+  border-left-color: var(--lw-feedback-danger);
+}
+
+.lw-toast--info {
+  border-left-color: var(--lw-feedback-info);
+}
+
+/* Modale --------------------------------------------------------------------------------------- */
+.lw-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--lw-z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--lw-space-4);
+  background: var(--lw-bg-overlay);
+}
+
+.lw-modal__dialog {
+  width: min(480px, 100%);
+  text-align: center;
+  padding: var(--lw-space-8) var(--lw-space-10);
+}
+
+.lw-modal__title {
+  margin-bottom: var(--lw-space-2);
+  font-size: var(--lw-font-size-2xl);
+}
+
+.lw-modal__actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--lw-space-3);
+  margin-top: var(--lw-space-6);
+}
+
+/* Infobulle (CSS pure, déclenchée par [data-tooltip]) ------------------------------------------ */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--lw-z-toast);
+  width: max-content;
+  max-width: 240px;
+  padding: var(--lw-space-1) var(--lw-space-2);
+  font-family: var(--lw-font-family-body);
+  font-size: var(--lw-font-size-xs);
+  font-weight: var(--lw-font-weight-regular);
+  letter-spacing: 0;
+  color: var(--lw-text-inverse);
+  background: var(--lw-text-primary);
+  border-radius: var(--lw-radius-md);
+  box-shadow: var(--lw-shadow-sm);
+  pointer-events: none;
+}

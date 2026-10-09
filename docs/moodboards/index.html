@@ -1,0 +1,1647 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LegionWar — Moodboards de direction artistique</title>
+    <meta
+      name="description"
+      content="Six directions artistiques candidates pour LegionWar : planches, palettes, typographies, cartes et interfaces."
+    />
+    <!-- Polices d'exploration (Google Fonts) : ce document de travail n'est pas embarqué dans le jeu. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Grenze+Gotisch:wght@500;700&family=IM+Fell+DW+Pica:ital@0;1&family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&family=Metamorphous&family=Crimson+Pro:wght@400;600&family=Pirata+One&family=Source+Serif+4:wght@400;600&family=Spectral+SC:wght@500;600&family=Spectral:ital,wght@0,400;0,600;1,400&family=UnifrakturMaguntia&display=swap"
+    />
+    <style>
+      /* Habillage neutre du document : il ne doit pas influencer la comparaison des directions. */
+      :root {
+        --page: #15151a;
+        --card: #1e1e25;
+        --line: #33333d;
+        --ink: #ecebef;
+        --muted: #a2a1ad;
+        --accent: #f0c36a;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--ink);
+        font:
+          16px/1.55 system-ui,
+          "Segoe UI",
+          sans-serif;
+      }
+      a {
+        color: var(--accent);
+      }
+      .wrap {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+      header.top {
+        padding: 56px 0 24px;
+      }
+      header.top h1 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 4vw, 44px);
+        letter-spacing: -0.01em;
+      }
+      .lead {
+        max-width: 78ch;
+        color: var(--muted);
+      }
+      .lead strong {
+        color: var(--ink);
+      }
+      nav.toc {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        padding: 12px 20px;
+        background: rgba(21, 21, 26, 0.92);
+        backdrop-filter: blur(6px);
+        border-bottom: 1px solid var(--line);
+        justify-content: center;
+        font-size: 14px;
+      }
+      nav.toc a {
+        text-decoration: none;
+        color: var(--ink);
+      }
+      nav.toc a span {
+        color: var(--muted);
+        margin-right: 4px;
+      }
+      .note {
+        margin: 24px 0;
+        padding: 16px 20px;
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--accent);
+        border-radius: 8px;
+        background: var(--card);
+        color: var(--muted);
+      }
+      .note strong {
+        color: var(--ink);
+      }
+
+      /* Planche ---------------------------------------------------------------------------------- */
+      .board {
+        margin: 56px 0;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        background: var(--card);
+        scroll-margin-top: 64px;
+      }
+      .board__head {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 4px 20px;
+        align-items: end;
+        padding: 26px 28px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .board__num {
+        grid-row: span 2;
+        font-size: 64px;
+        line-height: 0.85;
+        font-weight: 800;
+        color: var(--line);
+      }
+      .board__name {
+        margin: 0;
+        font-size: 30px;
+        line-height: 1.1;
+      }
+      .board__tag {
+        grid-column: 2;
+        margin: 0;
+        color: var(--muted);
+        font-style: italic;
+      }
+      .badge {
+        grid-row: span 2;
+        align-self: center;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #1a1405;
+        background: var(--accent);
+      }
+      .board__hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+        gap: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .board__map {
+        display: block;
+        width: 100%;
+        height: auto;
+        background: #000;
+      }
+      .board__ui {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 16px;
+        padding: 22px;
+      }
+      .board__body {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 28px;
+        padding: 26px 28px 30px;
+      }
+      .board__body h3 {
+        margin: 0 0 10px;
+        font-size: 13px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .board__body p,
+      .board__body ul {
+        margin: 0 0 14px;
+      }
+      .board__body ul {
+        padding-left: 18px;
+      }
+      .board__body li {
+        margin-bottom: 4px;
+      }
+      .palette {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+      .chip {
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        font-size: 11px;
+        line-height: 1.3;
+      }
+      .chip i {
+        display: block;
+        height: 46px;
+      }
+      .chip span {
+        display: block;
+        padding: 5px 6px;
+        color: var(--muted);
+      }
+      .chip b {
+        display: block;
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .type {
+        padding: 14px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        margin-bottom: 10px;
+      }
+      .type__display {
+        font-size: 30px;
+        line-height: 1.15;
+      }
+      .type__body {
+        margin-top: 6px;
+        font-size: 16px;
+      }
+      .type__meta {
+        margin-top: 8px;
+        font: 12px system-ui;
+        color: var(--muted);
+      }
+      .refs {
+        list-style: none;
+        padding: 0 !important;
+      }
+      .refs li {
+        padding: 6px 0;
+        border-bottom: 1px dashed var(--line);
+      }
+      .refs small {
+        display: block;
+        color: var(--muted);
+      }
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .tags span {
+        padding: 3px 9px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .proscons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .pro li::marker {
+        content: "＋  ";
+        color: #7fd18b;
+      }
+      .con li::marker {
+        content: "－  ";
+        color: #ef8a80;
+      }
+      .cost {
+        padding: 12px 14px;
+        border-radius: 8px;
+        background: #15151a;
+        border: 1px solid var(--line);
+        font-size: 14px;
+      }
+      .cost b {
+        color: var(--accent);
+      }
+      table.compare {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      table.compare th,
+      table.compare td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      table.compare th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .stars {
+        color: var(--accent);
+        letter-spacing: 2px;
+        white-space: nowrap;
+      }
+      section.end {
+        margin: 56px 0 80px;
+      }
+      section.end h2 {
+        font-size: 28px;
+      }
+      @media (max-width: 980px) {
+        .board__hero,
+        .board__body {
+          grid-template-columns: 1fr;
+        }
+        .proscons {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Échantillons d'interface, un style par direction ---------------------------------------- */
+      .ui {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .ui-panel {
+        padding: 16px 18px;
+      }
+      .ui-title {
+        margin-bottom: 10px;
+      }
+      .ui-stat {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 4px 0;
+        font-variant-numeric: tabular-nums;
+      }
+      .ui-bar {
+        height: 8px;
+        margin: 8px 0 14px;
+        overflow: hidden;
+      }
+      .ui-bar i {
+        display: block;
+        height: 100%;
+      }
+      .ui-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .ui-btn {
+        cursor: pointer;
+        border: 0;
+        font: inherit;
+      }
+      .ui-races {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      .ui-race {
+        display: grid;
+        place-items: center;
+        gap: 4px;
+        padding: 8px 4px;
+        font-size: 11px;
+        text-align: center;
+      }
+      .ui-race svg {
+        width: 46px;
+        height: 54px;
+      }
+
+      /* 1. Enluminure */
+      .ui-enl {
+        font-family: "EB Garamond", serif;
+        color: #2b1d14;
+      }
+      .ui-enl .ui-panel {
+        background: #f3e7c9;
+        border: 3px double #b8892b;
+        box-shadow:
+          inset 0 0 0 6px #f3e7c9,
+          inset 0 0 0 7px #1f4e9c,
+          0 6px 18px rgba(0, 0, 0, 0.4);
+      }
+      .ui-enl .ui-title {
+        font-family: "UnifrakturMaguntia", serif;
+        font-size: 26px;
+        color: #1f4e9c;
+      }
+      .ui-enl .ui-title::first-letter {
+        color: #c8341f;
+        font-size: 1.6em;
+      }
+      .ui-enl .ui-stat span {
+        color: #c8341f;
+        font-style: italic;
+      }
+      .ui-enl .ui-bar {
+        background: #e4d3a8;
+        border: 1px solid #2b1d14;
+      }
+      .ui-enl .ui-bar i {
+        background: repeating-linear-gradient(90deg, #1f4e9c 0 6px, #2a5fb6 6px 8px);
+      }
+      .ui-enl .ui-btn {
+        padding: 6px 14px;
+        background: #f3e7c9;
+        color: #2b1d14;
+        border: 1.5px solid #2b1d14;
+        border-radius: 2px;
+      }
+      .ui-enl .ui-btn--primary {
+        background: #c8341f;
+        color: #fbf3df;
+        box-shadow: inset 0 0 0 2px #e9b949;
+        font-family: "UnifrakturMaguntia", serif;
+        font-size: 18px;
+      }
+      .ui-enl .ui-toast {
+        padding: 8px 12px;
+        background: #f3e7c9;
+        border-left: 6px solid #c8341f;
+        font-style: italic;
+      }
+      .ui-enl .ui-race {
+        background: #f3e7c9;
+        border: 1px solid #b8892b;
+      }
+
+      /* 2. Atlas */
+      .ui-atl {
+        font-family: "IM Fell English", serif;
+        color: #3b2a1a;
+      }
+      .ui-atl .ui-panel {
+        background: radial-gradient(ellipse at center, #efe4c4 55%, #dccb9f);
+        border: 1px solid #5a4630;
+        outline: 1px solid #5a4630;
+        outline-offset: 4px;
+        border-radius: 22px 22px 22px 22px / 12px 12px 12px 12px;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+        margin: 6px;
+      }
+      .ui-atl .ui-title {
+        font-family: "IM Fell English SC", serif;
+        font-size: 24px;
+        letter-spacing: 0.08em;
+        text-align: center;
+        border-bottom: 1px solid #5a4630;
+        padding-bottom: 6px;
+      }
+      .ui-atl .ui-stat span {
+        font-style: italic;
+      }
+      .ui-atl .ui-bar {
+        background: transparent;
+        border: 1px solid #5a4630;
+        height: 7px;
+      }
+      .ui-atl .ui-bar i {
+        background: repeating-linear-gradient(135deg, #8c3b2a 0 2px, transparent 2px 4px);
+      }
+      .ui-atl .ui-btn {
+        padding: 5px 14px;
+        background: transparent;
+        color: #3b2a1a;
+        border: 1px solid #3b2a1a;
+        border-radius: 999px;
+        font-style: italic;
+      }
+      .ui-atl .ui-btn--primary {
+        background: #8c3b2a;
+        color: #f3e9cf;
+        font-family: "IM Fell English SC", serif;
+        font-style: normal;
+        letter-spacing: 0.06em;
+      }
+      .ui-atl .ui-toast {
+        padding: 8px 14px;
+        background: #efe4c4;
+        border: 1px dashed #5a4630;
+        font-style: italic;
+      }
+      .ui-atl .ui-race {
+        background: #efe4c4;
+        border: 1px solid #5a4630;
+        border-radius: 8px;
+      }
+
+      /* 3. Héraldique */
+      .ui-her {
+        font-family: "Source Serif 4", serif;
+        color: #1b1b1b;
+      }
+      .ui-her .ui-panel {
+        background: #ecebe4;
+        border: 4px solid #1b1b1b;
+        box-shadow: 6px 6px 0 #1b1b1b;
+      }
+      .ui-her .ui-title {
+        display: inline-block;
+        padding: 4px 26px 4px 12px;
+        font-family: "Grenze Gotisch", serif;
+        font-size: 24px;
+        color: #ecebe4;
+        background: #1f4fa3;
+        clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 50%, 100% 100%, 0 100%);
+      }
+      .ui-her .ui-stat span {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.1em;
+      }
+      .ui-her .ui-bar {
+        background: #ecebe4;
+        border: 2px solid #1b1b1b;
+        height: 12px;
+      }
+      .ui-her .ui-bar i {
+        background: #b3261e;
+      }
+      .ui-her .ui-btn {
+        padding: 8px 14px;
+        background: #ecebe4;
+        border: 3px solid #1b1b1b;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+      }
+      .ui-her .ui-btn--primary {
+        background: #e3b23c;
+      }
+      .ui-her .ui-toast {
+        padding: 8px 12px;
+        background: #b3261e;
+        color: #ecebe4;
+        border: 3px solid #1b1b1b;
+        font-weight: 600;
+      }
+      .ui-her .ui-race {
+        background: #ecebe4;
+        border: 3px solid #1b1b1b;
+        font-weight: 700;
+      }
+
+      /* 4. Forge */
+      .ui-for {
+        font-family: "Crimson Pro", serif;
+        color: #ead9b8;
+      }
+      .ui-for .ui-panel {
+        position: relative;
+        background:
+          radial-gradient(circle at 10px 10px, #c9a25a 2px, #5b4420 3px, transparent 4px),
+          radial-gradient(
+            circle at calc(100% - 10px) 10px,
+            #c9a25a 2px,
+            #5b4420 3px,
+            transparent 4px
+          ),
+          radial-gradient(
+            circle at 10px calc(100% - 10px),
+            #c9a25a 2px,
+            #5b4420 3px,
+            transparent 4px
+          ),
+          radial-gradient(
+            circle at calc(100% - 10px) calc(100% - 10px),
+            #c9a25a 2px,
+            #5b4420 3px,
+            transparent 4px
+          ),
+          linear-gradient(180deg, #4a4642, #2f2c2a);
+        border: 3px solid #1a1817;
+        box-shadow:
+          inset 0 0 0 2px #8a6a34,
+          inset 0 0 22px rgba(0, 0, 0, 0.7),
+          0 10px 26px rgba(0, 0, 0, 0.6);
+        border-radius: 6px;
+      }
+      .ui-for .ui-title {
+        font-family: "Metamorphous", serif;
+        font-size: 22px;
+        color: #f2c66d;
+        text-shadow:
+          0 2px 0 #3a2508,
+          0 0 12px rgba(226, 98, 42, 0.45);
+      }
+      .ui-for .ui-stat span {
+        color: #b9a88a;
+      }
+      .ui-for .ui-bar {
+        background: #151312;
+        border: 1px solid #8a6a34;
+        border-radius: 4px;
+      }
+      .ui-for .ui-bar i {
+        background: linear-gradient(180deg, #ff9a4d, #c8461b);
+        box-shadow: 0 0 10px #e2622a;
+      }
+      .ui-for .ui-btn {
+        padding: 7px 14px;
+        color: #ead9b8;
+        background: linear-gradient(180deg, #5a554f, #36322e);
+        border: 2px solid #1a1817;
+        box-shadow: inset 0 0 0 1px #8a6a34;
+        border-radius: 4px;
+        font-family: "Metamorphous", serif;
+      }
+      .ui-for .ui-btn--primary {
+        color: #fff2d6;
+        background: radial-gradient(ellipse at 50% 30%, #2bb3b3, #0f5d5e 70%);
+        box-shadow:
+          inset 0 0 0 1px #c9a25a,
+          0 0 14px rgba(43, 179, 179, 0.5);
+      }
+      .ui-for .ui-toast {
+        padding: 8px 12px;
+        background: linear-gradient(90deg, rgba(150, 30, 20, 0.85), rgba(40, 20, 15, 0.85));
+        border: 1px solid #8a6a34;
+        border-radius: 4px;
+      }
+      .ui-for .ui-race {
+        background: linear-gradient(180deg, #3d3936, #262321);
+        border: 1px solid #8a6a34;
+        border-radius: 4px;
+      }
+
+      /* 5. Saga */
+      .ui-sag {
+        font-family: "Spectral", serif;
+        color: #26323d;
+      }
+      .ui-sag .ui-panel {
+        background: linear-gradient(180deg, #eef1f3, #d8dde0);
+        border-radius: 2px;
+        box-shadow:
+          0 3px 0 #9aa7b2,
+          0 14px 26px rgba(10, 20, 30, 0.45);
+        position: relative;
+      }
+      .ui-sag .ui-title {
+        font-family: "Spectral SC", serif;
+        font-size: 21px;
+        letter-spacing: 0.18em;
+        color: #3e5c76;
+      }
+      .ui-sag .ui-stat span {
+        color: #6a7884;
+      }
+      .ui-sag .ui-bar {
+        background: #c9d1d7;
+        height: 6px;
+        border-radius: 3px;
+      }
+      .ui-sag .ui-bar i {
+        background: #b5562f;
+        border-radius: 3px;
+      }
+      .ui-sag .ui-btn {
+        padding: 7px 16px;
+        color: #26323d;
+        background: transparent;
+        border: 1px solid #26323d;
+        font-family: "Spectral SC", serif;
+        letter-spacing: 0.12em;
+      }
+      .ui-sag .ui-btn--primary {
+        color: #eef1f3;
+        background: #3e5c76;
+        border-color: #3e5c76;
+      }
+      .ui-sag .ui-toast {
+        padding: 8px 14px;
+        color: #eef1f3;
+        background: rgba(38, 50, 61, 0.88);
+        border-left: 3px solid #b5562f;
+      }
+      .ui-sag .ui-race {
+        background: #eef1f3;
+        box-shadow: 0 2px 0 #9aa7b2;
+      }
+
+      /* 6. Gravure */
+      .ui-gra {
+        font-family: "IM Fell DW Pica", serif;
+        color: #e9dcc0;
+      }
+      .ui-gra .ui-panel {
+        background:
+          repeating-linear-gradient(135deg, rgba(233, 220, 192, 0.05) 0 1px, transparent 1px 5px),
+          #15110e;
+        border: 2px solid #e9dcc0;
+        clip-path: polygon(
+          0 6px,
+          6px 0,
+          calc(100% - 10px) 0,
+          100% 8px,
+          100% calc(100% - 6px),
+          calc(100% - 6px) 100%,
+          8px 100%,
+          0 calc(100% - 10px)
+        );
+      }
+      .ui-gra .ui-title {
+        font-family: "Pirata One", serif;
+        font-size: 28px;
+        color: #e9dcc0;
+      }
+      .ui-gra .ui-stat span {
+        color: #a99a7c;
+        font-style: italic;
+      }
+      .ui-gra .ui-bar {
+        background: #2a221b;
+        height: 6px;
+      }
+      .ui-gra .ui-bar i {
+        background: #8e1b1b;
+      }
+      .ui-gra .ui-btn {
+        padding: 6px 14px;
+        color: #e9dcc0;
+        background: transparent;
+        border: 1px solid #e9dcc0;
+        font-family: "Pirata One", serif;
+        font-size: 18px;
+      }
+      .ui-gra .ui-btn--primary {
+        background: #8e1b1b;
+        border-color: #8e1b1b;
+      }
+      .ui-gra .ui-toast {
+        padding: 8px 12px;
+        color: #15110e;
+        background: #d9c7a0;
+        border-left: 6px solid #8e1b1b;
+      }
+      .ui-gra .ui-race {
+        background: #15110e;
+        border: 1px solid #a99a7c;
+        color: #e9dcc0;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="top wrap">
+      <h1>LegionWar — Six directions artistiques</h1>
+      <p class="lead">
+        La première direction (« bois sombre et or ») était <strong>trop générique</strong> :
+        dégradés lisses, aucune texture, pas de parti pris graphique — exactement ce qui donne un
+        rendu « fait par une IA ». Voici six pistes <strong>radicalement différentes</strong>,
+        chacune ancrée dans des références réelles (jeux, art médiéval, cartographie). Chaque
+        planche montre la <strong>carte de jeu</strong> et l'<strong>interface</strong> dessinées
+        dans ce style, sa palette, sa typographie, ses forces et faiblesses pour un jeu de
+        territoire, et le coût estimé de ses assets.
+      </p>
+      <div class="note">
+        <strong
+          >Direction retenue (9 octobre 2026) : 02 Atlas comme socle, avec les armoiries de 03
+          Héraldique</strong
+        >
+        — voir <code>docs/DESIGN_SYSTEM.md</code>. Cette planche est conservée comme trace de
+        l&#39;exploration.
+      </div>
+      <div class="note">
+        <strong>À lire avant :</strong> les visuels sont des maquettes vectorielles réalisées à la
+        main (SVG/CSS), pas des assets finaux — ils servent à juger une <em>intention</em>. Les
+        références sont citées pour inspiration uniquement : aucun asset tiers ne sera repris. Coûts
+        d'images estimés sur les tarifs GPT Image publiés par des sources tierces (≈ 0,05 $ l'image
+        en qualité moyenne, ≈ 0,21 $ en haute qualité, 1024 px), à confirmer sur la page officielle
+        d'OpenAI avant toute génération.
+      </div>
+    </header>
+    <nav class="toc" id="toc" aria-label="Directions"></nav>
+    <main class="wrap" id="boards"></main>
+    <section class="wrap end" id="comparatif"></section>
+
+    <script>
+      // Géométrie commune de la carte : même continent pour toutes les planches. ---------------------
+      const LAND = [
+        "M70,190 C58,128 118,72 196,82 C246,42 332,48 372,90 C436,66 522,98 532,158 C562,212 524,272 470,292 C428,344 330,332 290,312 C238,348 146,332 118,292 C70,272 52,240 70,190 Z",
+        "M470,40 C490,24 532,30 536,55 C540,76 505,86 485,76 C467,68 460,52 470,40 Z",
+        "M40,322 C56,300 96,305 99,326 C101,346 70,356 52,349 C38,343 32,333 40,322 Z",
+      ];
+      const TERR = [
+        {
+          k: "aldoria",
+          d: "M60,60 L250,60 L236,168 L140,210 L40,205 Z",
+          name: "Aldoria",
+          troops: "182 k",
+          x: 140,
+          y: 140,
+          glyph: "⚜",
+        },
+        {
+          k: "kharag",
+          d: "M250,60 L420,40 L440,150 L330,192 L236,168 Z",
+          name: "Kharag",
+          troops: "240 k",
+          x: 335,
+          y: 118,
+          glyph: "⚒",
+        },
+        {
+          k: "morvane",
+          d: "M420,40 L600,60 L600,240 L470,232 L440,150 Z",
+          name: "Morvane",
+          troops: "151 k",
+          x: 498,
+          y: 158,
+          glyph: "☠",
+        },
+        {
+          k: "sylvanor",
+          d: "M140,210 L236,168 L300,200 L262,300 L150,322 L80,262 Z",
+          name: "Sylvanor",
+          troops: "97 k",
+          x: 192,
+          y: 258,
+          glyph: "❦",
+        },
+        {
+          k: "tribe",
+          d: "M330,192 L440,150 L470,232 L520,300 L380,330 L300,300 Z",
+          name: "Gnolls",
+          troops: "14 k",
+          x: 402,
+          y: 262,
+          glyph: "",
+        },
+      ];
+      const MOUNTAINS = [
+        [296, 96],
+        [316, 106],
+        [282, 114],
+        [468, 196],
+        [489, 206],
+        [452, 210],
+      ];
+      const FORESTS = [
+        [168, 242],
+        [186, 252],
+        [160, 266],
+        [204, 270],
+        [220, 242],
+        [118, 150],
+        [104, 168],
+        [126, 172],
+      ];
+      const CITIES = [
+        [150, 118],
+        [338, 142],
+        [508, 128],
+        [210, 232],
+      ];
+      const MINE = [384, 214];
+
+      const landPaths = (attrs) => LAND.map((d) => `<path d="${d}" ${attrs}/>`).join("");
+      const clip = (id) =>
+        `<clipPath id="${id}-land">${LAND.map((d) => `<path d="${d}"/>`).join("")}</clipPath>`;
+      const paper = (id, base, alpha, freq = 0.9) => `
+        <filter id="${id}-paper" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="${freq}" numOctaves="3" seed="7"/>
+          <feColorMatrix values="0 0 0 0 0.25  0 0 0 0 0.17  0 0 0 0 0.08  0 0 0 ${alpha} 0"/>
+        </filter>`;
+      const wobble = (id, scale = 3, freq = 0.035) => `
+        <filter id="${id}-wobble"><feTurbulence type="fractalNoise" baseFrequency="${freq}" numOctaves="2" seed="3" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="${scale}" xChannelSelector="R" yChannelSelector="G"/></filter>`;
+      const svg = (b, inner) =>
+        `<svg class="board__map" viewBox="0 0 600 380" role="img" aria-label="Maquette de carte — ${b.name}">${inner}</svg>`;
+
+      function shield(fill, stroke, glyph, glyphColor, extra = "") {
+        return `<svg viewBox="0 0 46 54" aria-hidden="true"><path d="M3,3 H43 V24 C43,40 31,48 23,52 C15,48 3,40 3,24 Z" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/>${extra}<text x="23" y="31" text-anchor="middle" font-size="20" fill="${glyphColor}">${glyph}</text></svg>`;
+      }
+      function uiSample(b) {
+        return `<div class="ui ui-${b.cls}">
+          <div class="ui-panel">
+            <div class="ui-title">Royaume d'Aldoria</div>
+            <div class="ui-stat"><span>Or</span><b>124 500 (+1 200/s)</b></div>
+            <div class="ui-stat"><span>Troupes</span><b>182 k / 324 k</b></div>
+            <div class="ui-bar"><i style="width:56%"></i></div>
+            <div class="ui-actions"><button class="ui-btn ui-btn--primary">Lancer l'assaut</button><button class="ui-btn">Bâtir</button></div>
+          </div>
+          <div class="ui-toast">Les Gnolls du Croc-Noir attaquent vos marches !</div>
+          <div class="ui-races">${b.races.map((r) => `<div class="ui-race">${r.svg}<span>${r.label}</span></div>`).join("")}</div>
+        </div>`;
+      }
+
+      // Les six directions ------------------------------------------------------------------------------
+      const BOARDS = [
+        {
+          id: "enluminure",
+          cls: "enl",
+          name: "Codex — l'enluminure",
+          tag: "Le jeu comme un manuscrit vivant : feuille d'or, lapis et vermillon, marges peuplées.",
+          palette: [
+            ["Vélin", "#f3e7c9", "fond"],
+            ["Encre ferro-gallique", "#2b1d14", "traits"],
+            ["Lapis-lazuli", "#1f4e9c", "Aldoria, titres"],
+            ["Vermillon", "#c8341f", "rubriques, danger"],
+            ["Malachite", "#3f7d4e", "Sylvanor"],
+            ["Pourpre de Tyr", "#6a2c70", "Morvane"],
+            ["Feuille d'or", "#d4a437", "liserés, Kharag"],
+            ["Ocre", "#b9853a", "tribus"],
+          ],
+          fonts: {
+            display: ["UnifrakturMaguntia", "Le Codex de Valdren"],
+            body: [
+              "EB Garamond",
+              "Les tribus sauvages occupent les terres sans maître ; levez vos bannières.",
+            ],
+            meta: "Titres : UnifrakturMaguntia (gothique textura) · Texte : EB Garamond — OFL",
+          },
+          tags: [
+            "lettrines",
+            "marginalia",
+            "feuille d'or",
+            "aplats tempera",
+            "trait d'encre tremblé",
+            "bestiaire",
+          ],
+          refs: [
+            [
+              "Pentiment (Obsidian, 2022)",
+              "https://www.gamedeveloper.com/art/deep-dive-the-art-of-pentiment",
+              "Interface entièrement pensée comme un manuscrit et une gravure",
+            ],
+            [
+              "Inkulinati (Yaza Games)",
+              "https://www.dailyartmagazine.com/inkulinati-video-game/",
+              "Marginalia médiévales animées, conseil d'un médiéviste",
+            ],
+            [
+              "Très Riches Heures du duc de Berry",
+              "https://fr.wikipedia.org/wiki/Tr%C3%A8s_Riches_Heures_du_duc_de_Berry",
+              "Palette lapis/or, scènes de calendrier",
+            ],
+            [
+              "Livre de Kells",
+              "https://fr.wikipedia.org/wiki/Livre_de_Kells",
+              "Entrelacs, ornementation dense",
+            ],
+          ],
+          pros: [
+            "Identité immédiatement reconnaissable, aucun jeu de territoire ne la porte",
+            "Aplats saturés = territoires très lisibles",
+            "Les sorts et événements deviennent des miniatures enluminées",
+          ],
+          cons: [
+            "Gothique textura peu lisible en petit : réservé aux titres",
+            "Risque « musée » si l'on n'ajoute pas d'humour (marginalia)",
+            "Ornements longs à produire proprement",
+          ],
+          assets:
+            "Lettrines (26), bordures, 4 emblèmes, 6 icônes de bâtiments, bestiaire de marge (≈ 12) : idéal pour la génération d'images en style « miniature médiévale », puis vectorisation.",
+          cost: "≈ 40 images × 3 essais en qualité moyenne ≈ <b>6 $</b> (≈ 5,5 €)",
+          races: () =>
+            [
+              ["#1f4e9c", "⚜", "Aldoria"],
+              ["#d4a437", "⚒", "Kharag"],
+              ["#6a2c70", "☠", "Morvane"],
+              ["#3f7d4e", "❦", "Sylvanor"],
+            ].map(([c, g, l]) => ({
+              label: l,
+              svg: shield(
+                c,
+                "#2b1d14",
+                g,
+                "#f3e7c9",
+                `<path d="M7,7 H39" stroke="#d4a437" stroke-width="1.5"/>`,
+              ),
+            })),
+          map(b) {
+            const id = b.id;
+            const colors = {
+              aldoria: "#1f4e9c",
+              kharag: "#d4a437",
+              morvane: "#6a2c70",
+              sylvanor: "#3f7d4e",
+              tribe: "#b9853a",
+            };
+            return svg(
+              b,
+              `<defs>${paper(id, "", 0.22)}${wobble(id, 2.5)}${clip(id)}
+              <pattern id="${id}-waves" width="18" height="10" patternUnits="userSpaceOnUse"><path d="M0,6 q4.5,-5 9,0 t9,0" fill="none" stroke="#f3e7c9" stroke-opacity=".45" stroke-width="1"/></pattern></defs>
+              <rect width="600" height="380" fill="#1f4e9c"/><rect width="600" height="380" fill="url(#${id}-waves)"/>
+              <g filter="url(#${id}-wobble)">${landPaths('fill="#f3e7c9" stroke="#2b1d14" stroke-width="2.4"')}</g>
+              <g clip-path="url(#${id}-land)" filter="url(#${id}-wobble)">${TERR.map((t) => `<path d="${t.d}" fill="${colors[t.k]}" fill-opacity=".82" stroke="#2b1d14" stroke-width="1.8"/><path d="${t.d}" fill="none" stroke="#e9c86a" stroke-width=".9" stroke-dasharray="1 3" transform="translate(0 0)"/>`).join("")}</g>
+              ${MOUNTAINS.map(([x, y]) => `<path d="M${x - 9},${y + 7} L${x},${y - 9} L${x + 9},${y + 7} Z" fill="#c9b48a" stroke="#2b1d14" stroke-width="1.4"/><path d="M${x},${y - 9} L${x - 3},${y + 7}" stroke="#2b1d14" stroke-width=".8"/>`).join("")}
+              ${FORESTS.map(([x, y]) => `<line x1="${x}" y1="${y + 2}" x2="${x}" y2="${y + 9}" stroke="#2b1d14" stroke-width="1.4"/><circle cx="${x}" cy="${y - 1}" r="5" fill="#3f7d4e" stroke="#2b1d14" stroke-width="1.2"/>`).join("")}
+              ${CITIES.map(([x, y]) => `<path d="M${x - 7},${y + 6} V${y - 2} L${x - 3},${y - 7} L${x + 1},${y - 2} L${x + 5},${y - 8} L${x + 8},${y - 2} V${y + 6} Z" fill="#f3e7c9" stroke="#2b1d14" stroke-width="1.3"/><rect x="${x - 2}" y="${y + 1}" width="3" height="5" fill="#c8341f"/>`).join("")}
+              <circle cx="${MINE[0]}" cy="${MINE[1]}" r="5" fill="#e9c86a" stroke="#2b1d14" stroke-width="1.3"/>
+              ${TERR.map((t) => `<text x="${t.x}" y="${t.y}" text-anchor="middle" font-family="UnifrakturMaguntia" font-size="19" fill="#fbf3df" stroke="#2b1d14" stroke-width="3" paint-order="stroke">${t.name}</text><text x="${t.x}" y="${t.y + 15}" text-anchor="middle" font-family="EB Garamond" font-style="italic" font-size="12" fill="#fbf3df" stroke="#2b1d14" stroke-width="2.5" paint-order="stroke">${t.troops}</text>`).join("")}
+              <path d="M30,48 c10,-14 26,-14 30,-2 c4,10 -8,14 -12,6" fill="none" stroke="#f3e7c9" stroke-width="2"/><circle cx="33" cy="47" r="1.6" fill="#f3e7c9"/>
+              <rect width="600" height="380" filter="url(#${id}-paper)" opacity=".7" pointer-events="none"/>
+              <rect x="6" y="6" width="588" height="368" fill="none" stroke="#d4a437" stroke-width="5"/><rect x="13" y="13" width="574" height="354" fill="none" stroke="#c8341f" stroke-width="1.5"/>`,
+            );
+          },
+        },
+        {
+          id: "atlas",
+          cls: "atl",
+          name: "Atlas — le cartographe de la Renaissance",
+          tag: "La partie se joue sur un atlas gravé : lavis d'aquarelle, roses des vents, monstres marins.",
+          recommended: true,
+          palette: [
+            ["Papier vergé", "#ece0bf", "fond"],
+            ["Sépia", "#3b2a1a", "encre, texte"],
+            ["Lavis garance", "#a5442f", "Kharag, danger"],
+            ["Lavis indigo", "#3d5f8a", "Aldoria"],
+            ["Lavis vert-de-gris", "#4f7f6a", "Sylvanor"],
+            ["Lavis lie-de-vin", "#6e3d5b", "Morvane"],
+            ["Terre de Sienne", "#b8823f", "tribus, or"],
+            ["Mer pâle", "#d3cfae", "mer"],
+          ],
+          fonts: {
+            display: ["IM Fell English SC", "Atlas de Valdren"],
+            body: ["IM Fell English", "Ici commencent les Marches de Morvane, où nul ne revient."],
+            meta: "Titres : IM Fell English SC · Texte : IM Fell English (fontes de l'imprimerie Fell, 1670) — OFL",
+          },
+          tags: [
+            "lavis",
+            "hachures côtières",
+            "rose des vents",
+            "cartouches",
+            "monstres marins",
+            "papier vieilli",
+          ],
+          refs: [
+            [
+              "Atlas de Blaeu (1630-1665)",
+              "https://www.geographicus.com/P/AntiqueMap/world-blaeu-1630",
+              "Cartouches, roses des vents, monstres marins gravés",
+            ],
+            [
+              "Crusader Kings III — carte « papier »",
+              "https://www.gamewatcher.com/crusader-kings-3-map",
+              "Vue dézoomée en carte sur table, navires et monstres",
+            ],
+            [
+              "Cartes de la Terre du Milieu (Christopher Tolkien)",
+              "https://fr.wikipedia.org/wiki/Terre_du_Milieu",
+              "Lisibilité d'une carte de fantasy dessinée",
+            ],
+            [
+              "Theatrum Orbis Terrarum (Ortelius)",
+              "https://fr.wikipedia.org/wiki/Theatrum_Orbis_Terrarum",
+              "Lavis colorés posés sur la gravure",
+            ],
+          ],
+          pros: [
+            "Parfaitement aligné avec le cœur du jeu : la carte EST le jeu",
+            "Le lavis d'aquarelle rend la conquête « organique » à l'écran",
+            "Peu d'assets : textures + ornements, le reste est procédural",
+            "Se marie avec des accents héraldiques (bannières)",
+          ],
+          cons: [
+            "Palette douce : il faut des bordures d'encre franches pour distinguer 60 joueurs",
+            "Risque « carte statique » : animer les lavis qui s'étendent",
+            "Moins « épique WC3 » que la Forge",
+          ],
+          assets:
+            "Texture de papier (2-3), rose des vents, 3 cartouches, 6 monstres marins et navires, 6 icônes de bâtiments gravées, 4 emblèmes : les ornements gravés se génèrent bien puis se vectorisent.",
+          cost: "≈ 25 images × 3 essais en qualité moyenne ≈ <b>4 $</b> (≈ 3,5 €)",
+          races: () =>
+            [
+              ["#3d5f8a", "⚜", "Aldoria"],
+              ["#a5442f", "⚒", "Kharag"],
+              ["#6e3d5b", "☠", "Morvane"],
+              ["#4f7f6a", "❦", "Sylvanor"],
+            ].map(([c, g, l]) => ({ label: l, svg: shield(c, "#3b2a1a", g, "#efe4c4") })),
+          map(b) {
+            const id = b.id;
+            const colors = {
+              aldoria: "#3d5f8a",
+              kharag: "#a5442f",
+              morvane: "#6e3d5b",
+              sylvanor: "#4f7f6a",
+              tribe: "#b8823f",
+            };
+            return svg(
+              b,
+              `<defs>${paper(id, "", 0.32, 0.75)}${wobble(id, 2)}${clip(id)}
+              <filter id="${id}-wash"><feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="3" seed="11" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="9"/><feGaussianBlur stdDeviation="1.4"/></filter>
+              <filter id="${id}-bleed"><feGaussianBlur stdDeviation="2.2"/></filter>
+              <radialGradient id="${id}-vig" cx="50%" cy="50%" r="70%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#3b2a1a" stop-opacity=".45"/></radialGradient></defs>
+              <rect width="600" height="380" fill="#d3cfae"/>
+              ${[24, 17, 11, 6].map((w, i) => `<g opacity="${0.1 + i * 0.07}">${landPaths(`fill="none" stroke="#3b2a1a" stroke-width="${w}"`)}</g>`).join("")}
+              <g filter="url(#${id}-wobble)">${landPaths('fill="#ece0bf" stroke="#3b2a1a" stroke-width="1.6"')}</g>
+              <g clip-path="url(#${id}-land)">${TERR.map((t) => `<path d="${t.d}" fill="${colors[t.k]}" fill-opacity=".42" filter="url(#${id}-wash)"/><path d="${t.d}" fill="none" stroke="${colors[t.k]}" stroke-width="7" stroke-opacity=".55" filter="url(#${id}-bleed)"/>`).join("")}
+                ${TERR.map((t) => `<path d="${t.d}" fill="none" stroke="#3b2a1a" stroke-width="1.1" stroke-dasharray="7 3 1.5 3"/>`).join("")}</g>
+              ${MOUNTAINS.map(([x, y]) => `<path d="M${x - 10},${y + 6} Q${x},${y - 14} ${x + 10},${y + 6}" fill="none" stroke="#3b2a1a" stroke-width="1.3"/>${[-6, -3, 0, 3].map((dx) => `<line x1="${x + dx}" y1="${y - 2}" x2="${x + dx - 2}" y2="${y + 5}" stroke="#3b2a1a" stroke-width=".7"/>`).join("")}`).join("")}
+              ${FORESTS.map(([x, y]) => `<path d="M${x - 5},${y + 3} q-1,-6 3,-7 q1,-4 5,-1 q5,0 3,6 z" fill="none" stroke="#3b2a1a" stroke-width="1"/><line x1="${x}" y1="${y + 3}" x2="${x}" y2="${y + 7}" stroke="#3b2a1a"/>`).join("")}
+              ${CITIES.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4.5" fill="#ece0bf" stroke="#3b2a1a" stroke-width="1.4"/><circle cx="${x}" cy="${y}" r="1.6" fill="#3b2a1a"/>`).join("")}
+              <path d="M${MINE[0] - 5},${MINE[1] + 4} l5,-9 l5,9 z" fill="#b8823f" stroke="#3b2a1a"/>
+              <g transform="translate(548 318)"><circle r="28" fill="none" stroke="#3b2a1a" stroke-width="1"/><circle r="22" fill="none" stroke="#3b2a1a" stroke-width=".6"/>
+                ${[0, 45, 90, 135, 180, 225, 270, 315].map((a) => `<path d="M0,0 L-4,-6 L0,${a % 90 ? -18 : -30} L4,-6 Z" fill="${a % 90 ? "#ece0bf" : "#3b2a1a"}" stroke="#3b2a1a" stroke-width=".6" transform="rotate(${a})"/>`).join("")}
+                <text y="-33" text-anchor="middle" font-family="IM Fell English SC" font-size="11" fill="#3b2a1a">N</text></g>
+              <path d="M28,70 c8,-16 22,-18 30,-6 c6,-10 18,-8 20,2 c-8,-2 -12,4 -18,10 c-10,6 -26,6 -32,-6 z" fill="#ece0bf" stroke="#3b2a1a" stroke-width="1.2"/><path d="M78,66 c6,-2 10,2 12,-4" fill="none" stroke="#3b2a1a"/><circle cx="36" cy="66" r="1.4" fill="#3b2a1a"/>
+              <g transform="translate(300 352)"><path d="M-96,-14 H96 q10,14 0,28 H-96 q-10,-14 0,-28 Z" fill="#ece0bf" stroke="#3b2a1a" stroke-width="1.2"/><text y="5" text-anchor="middle" font-family="IM Fell English SC" font-size="15" letter-spacing="4" fill="#3b2a1a">VALDREN</text></g>
+              ${TERR.map((t) => `<text x="${t.x}" y="${t.y}" text-anchor="middle" font-family="IM Fell English SC" font-size="16" letter-spacing="2.5" fill="#3b2a1a" stroke="#ece0bf" stroke-width="3" paint-order="stroke">${t.name}</text><text x="${t.x}" y="${t.y + 14}" text-anchor="middle" font-family="IM Fell English" font-style="italic" font-size="12" fill="#3b2a1a" stroke="#ece0bf" stroke-width="2.5" paint-order="stroke">${t.troops}</text>`).join("")}
+              <rect width="600" height="380" filter="url(#${id}-paper)" opacity=".75" pointer-events="none"/><rect width="600" height="380" fill="url(#${id}-vig)" pointer-events="none"/>`,
+            );
+          },
+        },
+        {
+          id: "heraldique",
+          cls: "her",
+          name: "Héraldique — émaux et bannières",
+          tag: "Un jeu graphique et franc : couleurs d'armoiries, hachures héraldiques, bannières claquantes.",
+          palette: [
+            ["Argent", "#ecebe4", "fond, texte inversé"],
+            ["Sable", "#1b1b1b", "contours, texte"],
+            ["Or", "#e3b23c", "action, Kharag"],
+            ["Azur", "#1f4fa3", "Aldoria, mer"],
+            ["Gueules", "#b3261e", "danger"],
+            ["Sinople", "#2d7a46", "Sylvanor"],
+            ["Pourpre", "#6b2d6b", "Morvane"],
+            ["Tanné", "#9a5b2b", "tribus"],
+          ],
+          fonts: {
+            display: ["Grenze Gotisch", "Bannières de Valdren"],
+            body: [
+              "Source Serif 4",
+              "Chaque maison porte ses émaux : d'azur, de gueules, de sinople ou de pourpre.",
+            ],
+            meta: "Titres : Grenze Gotisch (gothique contemporaine) · Texte : Source Serif 4 — OFL",
+          },
+          tags: [
+            "aplats francs",
+            "contours épais",
+            "hachures Petra Sancta",
+            "bannières à queue d'aronde",
+            "écus",
+            "lisibilité daltonien",
+          ],
+          refs: [
+            [
+              "Tapisserie de Bayeux",
+              "https://www.newworldencyclopedia.org/entry/Bayeux_Tapestry",
+              "Narration graphique, aplats, bordures animalières",
+            ],
+            [
+              "The Banner Saga (Stoic)",
+              "https://en.wikipedia.org/wiki/The_Banner_Saga",
+              "Graphisme fort inspiré d'Eyvind Earle, bannières",
+            ],
+            [
+              "Hachures héraldiques (Petra Sancta)",
+              "https://fr.wikipedia.org/wiki/Hachure_(h%C3%A9raldique)",
+              "Coder chaque couleur par un motif : accessibilité native",
+            ],
+            [
+              "Armoriaux médiévaux (Zürcher Wappenrolle)",
+              "https://fr.wikipedia.org/wiki/Armorial",
+              "Grilles d'écus, lisibilité extrême",
+            ],
+          ],
+          pros: [
+            "Lisibilité maximale à toutes les échelles, même avec 100 joueurs",
+            "Les hachures héraldiques codent les couleurs : accessible aux daltoniens par nature",
+            "Très peu d'assets : tout est vectoriel et procédural",
+            "Personnalisation joueur évidente (créer ses armoiries)",
+          ],
+          cons: [
+            "Style plat : moins de « magie » et d'atmosphère",
+            "Peut paraître « jeu de société » si l'on ne travaille pas les animations",
+            "Typo gothique à doser",
+          ],
+          assets:
+            "Quasi tout en vectoriel : écus, meubles héraldiques (lion, tour, crâne, arbre…), bannières. La génération d'images sert peu : quelques meubles complexes à vectoriser.",
+          cost: "≈ 12 images × 3 essais en qualité moyenne ≈ <b>2 $</b> (≈ 1,8 €)",
+          races: () =>
+            [
+              ["#1f4fa3", "⚜", "Aldoria", "h"],
+              ["#e3b23c", "⚒", "Kharag", "d"],
+              ["#6b2d6b", "☠", "Morvane", "s"],
+              ["#2d7a46", "❦", "Sylvanor", "x"],
+            ].map(([c, g, l]) => ({ label: l, svg: shield(c, "#1b1b1b", g, "#ecebe4") })),
+          map(b) {
+            const id = b.id;
+            const T = {
+              aldoria: ["#1f4fa3", "h"],
+              kharag: ["#e3b23c", "dots"],
+              morvane: ["#6b2d6b", "s"],
+              sylvanor: ["#2d7a46", "d"],
+              tribe: ["#9a5b2b", "v"],
+            };
+            const pat = (k, [c, p]) => {
+              const dark = "rgba(27,27,27,.35)";
+              const body = {
+                h: `<line x1="0" y1="3" x2="6" y2="3" stroke="${dark}" stroke-width="1.2"/>`,
+                v: `<line x1="3" y1="0" x2="3" y2="6" stroke="${dark}" stroke-width="1.2"/>`,
+                d: `<line x1="0" y1="0" x2="6" y2="6" stroke="${dark}" stroke-width="1.2"/>`,
+                s: `<line x1="6" y1="0" x2="0" y2="6" stroke="${dark}" stroke-width="1.2"/>`,
+                dots: `<circle cx="3" cy="3" r="1" fill="${dark}"/>`,
+              }[p];
+              return `<pattern id="${id}-p-${k}" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="${c}"/>${body}</pattern>`;
+            };
+            return svg(
+              b,
+              `<defs>${clip(id)}${Object.entries(T)
+                .map(([k, v]) => pat(k, v))
+                .join("")}
+              <pattern id="${id}-sea" width="24" height="12" patternUnits="userSpaceOnUse"><rect width="24" height="12" fill="#1f4fa3"/><path d="M0,8 q6,-6 12,0 t12,0" fill="none" stroke="#ecebe4" stroke-width="2" stroke-opacity=".55"/></pattern></defs>
+              <rect width="600" height="380" fill="url(#${id}-sea)"/>
+              ${landPaths('fill="#e8dfc7" stroke="#1b1b1b" stroke-width="4"')}
+              <g clip-path="url(#${id}-land)">${TERR.map((t) => `<path d="${t.d}" fill="url(#${id}-p-${t.k})" stroke="#1b1b1b" stroke-width="3.2" stroke-linejoin="round"/>`).join("")}</g>
+              ${landPaths('fill="none" stroke="#1b1b1b" stroke-width="4"')}
+              ${MOUNTAINS.map(([x, y]) => `<path d="M${x - 10},${y + 7} q5,-14 10,-14 q5,0 10,14 z" fill="#ecebe4" stroke="#1b1b1b" stroke-width="2"/>`).join("")}
+              ${FORESTS.map(([x, y]) => `<path d="M${x},${y - 8} l6,10 h-4 l4,6 h-12 l4,-6 h-4 z" fill="#ecebe4" stroke="#1b1b1b" stroke-width="1.6"/>`).join("")}
+              ${CITIES.map(([x, y], i) => `<line x1="${x}" y1="${y + 8}" x2="${x}" y2="${y - 18}" stroke="#1b1b1b" stroke-width="2"/><path d="M${x},${y - 18} h22 l-6,6 l6,6 h-22 z" fill="${Object.values(T)[i][0]}" stroke="#1b1b1b" stroke-width="2"/>`).join("")}
+              <rect x="${MINE[0] - 6}" y="${MINE[1] - 6}" width="12" height="12" transform="rotate(45 ${MINE[0]} ${MINE[1]})" fill="#e3b23c" stroke="#1b1b1b" stroke-width="2"/>
+              ${TERR.map((t) => {
+                const w = t.name.length * 10 + 24;
+                return `<g transform="translate(${t.x} ${t.y})"><rect x="${-w / 2}" y="-15" width="${w}" height="30" fill="#1b1b1b"/><text y="-1" text-anchor="middle" font-family="Grenze Gotisch" font-weight="700" font-size="17" fill="#ecebe4">${t.name}</text><text y="11" text-anchor="middle" font-family="Source Serif 4" font-weight="600" font-size="9.5" letter-spacing="1" fill="#e3b23c">${t.troops}</text></g>`;
+              }).join("")}
+              <rect x="4" y="4" width="592" height="372" fill="none" stroke="#1b1b1b" stroke-width="8"/>`,
+            );
+          },
+        },
+        {
+          id: "forge",
+          cls: "for",
+          name: "Forge — pierre, fer et braises",
+          tag: "L'héritage Warcraft III / Heroes III : cadres sculptés, rivets, gemmes, lumière de torche.",
+          palette: [
+            ["Basalte", "#2f2c2a", "fond"],
+            ["Granit", "#5a554f", "panneaux"],
+            ["Bronze", "#8a6a34", "liserés"],
+            ["Or patiné", "#f2c66d", "titres"],
+            ["Braise", "#e2622a", "danger, feu"],
+            ["Gemme sarcelle", "#1c8c8d", "action, mana"],
+            ["Os", "#ead9b8", "texte"],
+            ["Mousse", "#5c7a3a", "terres"],
+          ],
+          fonts: {
+            display: ["Metamorphous", "La Forge de Kharag"],
+            body: [
+              "Crimson Pro",
+              "Les braises couvent sous la pierre ; les clans affûtent leurs haches.",
+            ],
+            meta: "Titres : Metamorphous · Texte : Crimson Pro — OFL",
+          },
+          tags: ["pierre sculptée", "rivets", "gemmes", "lueurs", "relief peint", "épique"],
+          refs: [
+            [
+              "Warcraft III (Blizzard, 2002)",
+              "https://fr.wikipedia.org/wiki/Warcraft_III:_Reign_of_Chaos",
+              "Interface sculptée par race, rivets, portraits",
+            ],
+            [
+              "Heroes of Might and Magic III",
+              "https://fr.wikipedia.org/wiki/Heroes_of_Might_and_Magic_III:_The_Restoration_of_Erathia",
+              "Cadres ornés, carte peinte",
+            ],
+            [
+              "Songs of Conquest (Lavapotion)",
+              "https://www.godisageek.com/reviews/songs-of-conquest-review/",
+              "Héritier moderne : pixel art 2,5D éclairé",
+            ],
+            [
+              "Game UI Database",
+              "https://www.gameuidatabase.com/",
+              "Base de 55 000 captures d'interfaces pour étudier les cadres",
+            ],
+          ],
+          pros: [
+            "Répond le plus directement au « à la Warcraft 3 »",
+            "Sentiment de puissance et de matière",
+            "Chaque race peut avoir son propre matériau (pierre, bois, os, écorce)",
+          ],
+          cons: [
+            "C'est la direction la plus « déjà vue », et elle tombe vite dans le cliché IA si elle n'est pas exécutée finement",
+            "Lourde en assets (cadres par race, textures)",
+            "Les cadres massifs mangent l'écran de la carte",
+          ],
+          assets:
+            "4 jeux de cadres (un par race), textures de pierre/bois/os/écorce, gemmes, 6 icônes de bâtiments peintes, 4 emblèmes, fond de menu peint. Demande de la haute qualité.",
+          cost: "≈ 30 images × 3 essais, dont 10 en haute qualité ≈ <b>9 $</b> (≈ 8 €) — à la limite du budget",
+          races: () =>
+            [
+              ["#3b6fd1", "⚜", "Aldoria"],
+              ["#b5312c", "⚒", "Kharag"],
+              ["#6b3fa0", "☠", "Morvane"],
+              ["#2f8f4e", "❦", "Sylvanor"],
+            ].map(([c, g, l]) => ({
+              label: l,
+              svg: shield(
+                c,
+                "#c9a25a",
+                g,
+                "#fff2d6",
+                `<path d="M7,7 H39 V24 C39,37 29,44 23,47 C17,44 7,37 7,24 Z" fill="none" stroke="#1a1817" stroke-opacity=".6" stroke-width="1.2"/>`,
+              ),
+            })),
+          map(b) {
+            const id = b.id;
+            const colors = {
+              aldoria: "#3b6fd1",
+              kharag: "#d1452e",
+              morvane: "#8a4fc9",
+              sylvanor: "#3fb065",
+              tribe: "#a08a6a",
+            };
+            return svg(
+              b,
+              `<defs>${clip(id)}
+              <filter id="${id}-relief" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="5" seed="4" result="n"/>
+                <feDiffuseLighting in="n" surfaceScale="3.2" lighting-color="#a59c7a" result="l"><feDistantLight azimuth="225" elevation="38"/></feDiffuseLighting>
+                <feComposite in="l" in2="SourceGraphic" operator="in"/></filter>
+              <filter id="${id}-glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <filter id="${id}-stone"><feTurbulence type="fractalNoise" baseFrequency=".08" numOctaves="4" seed="9" result="n"/><feDiffuseLighting in="n" surfaceScale="2" lighting-color="#7a746c" result="l"><feDistantLight azimuth="235" elevation="45"/></feDiffuseLighting><feComposite in="l" in2="SourceGraphic" operator="in"/></filter>
+              <radialGradient id="${id}-sea" cx="45%" cy="45%" r="75%"><stop offset="0" stop-color="#1d5a63"/><stop offset="1" stop-color="#0b2329"/></radialGradient>
+              <radialGradient id="${id}-torch" cx="0" cy="0" r="1"><stop offset="0" stop-color="#ffb35a" stop-opacity=".35"/><stop offset="1" stop-color="#ffb35a" stop-opacity="0"/></radialGradient></defs>
+              <rect width="600" height="380" fill="url(#${id}-sea)"/>
+              ${landPaths('fill="#6f6a52"')}
+              <g clip-path="url(#${id}-land)"><rect width="600" height="380" fill="#fff" filter="url(#${id}-relief)" opacity=".9"/>
+                <rect width="600" height="380" fill="#5c7a3a" opacity=".38" style="mix-blend-mode:multiply"/>
+                ${TERR.map((t) => `<path d="${t.d}" fill="${colors[t.k]}" fill-opacity=".34"/>`).join("")}
+                ${TERR.map((t) => `<path d="${t.d}" fill="none" stroke="${colors[t.k]}" stroke-width="2.4" filter="url(#${id}-glow)"/>`).join("")}</g>
+              ${landPaths('fill="none" stroke="#e8d7a0" stroke-opacity=".5" stroke-width="1.2"')}
+              ${MOUNTAINS.map(([x, y]) => `<path d="M${x - 11},${y + 8} L${x},${y - 11} L${x + 11},${y + 8} Z" fill="#4a4540"/><path d="M${x},${y - 11} L${x + 11},${y + 8} L${x + 2},${y + 8} Z" fill="#2a2724"/><path d="M${x - 3},${y - 6} L${x},${y - 11} L${x + 3},${y - 6} Z" fill="#e9e4da"/>`).join("")}
+              ${FORESTS.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="6" fill="#2d4a22"/><circle cx="${x - 2}" cy="${y - 2}" r="3" fill="#4a6e34"/>`).join("")}
+              ${CITIES.map(([x, y]) => `<path d="M${x - 8},${y + 6} V${y - 3} L${x},${y - 11} L${x + 8},${y - 3} V${y + 6} Z" fill="#c9b48a" stroke="#1a1817" stroke-width="1.2"/><rect x="${x - 2}" y="${y}" width="4" height="6" fill="#ffb35a"/><circle cx="${x}" cy="${y}" r="16" fill="url(#${id}-torch)"/>`).join("")}
+              <circle cx="${MINE[0]}" cy="${MINE[1]}" r="6" fill="#f2c66d" stroke="#5b4420" stroke-width="2" filter="url(#${id}-glow)"/>
+              ${TERR.map((t) => `<text x="${t.x}" y="${t.y}" text-anchor="middle" font-family="Metamorphous" font-size="16" fill="#f2c66d" stroke="#1a1208" stroke-width="3.5" paint-order="stroke">${t.name}</text><text x="${t.x}" y="${t.y + 15}" text-anchor="middle" font-family="Crimson Pro" font-weight="600" font-size="12" fill="#ead9b8" stroke="#1a1208" stroke-width="3" paint-order="stroke">${t.troops}</text>`).join("")}
+              <rect x="0" y="0" width="600" height="380" fill="none" stroke="#3c3835" stroke-width="22" filter="url(#${id}-stone)"/>
+              <rect x="11" y="11" width="578" height="358" fill="none" stroke="#8a6a34" stroke-width="2"/>
+              ${[
+                [16, 16],
+                [584, 16],
+                [16, 364],
+                [584, 364],
+              ]
+                .map(
+                  ([x, y]) =>
+                    `<circle cx="${x}" cy="${y}" r="5" fill="#c9a25a" stroke="#3a2508" stroke-width="1.5"/>`,
+                )
+                .join("")}`,
+            );
+          },
+        },
+        {
+          id: "saga",
+          cls: "sag",
+          name: "Saga — peint et stylisé du Nord",
+          tag: "Formes taillées, brumes et pins graphiques : la mélancolie épique de Banner Saga et Northgard.",
+          palette: [
+            ["Neige", "#eef1f3", "fond clair"],
+            ["Fjord", "#3e5c76", "action, mer"],
+            ["Ardoise", "#26323d", "texte, nuit"],
+            ["Pin", "#2f4f43", "forêts, Sylvanor"],
+            ["Rouille", "#b5562f", "accent, Kharag"],
+            ["Bouleau", "#d8cfc0", "terres"],
+            ["Crépuscule", "#5b4a6b", "Morvane"],
+            ["Ciel d'acier", "#8fa3b5", "Aldoria"],
+          ],
+          fonts: {
+            display: ["Spectral SC", "La Saga de Valdren"],
+            body: ["Spectral", "Le vent du nord porte la cendre des villages brûlés."],
+            meta: "Titres : Spectral SC · Texte : Spectral (Production Type) — OFL",
+          },
+          tags: [
+            "formes taillées",
+            "brume",
+            "silhouettes",
+            "palette froide",
+            "élégance",
+            "mélancolie",
+          ],
+          refs: [
+            [
+              "The Banner Saga (Stoic)",
+              "https://en.wikipedia.org/wiki/The_Banner_Saga",
+              "Inspiré d'Eyvind Earle : simple en apparence, très graphique",
+            ],
+            [
+              "Eyvind Earle — La Belle au bois dormant (1959)",
+              "https://fr.wikipedia.org/wiki/Eyvind_Earle",
+              "Arbres stylisés, verticalité, motifs",
+            ],
+            [
+              "Northgard (Shiro Games)",
+              "https://www.gamereactor.eu/northgard-blends-strategy-and-norse-mythology/",
+              "Jeu de conquête de territoire nordique, très lisible",
+            ],
+            [
+              "Bad North (Plausible Concept)",
+              "https://www.pocketgamer.biz/interview/68638/indie-spotlight-plausible-concept-on-bad-north/",
+              "Tons délavés, minimalisme au service du jeu",
+            ],
+          ],
+          pros: [
+            "Très élégant et moderne, tranche avec les clichés « or et pierre »",
+            "La palette froide fait ressortir les couleurs des joueurs",
+            "Animations simples très efficaces (brume, neige)",
+          ],
+          cons: [
+            "Plus nordique que médiéval-fantastique classique",
+            "Ambiance mélancolique : moins de démesure WC3",
+            "Exige un vrai talent de stylisation pour ne pas paraître vide",
+          ],
+          assets:
+            "Silhouettes (arbres, montagnes, villes) par race, fonds de menu peints en couches, 4 emblèmes, 6 icônes. Bonne compatibilité avec la génération d'images en style « flat painted, Eyvind Earle ».",
+          cost: "≈ 25 images × 3 essais en qualité moyenne + 3 fonds en haute qualité ≈ <b>5 $</b> (≈ 4,5 €)",
+          races: () =>
+            [
+              ["#8fa3b5", "⚜", "Aldoria"],
+              ["#b5562f", "⚒", "Kharag"],
+              ["#5b4a6b", "☠", "Morvane"],
+              ["#2f4f43", "❦", "Sylvanor"],
+            ].map(([c, g, l]) => ({ label: l, svg: shield(c, "#26323d", g, "#eef1f3") })),
+          map(b) {
+            const id = b.id;
+            const colors = {
+              aldoria: "#8fa3b5",
+              kharag: "#b5562f",
+              morvane: "#5b4a6b",
+              sylvanor: "#2f4f43",
+              tribe: "#a39886",
+            };
+            return svg(
+              b,
+              `<defs>${clip(id)}
+              <linearGradient id="${id}-sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b6a84"/><stop offset="1" stop-color="#253a4c"/></linearGradient>
+              <filter id="${id}-mist"><feGaussianBlur stdDeviation="6"/></filter></defs>
+              <rect width="600" height="380" fill="url(#${id}-sea)"/>
+              ${[60, 150, 250, 330].map((y, i) => `<rect x="-20" y="${y}" width="640" height="${10 + i * 3}" fill="#eef1f3" opacity=".08" filter="url(#${id}-mist)"/>`).join("")}
+              <g transform="translate(0 5)">${landPaths('fill="#1b2a36" opacity=".55"')}</g>
+              ${landPaths('fill="#d8cfc0"')}
+              <g clip-path="url(#${id}-land)">${TERR.map((t) => `<path d="${t.d}" fill="${colors[t.k]}" fill-opacity=".78"/>`).join("")}
+                ${TERR.map((t) => `<path d="${t.d}" fill="none" stroke="#eef1f3" stroke-width="1.6" stroke-opacity=".9"/>`).join("")}
+                <rect width="600" height="380" fill="#eef1f3" opacity=".12" filter="url(#${id}-mist)"/></g>
+              ${MOUNTAINS.map(([x, y]) => `<path d="M${x - 8},${y + 9} L${x},${y - 16} L${x + 8},${y + 9} Z" fill="#26323d"/><path d="M${x - 3},${y - 6} L${x},${y - 16} L${x + 3},${y - 6} L${x},${y - 8} Z" fill="#eef1f3"/>`).join("")}
+              ${FORESTS.map(([x, y]) => `<path d="M${x},${y - 13} L${x + 3.5},${y + 6} L${x - 3.5},${y + 6} Z" fill="#1d332b"/><path d="M${x + 6},${y - 8} L${x + 8.5},${y + 6} L${x + 3.5},${y + 6} Z" fill="#26453a"/>`).join("")}
+              ${CITIES.map(([x, y]) => `<path d="M${x - 6},${y + 5} V${y - 2} L${x - 2},${y - 9} L${x + 2},${y - 2} V${y + 5} Z M${x + 2},${y + 5} V${y - 1} L${x + 5},${y - 5} L${x + 8},${y - 1} V${y + 5} Z" fill="#eef1f3"/>`).join("")}
+              <circle cx="${MINE[0]}" cy="${MINE[1]}" r="4" fill="#e7c27a"/>
+              ${[
+                [90, 60],
+                [110, 52],
+                [520, 300],
+              ]
+                .map(
+                  ([x, y]) =>
+                    `<path d="M${x - 6},${y} q6,-5 6,0 q0,-5 6,0" fill="none" stroke="#26323d" stroke-width="1.3"/>`,
+                )
+                .join("")}
+              ${TERR.map((t) => `<text x="${t.x}" y="${t.y}" text-anchor="middle" font-family="Spectral SC" font-weight="600" font-size="14" letter-spacing="3.5" fill="#eef1f3" stroke="#1b2a36" stroke-width="2.6" paint-order="stroke">${t.name.toUpperCase()}</text><text x="${t.x}" y="${t.y + 15}" text-anchor="middle" font-family="Spectral" font-size="11.5" fill="#eef1f3" stroke="#1b2a36" stroke-width="2.4" paint-order="stroke">${t.troops}</text>`).join("")}`,
+            );
+          },
+        },
+        {
+          id: "gravure",
+          cls: "gra",
+          name: "Gravure — bois gravé gothique",
+          tag: "Encre, sang et parchemin jauni : la noirceur de Darkest Dungeon, la taille de Dürer.",
+          palette: [
+            ["Encre", "#15110e", "fond, traits"],
+            ["Parchemin jauni", "#d9c7a0", "terres, texte"],
+            ["Os", "#e9dcc0", "texte clair"],
+            ["Sang séché", "#8e1b1b", "danger, Kharag"],
+            ["Rouille", "#7a4a22", "tribus"],
+            ["Vert soufre", "#6f7a3a", "Sylvanor"],
+            ["Acier froid", "#4a5a6a", "Aldoria"],
+            ["Lie-de-vin", "#4b2236", "Morvane"],
+          ],
+          fonts: {
+            display: ["Pirata One", "Les Damnés de Morvane"],
+            body: [
+              "IM Fell DW Pica",
+              "Nul ne revient des Marches ; seuls les corbeaux en connaissent les chemins.",
+            ],
+            meta: "Titres : Pirata One · Texte : IM Fell DW Pica — OFL",
+          },
+          tags: [
+            "contre-hachures",
+            "contraste extrême",
+            "sang et encre",
+            "horreur gothique",
+            "silhouettes",
+            "corbeaux",
+          ],
+          refs: [
+            [
+              "Darkest Dungeon (Red Hook)",
+              "https://en.wikipedia.org/wiki/Darkest_Dungeon",
+              "Manuscrits enluminés + gravures sur bois + comics",
+            ],
+            [
+              "Entretien Chris Bourassa (80 Level)",
+              "https://80.lv/articles/red-hook-studios-talks-about-the-creation-of-darkest-dungeon",
+              "Palette chaude jaunie, noirs réservés à l'encre",
+            ],
+            [
+              "Albrecht Dürer — L'Apocalypse (1498)",
+              "https://fr.wikipedia.org/wiki/Apocalypse_(D%C3%BCrer)",
+              "Taille d'épargne, hachures expressives",
+            ],
+            [
+              "Mike Mignola (Hellboy)",
+              "https://fr.wikipedia.org/wiki/Mike_Mignola",
+              "Aplats noirs, formes simples et sombres",
+            ],
+          ],
+          pros: [
+            "Atmosphère et caractère très forts",
+            "Se démarque totalement des .io colorés",
+            "Parfait pour les morts-vivants, les sorts, la trahison",
+          ],
+          cons: [
+            "Couleurs limitées : distinguer 60 joueurs est difficile (motifs + couleur obligatoires)",
+            "Ton sombre : public plus restreint, moins « fun » d'un coup d'œil",
+            "Hachures coûteuses à rendre proprement à toutes les échelles",
+          ],
+          assets:
+            "Gravures de bâtiments, d'unités et d'événements, ornements, corbeaux et crânes. La génération d'images en style « woodcut » fonctionne bien, mais demande un nettoyage pour rester nette.",
+          cost: "≈ 30 images × 3 essais en qualité moyenne ≈ <b>5 $</b> (≈ 4,5 €)",
+          races: () =>
+            [
+              ["#4a5a6a", "⚜", "Aldoria"],
+              ["#8e1b1b", "⚒", "Kharag"],
+              ["#4b2236", "☠", "Morvane"],
+              ["#6f7a3a", "❦", "Sylvanor"],
+            ].map(([c, g, l]) => ({ label: l, svg: shield(c, "#e9dcc0", g, "#e9dcc0") })),
+          map(b) {
+            const id = b.id;
+            const T = {
+              aldoria: ["#4a5a6a", 0],
+              kharag: ["#8e1b1b", 45],
+              morvane: ["#4b2236", 90],
+              sylvanor: ["#6f7a3a", 135],
+              tribe: ["#7a4a22", 20],
+            };
+            return svg(
+              b,
+              `<defs>${paper(id, "", 0.35, 0.7)}${wobble(id, 3.5, 0.05)}${clip(id)}
+              <pattern id="${id}-sea" width="600" height="5" patternUnits="userSpaceOnUse"><rect width="600" height="5" fill="#d9c7a0"/><line x1="0" y1="2.5" x2="600" y2="2.5" stroke="#15110e" stroke-width="1.6"/></pattern>
+              ${Object.entries(T)
+                .map(
+                  ([k, [c, a]]) =>
+                    `<pattern id="${id}-p-${k}" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(${a})"><rect width="5" height="5" fill="#d9c7a0"/><line x1="0" y1="0" x2="0" y2="5" stroke="${c}" stroke-width="2.6"/></pattern>`,
+                )
+                .join("")}</defs>
+              <rect width="600" height="380" fill="url(#${id}-sea)"/>
+              <g filter="url(#${id}-wobble)">${landPaths('fill="#d9c7a0" stroke="#15110e" stroke-width="4"')}
+              <g clip-path="url(#${id}-land)">${TERR.map((t) => `<path d="${t.d}" fill="url(#${id}-p-${t.k})" stroke="#15110e" stroke-width="2.6"/>`).join("")}</g></g>
+              ${MOUNTAINS.map(([x, y]) => `<path d="M${x - 12},${y + 9} L${x - 3},${y - 4} L${x},${y - 13} L${x + 4},${y - 5} L${x + 12},${y + 9} Z" fill="#d9c7a0" stroke="#15110e" stroke-width="1.8"/>${[0, 3, 6].map((d) => `<line x1="${x + d}" y1="${y - 6 + d}" x2="${x + d + 3}" y2="${y + 8}" stroke="#15110e" stroke-width="1"/>`).join("")}`).join("")}
+              ${FORESTS.map(([x, y]) => `<path d="M${x},${y + 8} V${y - 8} M${x},${y - 3} l-5,-5 M${x},${y} l5,-6 M${x},${y + 3} l-4,-3" stroke="#15110e" stroke-width="1.6" fill="none"/>`).join("")}
+              ${CITIES.map(([x, y]) => `<path d="M${x - 7},${y + 6} V${y - 4} L${x - 4},${y - 12} L${x - 1},${y - 4} V${y + 6} Z M${x + 1},${y + 6} V${y - 1} L${x + 4},${y - 7} L${x + 7},${y - 1} V${y + 6} Z" fill="#15110e"/>`).join("")}
+              <path d="M${MINE[0] - 5},${MINE[1] - 3} h10 l-2,8 h-6 z" fill="#15110e"/>
+              ${[
+                [70, 60],
+                [84, 52],
+                [540, 70],
+              ]
+                .map(
+                  ([x, y]) =>
+                    `<path d="M${x - 8},${y} q4,-6 8,-1 q4,-5 8,1 q-4,-2 -8,1 q-4,-3 -8,-1 z" fill="#15110e"/>`,
+                )
+                .join("")}
+              ${TERR.map((t) => `<text x="${t.x}" y="${t.y}" text-anchor="middle" font-family="Pirata One" font-size="21" fill="#15110e" stroke="#e9dcc0" stroke-width="4" paint-order="stroke">${t.name}</text><text x="${t.x}" y="${t.y + 15}" text-anchor="middle" font-family="IM Fell DW Pica" font-style="italic" font-size="12" fill="#8e1b1b" stroke="#e9dcc0" stroke-width="3" paint-order="stroke">${t.troops}</text>`).join("")}
+              <rect width="600" height="380" filter="url(#${id}-paper)" opacity=".55" pointer-events="none"/>
+              <rect x="5" y="5" width="590" height="370" fill="none" stroke="#15110e" stroke-width="10"/><rect x="14" y="14" width="572" height="352" fill="none" stroke="#8e1b1b" stroke-width="1.5"/>`,
+            );
+          },
+        },
+      ];
+
+      // Rendu --------------------------------------------------------------------------------------------
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
+      document.getElementById("toc").innerHTML =
+        BOARDS.map(
+          (b, i) => `<a href="#${b.id}"><span>${i + 1}</span>${esc(b.name.split(" — ")[0])}</a>`,
+        ).join("") + `<a href="#comparatif"><span>→</span>Comparatif</a>`;
+
+      document.getElementById("boards").innerHTML = BOARDS.map((b, i) => {
+        b.races = b.races();
+        return `<article class="board" id="${b.id}">
+          <header class="board__head">
+            <div class="board__num">${String(i + 1).padStart(2, "0")}</div>
+            <h2 class="board__name">${esc(b.name)}</h2>
+            ${b.recommended ? `<span class="badge">Ma recommandation</span>` : "<span></span>"}
+            <p class="board__tag">${esc(b.tag)}</p>
+          </header>
+          <div class="board__hero">${b.map(b)}<div class="board__ui">${uiSample(b)}</div></div>
+          <div class="board__body">
+            <div>
+              <h3>Palette</h3>
+              <div class="palette">${b.palette.map(([n, hex, role]) => `<div class="chip"><i style="background:${hex}"></i><span><b>${esc(n)}</b>${hex} · ${esc(role)}</span></div>`).join("")}</div>
+              <h3>Mots-clés</h3>
+              <div class="tags">${b.tags.map((t) => `<span>${esc(t)}</span>`).join("")}</div>
+            </div>
+            <div>
+              <h3>Typographie</h3>
+              <div class="type ui-${b.cls}" style="background:${b.palette[0][1]};color:${b.palette[1][1]}">
+                <div class="type__display" style="font-family:'${b.fonts.display[0]}'">${esc(b.fonts.display[1])}</div>
+                <div class="type__body" style="font-family:'${b.fonts.body[0]}'">${esc(b.fonts.body[1])}</div>
+              </div>
+              <div class="type__meta">${esc(b.fonts.meta)}</div>
+              <h3 style="margin-top:18px">Références</h3>
+              <ul class="refs">${b.refs.map(([l, u, n]) => `<li><a href="${u}" target="_blank" rel="noopener">${esc(l)}</a><small>${esc(n)}</small></li>`).join("")}</ul>
+            </div>
+            <div>
+              <h3>Pour un jeu de territoire</h3>
+              <div class="proscons"><ul class="pro">${b.pros.map((p) => `<li>${esc(p)}</li>`).join("")}</ul><ul class="con">${b.cons.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>
+              <h3>Assets à produire</h3>
+              <p>${esc(b.assets)}</p>
+              <div class="cost">Génération d'images estimée : ${b.cost}</div>
+            </div>
+          </div>
+        </article>`;
+      }).join("");
+
+      const rows = [
+        ["Lisibilité de la carte (60+ joueurs)", [4, 4, 5, 3, 4, 2]],
+        ["Originalité / anti-« look IA »", [5, 4, 4, 2, 4, 4]],
+        ["Esprit « Warcraft III »", [2, 3, 3, 5, 3, 3]],
+        ["Accessibilité (daltonisme)", [3, 3, 5, 3, 3, 4]],
+        ["Coût de production", [3, 4, 5, 2, 3, 3]],
+        ["Adéquation jeu de territoire", [4, 5, 5, 3, 4, 3]],
+      ];
+      const stars = (n) => "★".repeat(n) + "☆".repeat(5 - n);
+      document.getElementById("comparatif").innerHTML = `
+        <h2>Comparatif</h2>
+        <table class="compare"><thead><tr><th>Critère</th>${BOARDS.map((b, i) => `<th>${i + 1}. ${esc(b.name.split(" — ")[0])}</th>`).join("")}</tr></thead>
+        <tbody>${rows.map(([label, v]) => `<tr><td>${label}</td>${v.map((n) => `<td class="stars">${stars(n)}</td>`).join("")}</tr>`).join("")}</tbody></table>
+        <h2 style="margin-top:40px">Ma recommandation</h2>
+        <p class="lead"><strong>02 Atlas comme socle, avec les bannières de 03 Héraldique pour les joueurs.</strong>
+        La carte est le cœur du jeu : la traiter comme un atlas gravé où les royaumes s'étendent en lavis d'aquarelle est à la fois original
+        et parfaitement fonctionnel. Pour la lisibilité à 60 joueurs et l'accessibilité, chaque royaume porte des armoiries
+        (écu + bannière) et, en option, un motif de hachure héraldique. L'esprit fantasy épique vient des sorts et des événements,
+        traités en <em>miniatures enluminées</em> (clin d'œil à 01) au-dessus de la carte.</p>
+        <div class="note"><strong>Prochaine étape :</strong> tu choisis une direction (ou un mélange, ex. « 2 + 3 », « 4 mais en moins
+        chargé ») et tu me dis ce que tu aimes ou rejettes dans chaque planche. Je refais ensuite le design system dans cette direction,
+        puis je te propose une liste précise d'images à générer avec leur coût, à valider avant toute dépense (budget 10 €).</div>`;
+    </script>
+  </body>
+</html>

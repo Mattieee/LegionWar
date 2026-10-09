@@ -1,4 +1,11 @@
 import {
+  playerColor as dsPlayerColor,
+  rgbCss,
+  tokenRgb,
+  tokens,
+  type RGB,
+} from "@legionwar/design-system";
+import {
   LAND_BIT,
   LOW_MASK,
   OCEAN_BIT,
@@ -8,55 +15,75 @@ import {
   terrainKindOf,
 } from "@legionwar/engine";
 
-export type RGB = readonly [number, number, number];
+export { rgbCss, type RGB };
 
-export const DEEP_WATER: RGB = [24, 46, 70];
+/** Couleurs du terrain, issues des tokens `map.terrain.*` du design system. */
+const TERRAIN = {
+  plain: tokenRgb("map.terrain.plain"),
+  coast: tokenRgb("map.terrain.coast"),
+  forest: tokenRgb("map.terrain.forest"),
+  hills: tokenRgb("map.terrain.hills"),
+  mountain: tokenRgb("map.terrain.mountain"),
+  peaks: tokenRgb("map.terrain.peaks"),
+  sea: tokenRgb("map.terrain.sea"),
+  seaDeep: tokenRgb("map.terrain.seaDeep"),
+  lake: tokenRgb("map.terrain.lake"),
+};
+const COAST_LINE = tokenRgb("map.coastLine");
+const COAST_STRENGTH = tokens.map.coastLineStrength;
 
-function hslToRgb(h: number, s: number, l: number): RGB {
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number): number => {
-    const k = (n + h / 30) % 12;
-    return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
-  };
-  return [f(0), f(8), f(4)];
-}
+/**
+ * Hachures côtières des cartes gravées : des lignes d'encre suivent la côte à distances
+ * croissantes et s'estompent vers le large. Clé = profondeur (distance à la côte en tuiles).
+ */
+const COAST_RIPPLES: Record<number, number> = { 1: 1.6, 3: 1, 5: 0.65, 8: 0.35 };
 
-/** Couleur stable et bien répartie par joueur ; les tribus sont plus ternes. */
-export function playerColor(id: number, isBot: boolean): RGB {
-  const hue = (id * 137.508) % 360;
-  return isBot ? hslToRgb(hue, 0.3, 0.42) : hslToRgb(hue, 0.75, 0.52);
-}
+export const TABLE: RGB = tokenRgb("map.table");
 
 const LAND_COLORS: Record<number, RGB> = {
-  [TerrainKind.Plain]: [150, 166, 92],
-  [TerrainKind.Forest]: [70, 104, 52],
-  [TerrainKind.Hills]: [164, 140, 92],
-  [TerrainKind.Mountain]: [138, 130, 120],
-  [TerrainKind.Impassable]: [228, 230, 236],
+  [TerrainKind.Plain]: TERRAIN.plain,
+  [TerrainKind.Forest]: TERRAIN.forest,
+  [TerrainKind.Hills]: TERRAIN.hills,
+  [TerrainKind.Mountain]: TERRAIN.mountain,
+  [TerrainKind.Impassable]: TERRAIN.peaks,
 };
-const SAND: RGB = [200, 182, 128];
-const SHALLOW: RGB = [70, 122, 152];
-const LAKE: RGB = [78, 136, 160];
+
+export function playerColor(id: number, isBot: boolean): RGB {
+  return dsPlayerColor(id, isBot);
+}
 
 function mix(a: RGB, b: RGB, t: number): RGB {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
-/** Couleur d'une tuile non possédée, d'après son octet de terrain. */
-export function terrainColor(byte: number): RGB {
-  if ((byte & LAND_BIT) === 0) {
-    const depth = byte & LOW_MASK;
-    if ((byte & OCEAN_BIT) === 0) return mix(LAKE, DEEP_WATER, Math.min(depth, 10) / 20);
-    return mix(SHALLOW, DEEP_WATER, Math.min(depth, 16) / 16);
-  }
-  const kind = terrainKindOf(byte);
-  const variant = (byte >> VARIANT_SHIFT) & 0x3;
-  const base =
-    kind === TerrainKind.Plain && (byte & SHORE_BIT) !== 0 ? SAND : (LAND_COLORS[kind] ?? SAND);
-  const shade = 1 + (variant - 1.5) * 0.035;
-  return [base[0] * shade, base[1] * shade, base[2] * shade];
+/** Grain du papier : bruit stable par tuile (purement visuel, hors simulation). */
+function grain(tile: number): number {
+  let h = Math.imul(tile ^ 0x9e3779b9, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return ((h >>> 0) / 4294967296 - 0.5) * 0.06;
 }
 
-export function rgbCss(c: RGB, alpha = 1): string {
-  return `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${alpha})`;
+/** Couleur d'une tuile non possédée, d'après son octet de terrain. */
+export function terrainColor(byte: number, tile: number): RGB {
+  let color: RGB;
+  if ((byte & LAND_BIT) === 0) {
+    const depth = byte & LOW_MASK;
+    const isOcean = (byte & OCEAN_BIT) !== 0;
+    color = isOcean ? mix(TERRAIN.sea, TERRAIN.seaDeep, Math.min(depth, 20) / 20) : TERRAIN.lake;
+    const ripple = COAST_RIPPLES[depth];
+    if (ripple !== undefined) color = mix(color, COAST_LINE, Math.min(1, COAST_STRENGTH * ripple));
+  } else {
+    const kind = terrainKindOf(byte);
+    const variant = (byte >> VARIANT_SHIFT) & 0x3;
+    const base =
+      kind === TerrainKind.Plain && (byte & SHORE_BIT) !== 0
+        ? TERRAIN.coast
+        : (LAND_COLORS[kind] ?? TERRAIN.plain);
+    const shade = 1 + (variant - 1.5) * 0.02;
+    color = [base[0] * shade, base[1] * shade, base[2] * shade];
+  }
+  const g = 1 + grain(tile);
+  return [color[0] * g, color[1] * g, color[2] * g];
 }

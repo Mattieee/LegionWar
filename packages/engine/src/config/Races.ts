@@ -58,8 +58,6 @@ export interface RaceInfo {
   /** Peuple. */
   people: string;
   emblem: string;
-  /** Couleur héraldique (hex) utilisée par l'interface. */
-  heraldry: string;
   description: string;
   /** Résumé des bonus, affiché dans le menu. */
   traits: string[];
@@ -72,7 +70,6 @@ export const RACES: Record<Race, RaceInfo> = {
     name: "Royaume d'Aldoria",
     people: "Humains",
     emblem: "⚜",
-    heraldry: "#3b6fd1",
     description:
       "Chevaliers, bâtisseurs et marchands. Un royaume riche qui fortifie ses frontières avant de marcher.",
     traits: ["+20 % d'or", "Bâtiments −15 %", "Tours de garde +25 % de portée", "Défense +10 %"],
@@ -89,7 +86,6 @@ export const RACES: Record<Race, RaceInfo> = {
     name: "Clans de Kharag",
     people: "Orcs",
     emblem: "⚒",
-    heraldry: "#b5312c",
     description:
       "Des clans guerriers venus des steppes de cendre. Ils frappent vite et fort, au prix de leur trésor.",
     traits: [
@@ -112,7 +108,6 @@ export const RACES: Record<Race, RaceInfo> = {
     name: "Les Damnés de Morvane",
     people: "Morts-vivants",
     emblem: "☠",
-    heraldry: "#6b3fa0",
     description:
       "Une nécromancie glaciale. Chaque ennemi tombé se relève dans leurs rangs ; leur peuple se renouvelle lentement.",
     traits: ["Relève 30 % des pertes ennemies", "Régénération −10 %", "−10 % d'or"],
@@ -128,7 +123,6 @@ export const RACES: Record<Race, RaceInfo> = {
     name: "Cercle de Sylvanor",
     people: "Elfes sylvains",
     emblem: "❦",
-    heraldry: "#2f8f4e",
     description:
       "Gardiens des forêts anciennes. Insaisissables sous les frondaisons, redoutables quand on les y traque.",
     traits: [

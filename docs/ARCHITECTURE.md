@@ -22,12 +22,13 @@
 
 ## Monorepo (npm workspaces)
 
-| Package             | Dépend de            | Contenu                                                                                                                                                                         |
-| ------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@legionwar/engine` | rien                 | `core/` (PRNG, maths déterministes, tas, hash), `map/` (encodage des tuiles, `GameMap`, générateur), `config/` (règles, races), `game/` (`Game`, `Player`, `Attack`, IA, types) |
-| `@legionwar/shared` | engine               | Messages client ↔ serveur, `parseClientMessage`, `sanitizeName`                                                                                                                 |
-| `@legionwar/server` | engine, shared, ws   | `GameRoom` (logique testable sans réseau), `index.ts` (HTTP `/health` et WebSocket)                                                                                             |
-| `@legionwar/client` | engine, shared, vite | Menu, session de jeu, worker de simulation, rendu, HUD, entrées                                                                                                                 |
+| Package                    | Dépend de                           | Contenu                                                                                                                                                                         |
+| -------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@legionwar/engine`        | rien                                | `core/` (PRNG, maths déterministes, tas, hash), `map/` (encodage des tuiles, `GameMap`, générateur), `config/` (règles, races), `game/` (`Game`, `Player`, `Attack`, IA, types) |
+| `@legionwar/shared`        | engine                              | Messages client ↔ serveur, `parseClientMessage`, `sanitizeName`                                                                                                                 |
+| `@legionwar/server`        | engine, shared, ws                  | `GameRoom` (logique testable sans réseau), `index.ts` (HTTP `/health` et WebSocket)                                                                                             |
+| `@legionwar/design-system` | rien (polices @fontsource)          | Tokens (source unique), CSS généré `--lw-*`, composants `.lw-*`, utilitaires couleur et contraste — voir [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)                                   |
+| `@legionwar/client`        | engine, shared, design-system, vite | Menu, session de jeu, worker de simulation, rendu, HUD, entrées                                                                                                                 |
 
 - **Pas de compilation intermédiaire :** les packages exportent directement leur source TypeScript (`exports: "./src/index.ts"`). Vite, Vitest et tsx les consomment tels quels.
 - **Contrôle des types :** `tsc --noEmit` par package. Le moteur est compilé **sans** les libs DOM et Node : il ne peut pas en dépendre par erreur.

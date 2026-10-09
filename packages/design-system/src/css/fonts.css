@@ -1,0 +1,14 @@
+/*
+ * Polices embarquées (licence SIL OFL 1.1), servies par le build : aucun CDN externe.
+ * Sous-ensemble latin uniquement : couvre le français (accents, œ, €, tirets typographiques).
+ * IM Fell English SC : titres et libellés, capitales de l'imprimerie de John Fell (1670).
+ * IM Fell English    : textes d'ambiance (italique de cartographe).
+ * EB Garamond        : texte d'interface et chiffres, lisible en petite taille.
+ */
+@import "@fontsource/im-fell-english-sc/latin-400.css";
+@import "@fontsource/im-fell-english/latin-400.css";
+@import "@fontsource/im-fell-english/latin-400-italic.css";
+@import "@fontsource/eb-garamond/latin-400.css";
+@import "@fontsource/eb-garamond/latin-400-italic.css";
+@import "@fontsource/eb-garamond/latin-500.css";
+@import "@fontsource/eb-garamond/latin-600.css";

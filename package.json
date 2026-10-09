@@ -15,7 +15,8 @@
     "build": "npm run build -w @legionwar/client",
     "preview": "npm run preview -w @legionwar/client",
     "server": "npm run start -w @legionwar/server",
-    "typecheck": "tsc -p packages/engine && tsc -p packages/shared && tsc -p packages/server && tsc -p packages/client && tsc -p tsconfig.test.json",
+    "tokens": "npm run tokens -w @legionwar/design-system",
+    "typecheck": "tsc -p packages/engine && tsc -p packages/design-system && tsc -p packages/shared && tsc -p packages/server && tsc -p packages/client && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
@@ -31,6 +32,7 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^16.4.0",
     "prettier": "^3.6.2",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.44.0",
     "vitest": "^3.2.4"

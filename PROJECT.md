@@ -43,6 +43,7 @@ Les joueurs de .io et de RTS nostalgiques de Warcraft III, pour des sessions de 
 | Bâtiments : Bourg, Tour de garde                                                                  | ✅      |
 | IA « tribus sauvages »                                                                            | ✅      |
 | Client : menu, choix de race, rendu Canvas, caméra, HUD, classement, journal                      | ✅      |
+| Design system : tokens, composants `.lw-*`, polices embarquées, page de référence, tests WCAG     | ✅      |
 | Serveur relais WebSocket (lobby, tours, reconnexion) et tests                                     | ✅      |
 | Multijoueur branché dans le client                                                                | ⏳ v0.2 |
 
@@ -62,15 +63,19 @@ Les joueurs de .io et de RTS nostalgiques de Warcraft III, pour des sessions de 
 
 ## Journal des décisions
 
-| Date       | Décision                                                                  | Raison                                                                                |
-| ---------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| 2026-10-09 | **Réécriture propre**, sans fork d'OpenFront                              | Liberté de licence et maîtrise totale du code ; le code d'OpenFront est sous AGPL-3.0 |
-| 2026-10-09 | **4 races asymétriques** sur un socle de règles commun                    | Saveur Warcraft III tout en gardant l'équilibrage maîtrisable                         |
-| 2026-10-09 | **Lockstep déterministe** : le serveur relaie, les clients simulent       | Des centaines de joueurs pour un coût serveur minimal ; replays gratuits              |
-| 2026-10-09 | **Canvas 2D** pour le prototype, WebGL plus tard si besoin                | Simple et suffisant jusqu'à environ 1 M de tuiles ; mesuré : tick moteur de 1 à 2 ms  |
-| 2026-10-09 | **JSON** sur WebSocket (pas de format binaire pour l'instant)             | Débogage simple ; un format binaire pourra venir à l'échelle                          |
-| 2026-10-09 | **Aucun outil cloud Anthropic** (Artifacts, Claude Docs, agents distants) | Exigence du porteur de projet ; tout reste dans le dépôt                              |
-| 2026-10-09 | Univers et noms **100 % originaux**                                       | Éviter toute propriété intellectuelle de Blizzard                                     |
+| Date       | Décision                                                                     | Raison                                                                                 |
+| ---------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 2026-10-09 | **Réécriture propre**, sans fork d'OpenFront                                 | Liberté de licence et maîtrise totale du code ; le code d'OpenFront est sous AGPL-3.0  |
+| 2026-10-09 | **4 races asymétriques** sur un socle de règles commun                       | Saveur Warcraft III tout en gardant l'équilibrage maîtrisable                          |
+| 2026-10-09 | **Lockstep déterministe** : le serveur relaie, les clients simulent          | Des centaines de joueurs pour un coût serveur minimal ; replays gratuits               |
+| 2026-10-09 | **Canvas 2D** pour le prototype, WebGL plus tard si besoin                   | Simple et suffisant jusqu'à environ 1 M de tuiles ; mesuré : tick moteur de 1 à 2 ms   |
+| 2026-10-09 | **JSON** sur WebSocket (pas de format binaire pour l'instant)                | Débogage simple ; un format binaire pourra venir à l'échelle                           |
+| 2026-10-09 | **Aucun outil cloud Anthropic** (Artifacts, Claude Docs, agents distants)    | Exigence du porteur de projet ; tout reste dans le dépôt                               |
+| 2026-10-09 | **Design system maison** (tokens TS → CSS généré, composants `.lw-*`)        | Une seule source pour le DOM et le Canvas ; contraste vérifié par les tests            |
+| 2026-10-09 | Direction artistique **« Atlas + Héraldique »** (choisie parmi 6 moodboards) | La carte est le cœur du jeu ; les armoiries rendent 60 joueurs lisibles et accessibles |
+| 2026-10-09 | Polices **IM Fell English (SC)** + **EB Garamond** (OFL), embarquées         | Typographie d'atlas du XVIIe siècle, Garamond lisible pour le HUD                      |
+| 2026-10-09 | Images IA via OpenAI **sur validation**, budget **10 €**                     | Assets à moindre coût, dépense maîtrisée                                               |
+| 2026-10-09 | Univers et noms **100 % originaux**                                          | Éviter toute propriété intellectuelle de Blizzard                                      |
 
 ## Risques
 
@@ -86,7 +91,7 @@ Les joueurs de .io et de RTS nostalgiques de Warcraft III, pour des sessions de 
 ## Questions ouvertes
 
 - **Licence du code** : propriétaire, MIT ou AGPL ? À décider avant toute publication ou contribution externe.
-- **Direction artistique** : pixel art, ou illustration vectorielle peinte ? Qui produit les assets ?
+- **Direction artistique** : tranchée (« Atlas + Héraldique », voir `docs/DESIGN_SYSTEM.md`). Reste à décider qui produit les assets illustrés (génération IA validée au cas par cas, budget 10 €, ou illustrateur).
 - **Héros** à la Warcraft III : à évaluer après la v0.6 (complexité et équilibrage).
 - **Hébergement** du serveur relais : VPS, conteneur… et nom de domaine.
 - **Modèle économique** : cosmétiques uniquement ? Aucune décision pour l'instant.

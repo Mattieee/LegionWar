@@ -21,7 +21,10 @@ C'est une **règle absolue** de ce projet.
 - Pour une modification d'équilibrage ou de règle, consulter le sous-agent **`game-designer`** et mettre à jour `docs/GDD.md`.
 - Pour une revue générale (qualité, sécurité web, performances), utiliser le sous-agent **`relecteur-code`**.
 - Pour ajouter un bâtiment ou une unité, suivre la skill **`/ajouter-batiment`**.
+- Toute interface passe par le **design system** (`docs/DESIGN_SYSTEM.md`) : tokens et composants `.lw-*`, jamais de couleur en dur.
+- **Images IA (OpenAI) :** demander l'accord avant toute génération, avec la liste et le coût estimé. Budget total : 10 €.
 - Ne pas committer ni pousser sans demande explicite de l'utilisateur.
+- **Commits :** identité perso du dépôt (`git config --local`, adresse Gmail) ; vérifier `git config user.email` avant de committer. **Jamais** de ligne `Co-Authored-By` ni de mention de Claude dans les commits ou les PR.
 
 ### Sous-agents et skills du projet
 
