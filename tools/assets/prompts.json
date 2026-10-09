@@ -1,0 +1,182 @@
+{
+  "model": "gpt-image-2.5-flare",
+  "style": "Copper-plate engraving in the manner of a 17th-century Dutch atlas (Blaeu, Ortelius). Sepia iron-gall ink only, fine hatching and cross-hatching, crisp linework, slightly irregular hand-engraved lines. Monochrome sepia, no other colors. No text, no letters, no numbers, no signature, no watermark, no frame unless asked.",
+  "assets": [
+    {
+      "id": "paper-1",
+      "group": "Texture de papier",
+      "prompt": "Seamless tileable texture of antique laid paper, warm cream color, very subtle chain lines and laid lines, faint foxing spots, soft fibers, evenly lit, flat, no shadows, no objects. This one is a texture, ignore the engraving instruction except the sepia palette.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "opaque"
+    },
+    {
+      "id": "paper-2",
+      "group": "Texture de papier",
+      "prompt": "Seamless tileable texture of aged parchment-like laid paper, slightly darker and warmer than new paper, faint water stains, subtle fibers, evenly lit, flat, no objects. This one is a texture, ignore the engraving instruction except the sepia palette.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "opaque"
+    },
+    {
+      "id": "compass-rose",
+      "group": "Rose des vents",
+      "prompt": "An ornate 16-point compass rose (windrose) as engraved on antique sea charts, with a fleur-de-lis pointing north, concentric rings, alternating shaded and plain points, isolated, centered.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "cartouche-title",
+      "group": "Cartouches",
+      "prompt": "An empty baroque map cartouche with scrolling strapwork, small banners and putti-free ornamental foliage, a large blank central area for a title, isolated, centered, wide horizontal format.",
+      "size": "1536x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "cartouche-victory",
+      "group": "Cartouches",
+      "prompt": "An empty triumphal map cartouche framed by crossed swords, laurel branches, trumpets and banners, with a blank central area, isolated, centered, wide horizontal format.",
+      "size": "1536x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "sea-serpent",
+      "group": "Monstres marins et navires",
+      "prompt": "A coiling sea serpent emerging from stylized engraved waves, as drawn on old maps, isolated.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "sea-whale",
+      "group": "Monstres marins et navires",
+      "prompt": "A fantastical spouting whale-like sea monster with fins and a fierce face, as drawn on 16th-century maps, isolated.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "sea-kraken",
+      "group": "Monstres marins et navires",
+      "prompt": "A kraken with tentacles rising from engraved waves, old map marginal decoration, isolated.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "ship-galleon",
+      "group": "Monstres marins et navires",
+      "prompt": "A three-masted galleon under full sail on small engraved waves, side view, as on antique sea charts, isolated.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "ship-longship",
+      "group": "Monstres marins et navires",
+      "prompt": "A medieval longship with a square sail and a row of shields, on small engraved waves, side view, isolated.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "ship-cog",
+      "group": "Monstres marins et navires",
+      "prompt": "A small medieval merchant cog with one mast and a banner, on small engraved waves, side view, isolated.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "building-bourg",
+      "group": "Icônes de bâtiments",
+      "prompt": "Map symbol of a small fortified medieval town: a cluster of houses and a church spire inside a round wall, three-quarter view, compact icon, isolated, centered.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "building-tour",
+      "group": "Icônes de bâtiments",
+      "prompt": "Map symbol of a single crenellated stone watchtower with a small flag, three-quarter view, compact icon, isolated, centered.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "building-port",
+      "group": "Icônes de bâtiments",
+      "prompt": "Map symbol of a small medieval harbour: a stone quay, a crane and a moored ship, three-quarter view, compact icon, isolated, centered.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "building-comptoir",
+      "group": "Icônes de bâtiments",
+      "prompt": "Map symbol of a medieval trading post: a timber market hall with stacked barrels and crates, three-quarter view, compact icon, isolated, centered.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "building-bastion",
+      "group": "Icônes de bâtiments",
+      "prompt": "Map symbol of an arcane bastion: a squat round tower crowned by a large engraved rune-carved crystal, three-quarter view, compact icon, isolated, centered.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "building-sanctuaire",
+      "group": "Icônes de bâtiments",
+      "prompt": "Map symbol of a mystical sanctuary: a domed temple with a tall spire radiating engraved rays of light, three-quarter view, compact icon, isolated, centered.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "emblem-aldoria",
+      "group": "Emblèmes des peuples",
+      "prompt": "A heraldic charge: a castle tower surmounted by a fleur-de-lis, bold simple silhouette suitable for a coat of arms, isolated, centered, no shield.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "emblem-kharag",
+      "group": "Emblèmes des peuples",
+      "prompt": "A heraldic charge: two crossed war axes over a flame, bold simple silhouette suitable for a coat of arms, isolated, centered, no shield.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "emblem-morvane",
+      "group": "Emblèmes des peuples",
+      "prompt": "A heraldic charge: a crowned skull with two crossed bones, bold simple silhouette suitable for a coat of arms, isolated, centered, no shield.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "emblem-sylvanor",
+      "group": "Emblèmes des peuples",
+      "prompt": "A heraldic charge: an ancient oak tree with spreading branches and visible roots, bold simple silhouette suitable for a coat of arms, isolated, centered, no shield.",
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent"
+    },
+    {
+      "id": "frontispice",
+      "group": "Illustration du menu",
+      "prompt": "Frontispiece of an antique atlas: an allegorical scene with a towering continent on the horizon, armies with banners marching across a valley, ships in a bay, dramatic clouds, a large blank cartouche at the top center reserved for a title, rich detailed engraving, wide format.",
+      "size": "1536x1024",
+      "quality": "high",
+      "background": "opaque"
+    }
+  ]
+}

@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LegionWar — Voix, scripts et musique</title>
+    <meta
+      name="description"
+      content="Proposition audio de LegionWar : distribution des voix, scripts, fond musical et effets sonores (ElevenLabs)."
+    />
+    <!-- Polices d'exploration (Google Fonts) : document de travail, non embarqué dans le jeu. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&display=swap"
+    />
+    <style>
+      :root {
+        --paper: #efe5c8;
+        --paper-light: #f7f0dc;
+        --paper-dark: #e6d8b2;
+        --ink: #2a1d12;
+        --ink-mid: #5a4630;
+        --ink-soft: #a89474;
+        --garance: #8c3b2a;
+        --azure: #1f4fa3;
+        --gules: #b3261e;
+        --purpure: #6b2d6b;
+        --vert: #2d7a46;
+        --sable: #1b1b1b;
+        --table: #1c140e;
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--table);
+        color: var(--ink);
+        font:
+          17px/1.55 "EB Garamond",
+          Garamond,
+          serif;
+      }
+      .sheet {
+        max-width: 1100px;
+        margin: 32px auto;
+        padding: 48px 56px 64px;
+        background: var(--paper);
+        box-shadow:
+          0 0 0 6px var(--paper),
+          0 0 0 7px var(--ink-mid),
+          inset 0 0 60px rgba(90, 70, 48, 0.25),
+          0 20px 60px rgba(0, 0, 0, 0.6);
+        border-radius: 14px / 8px;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: "IM Fell English SC", serif;
+        font-weight: 400;
+        letter-spacing: 0.05em;
+        margin: 0;
+      }
+      h1 {
+        font-size: 44px;
+        text-align: center;
+        letter-spacing: 0.12em;
+      }
+      .subtitle {
+        text-align: center;
+        font-family: "IM Fell English", serif;
+        font-style: italic;
+        color: var(--ink-mid);
+        margin: 6px 0 0;
+      }
+      .ornament {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin: 28px 0;
+        color: var(--ink-mid);
+        font-size: 20px;
+      }
+      .ornament::before,
+      .ornament::after {
+        content: "";
+        flex: 1;
+        border-top: 1px solid var(--ink-mid);
+      }
+      h2 {
+        font-size: 30px;
+        margin: 8px 0 6px;
+      }
+      h3 {
+        font-size: 21px;
+        margin: 22px 0 8px;
+      }
+      p.lead,
+      .note {
+        color: var(--ink-mid);
+        max-width: 80ch;
+      }
+      .note {
+        padding: 12px 16px;
+        margin: 16px 0;
+        border-left: 4px solid var(--garance);
+        background: var(--paper-light);
+        border-radius: 0 6px 6px 0;
+        font-size: 16px;
+      }
+      .note strong {
+        color: var(--ink);
+      }
+      nav.toc {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px 20px;
+        font-family: "IM Fell English SC", serif;
+      }
+      nav.toc a,
+      a {
+        color: var(--garance);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15.5px;
+      }
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--ink-soft);
+      }
+      th {
+        font-family: "IM Fell English SC", serif;
+        font-weight: 400;
+        color: var(--ink-mid);
+        border-bottom: 1px solid var(--ink-mid);
+      }
+      .cast {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 14px;
+      }
+      .role {
+        position: relative;
+        padding: 14px 16px 12px 20px;
+        background: var(--paper-light);
+        border: 1px solid var(--ink-soft);
+        border-left: 6px solid var(--accent, var(--ink-mid));
+        border-radius: 4px;
+      }
+      .role h3 {
+        margin: 0 0 2px;
+      }
+      .role .who {
+        font-family: "IM Fell English", serif;
+        font-style: italic;
+        color: var(--ink-mid);
+        font-size: 15px;
+      }
+      .role audio {
+        width: 100%;
+        margin-top: 8px;
+        height: 34px;
+      }
+      .role .alt {
+        font-size: 14px;
+        color: var(--ink-mid);
+        margin-top: 6px;
+      }
+      code,
+      .id {
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 12.5px;
+        color: var(--ink-mid);
+      }
+      .script {
+        margin: 10px 0 18px;
+        border: 1px solid var(--ink-soft);
+        border-radius: 6px;
+        background: var(--paper-light);
+        overflow: hidden;
+      }
+      .script__head {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px 14px;
+        background: var(--paper-dark);
+        border-bottom: 1px solid var(--ink-soft);
+      }
+      .script__head strong {
+        font-family: "IM Fell English SC", serif;
+        font-weight: 400;
+        font-size: 18px;
+      }
+      .script__meta {
+        font-size: 14px;
+        color: var(--ink-mid);
+      }
+      .line {
+        display: grid;
+        grid-template-columns: 170px 1fr auto;
+        gap: 12px;
+        align-items: baseline;
+        padding: 8px 14px;
+        border-bottom: 1px dashed var(--ink-soft);
+      }
+      .line:last-child {
+        border-bottom: 0;
+      }
+      .line__cue {
+        font-size: 13.5px;
+        color: var(--ink-mid);
+        font-style: italic;
+      }
+      .line__text {
+        font-size: 16.5px;
+      }
+      .tag {
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 12px;
+        color: var(--garance);
+      }
+      .chars {
+        font-size: 12px;
+        color: var(--ink-soft);
+        white-space: nowrap;
+      }
+      .cues {
+        display: grid;
+        gap: 14px;
+      }
+      .cue {
+        display: grid;
+        grid-template-columns: 210px 1fr;
+        gap: 18px;
+        padding: 16px;
+        background: var(--paper-light);
+        border: 1px solid var(--ink-soft);
+        border-radius: 6px;
+      }
+      .cue__title {
+        font-family: "IM Fell English SC", serif;
+        font-size: 19px;
+      }
+      .cue__facts {
+        margin-top: 6px;
+        font-size: 14px;
+        color: var(--ink-mid);
+      }
+      .cue__desc {
+        margin: 0 0 8px;
+      }
+      .prompt {
+        position: relative;
+        padding: 10px 70px 10px 12px;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        background: var(--paper);
+        border: 1px dashed var(--ink-mid);
+        border-radius: 4px;
+      }
+      .copy {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        padding: 2px 10px;
+        font:
+          13px "IM Fell English SC",
+          serif;
+        color: var(--paper-light);
+        background: var(--garance);
+        border: 1px solid var(--ink);
+        border-radius: 999px;
+        cursor: pointer;
+      }
+      .layers {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+      }
+      .layer {
+        padding: 12px 14px;
+        border: 1px solid var(--ink-soft);
+        border-radius: 6px;
+        background: var(--paper-light);
+      }
+      .layer b {
+        font-family: "IM Fell English SC", serif;
+        font-weight: 400;
+        font-size: 17px;
+      }
+      .totals {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 12px 0;
+      }
+      .total {
+        flex: 1 1 200px;
+        padding: 12px 16px;
+        border: 1px solid var(--ink-mid);
+        border-radius: 6px;
+        background: var(--paper-light);
+      }
+      .total big {
+        display: block;
+        font-family: "IM Fell English SC", serif;
+        font-size: 28px;
+        color: var(--garance);
+      }
+      @media (max-width: 760px) {
+        .sheet {
+          padding: 28px 18px;
+          margin: 0;
+          border-radius: 0;
+        }
+        .line,
+        .cue {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <p class="subtitle">Dossier sonore — proposition à valider</p>
+      <h1>Les Voix de Valdren</h1>
+      <p class="subtitle">Distribution, scripts, fond musical et bruitages pour LegionWar</p>
+      <div class="ornament">❦</div>
+      <nav class="toc">
+        <a href="#intention">Intention</a><a href="#distribution">Distribution</a
+        ><a href="#scripts">Scripts</a><a href="#musique">Fond musical</a
+        ><a href="#bruitages">Bruitages</a><a href="#budget">Budget</a>
+      </nav>
+
+      <section id="intention">
+        <div class="ornament">❦</div>
+        <h2>Intention</h2>
+        <p class="lead">
+          Le son prolonge la direction « Atlas + Héraldique ». <strong>Cinq voix</strong> : un
+          <strong>Narrateur</strong>, le Chroniqueur de l'Atlas, qui ouvre le jeu et mène la partie
+          d'apprentissage ; puis <strong>un héraut par peuple</strong>. Comme dans Warcraft III, le
+          héraut de la race choisie devient <em>la voix du jeu</em> pendant toute la partie : il
+          répond aux ordres et annonce les événements avec sa propre personnalité. Un Orc n'annonce
+          pas une trahison comme une Elfe. La musique s'inspire de la
+          <strong>Renaissance</strong> (luths, violes de gambe, flûtes à bec, sacqueboutes,
+          tambours, orgue positif) plutôt que du grand orchestre hollywoodien : c'est ce qui donnera
+          à LegionWar une identité qu'on n'entend pas dans les autres jeux du genre.
+        </p>
+        <div class="note">
+          <strong>Rien n'a été généré.</strong> Les voix ci-dessous sont des voix existantes de
+          votre espace ElevenLabs (extraits écoutables). La voix (le timbre) est indépendante du
+          modèle qui la fait parler : les scripts visent <code>eleven_v4</code>, recommandé, à
+          confirmer à l'oreille lors de l'essai ; <code>eleven_v3</code> lit les mêmes scripts. Les
+          deux interprètent les balises d'expression entre crochets (<span class="tag"
+            >[whispers]</span
+          >, <span class="tag">[dramatically]</span>…). Les prompts musicaux sont en anglais, langue
+          que le modèle comprend le mieux. La génération se fera seulement après votre validation,
+          comme pour les images.
+        </div>
+      </section>
+
+      <section id="distribution">
+        <div class="ornament">❦</div>
+        <h2>Distribution</h2>
+        <p class="lead">
+          Cinq voix : le Narrateur et les quatre hérauts. Écoutez les extraits : ce sont les voix
+          brutes, avant les balises d'expression et la mise en scène.
+        </p>
+        <div class="cast" id="cast"></div>
+        <div class="note">
+          <strong>Héraut de Kharag :</strong> aucune voix française rauque n'existe dans la
+          bibliothèque. Deux options : la voix grave « Sid » renforcée par
+          <span class="tag">[raspy]</span> <span class="tag">[deep voice]</span>, ou une
+          <strong>voix créée sur mesure</strong> par ElevenLabs à partir d'une description (« chef
+          de guerre orc, voix rocailleuse, gutturale, menaçante, en français ») — je vous proposerai
+          alors trois essais à écouter avant d'en garder un.
+        </div>
+      </section>
+
+      <section id="scripts">
+        <div class="ornament">❦</div>
+        <h2>Scripts</h2>
+        <p class="lead">
+          Le Narrateur porte l'introduction et la partie d'apprentissage (textes posés, plus longs).
+          Chaque héraut a le même jeu de <strong>17 répliques</strong> : choix du peuple, ordres,
+          construction, et toutes les annonces de partie, réécrites dans son caractère. Répliques
+          courtes, jamais lassantes au centième passage. Le compteur de caractères sert à estimer
+          les crédits.
+        </p>
+        <div id="scripts-list"></div>
+      </section>
+
+      <section id="musique">
+        <div class="ornament">❦</div>
+        <h2>Fond musical</h2>
+        <p class="lead">
+          Musique <strong>adaptative</strong> : le jeu passe d'une piste à l'autre selon la
+          situation, avec des fondus de 2 à 4 secondes, et baisse automatiquement la musique de 6 dB
+          pendant une voix. Toutes les pistes de fond sont instrumentales et conçues pour boucler.
+        </p>
+        <h3>Les états musicaux</h3>
+        <div class="layers">
+          <div class="layer">
+            <b>Calme</b><br />Déploiement, expansion sur les terres libres, aucune attaque en cours
+            contre vous.
+          </div>
+          <div class="layer">
+            <b>Tension</b><br />Une attaque vous vise, ou un voisin vous dépasse en troupes.
+          </div>
+          <div class="layer">
+            <b>Bataille</b><br />Plusieurs fronts actifs, un sort majeur lancé, ou vous perdez du
+            territoire.
+          </div>
+          <div class="layer">
+            <b>Crépuscule</b><br />Fin de partie : un seigneur approche de la victoire, ou il reste
+            une minute.
+          </div>
+        </div>
+        <h3>Les pistes</h3>
+        <div class="cues" id="cues"></div>
+      </section>
+
+      <section id="bruitages">
+        <div class="ornament">❦</div>
+        <h2>Bruitages</h2>
+        <p class="lead">
+          Des sons de cabinet de cartographe pour l'interface (plume, parchemin, sceau) et des sons
+          de champ de bataille, lointains, pour la carte. Modèle
+          <code>eleven_text_to_sound_v2</code>, durée 0,5 à 30 s, bouclage possible.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Événement</th>
+              <th>Durée</th>
+              <th>Prompt</th>
+            </tr>
+          </thead>
+          <tbody id="sfx"></tbody>
+        </table>
+      </section>
+
+      <section id="budget">
+        <div class="ornament">❦</div>
+        <h2>Volume et budget</h2>
+        <div class="totals" id="totals"></div>
+        <div class="note">
+          <strong>Coûts en crédits ElevenLabs.</strong> Ils dépendent de votre forfait, que je ne
+          peux pas consulter : comptez environ <strong>1 crédit par caractère</strong> de voix (à
+          confirmer pour <code>eleven_v4</code>) ; la musique et les bruitages sont facturés à la
+          durée. Vérifiez le solde de votre espace avant de valider. Je propose de procéder en deux
+          temps : <strong>un essai par voix sur 3 répliques</strong> (5 voix, environ 600
+          caractères) et <strong>la piste du menu</strong> pour valider le ton, puis le reste.
+        </div>
+        <div class="note">
+          <strong>Ensuite :</strong> chaque fichier sera consigné dans
+          <code>docs/CREDITS.md</code> (voix, modèle, durée, crédits) et intégré au jeu avec un
+          mixeur à canaux séparés (musique, voix, bruitages, interface) réglables dans les options.
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const VOICES = {
+        chroniqueur: {
+          role: "Le Narrateur — Chroniqueur de l'Atlas",
+          accent: "#5a4630",
+          use: "Introduction du jeu et partie d'apprentissage",
+          voice: "Zion Aquila — grave, âgée, chaleureuse",
+          id: "t2969wgUwHbBoVCZNHRU",
+          preview:
+            "https://api.us.elevenlabs.io/v1/voices/t2969wgUwHbBoVCZNHRU/previews/audio?payload=eyJ2b2ljZV9zb3VyY2UiOiJjdXN0b20iLCJ3b3Jrc3BhY2VfaWQiOiI2ZDNlZDE1NTk0MzM0NzFmYjc5NTU5ZmRlMjY3M2JlMyIsImZpbGVuYW1lIjoidmhsdkRJeHBvU3M0Rld0bGVxRWsubXAzIiwidGltZXN0YW1wIjoxNzkxNTY1MjAwMDAwMDAwfQ%3D%3D",
+          alt: "Alternatives : Julien — conteur, plus pédagogue (86fYoxrFeaJKXplThwSl) ; Kevan — plus sombre et cinématique (AYfOkr1hDQYbhigmRZ16).",
+        },
+        aldoria: {
+          role: "Héraut d'Aldoria",
+          accent: "#1f4fa3",
+          use: "Chevalier du Royaume, noble et assuré",
+          voice: "Lucas — grave et charismatique",
+          id: "t28pUgJnL2wUUQ8SOnaU",
+          preview:
+            "https://storage.googleapis.com/eleven-public-prod/database/workspace/1da06ea679a54975ad96a2221fe6530d/voices/t28pUgJnL2wUUQ8SOnaU/47961f0c-decc-4bdd-8966-491159ceb28f.mp3",
+          alt: "Alternative : Florian — profonde, chaleureuse (FL0d5832ACnJkBaedeKX).",
+        },
+        kharag: {
+          role: "Héraut de Kharag",
+          accent: "#b3261e",
+          use: "Chef de guerre orc, guttural et menaçant",
+          voice: "Sid — sombre, grave (+ [raspy] [deep voice])",
+          id: "V8kvppYJoYqSL61Tr8Dn",
+          preview:
+            "https://storage.googleapis.com/eleven-public-prod/database/user/user_2501kgar0c09f5v86yk93kw3j11w/voices/V8kvppYJoYqSL61Tr8Dn/LGQvtHGBjccy1FpS3BKO.mp3",
+          alt: "Recommandé : voix créée sur mesure (voir note ci-dessous).",
+        },
+        morvane: {
+          role: "Héraut de Morvane",
+          accent: "#6b2d6b",
+          use: "Nécromancienne, murmure glacé, ironie",
+          voice: "Gaïa — féminine, alto, grave",
+          id: "l2SMkbOspgB4yZ8sr2hP",
+          preview:
+            "https://api.us.elevenlabs.io/v1/voices/l2SMkbOspgB4yZ8sr2hP/previews/audio?payload=eyJ2b2ljZV9zb3VyY2UiOiJjdXN0b20iLCJ3b3Jrc3BhY2VfaWQiOiJmYTY0ZmY5YTE2MjE0MWZlOTI2NTQ0NmMwOTM5Mjg3YyIsImZpbGVuYW1lIjoiMWViYWFhNjctYmIxZC00ZmEyLTg2YjItNTY0OTlkZDkwN2M0Lm1wMyIsInRpbWVzdGFtcCI6MTc5MTU2NTIwMDAwMDAwMH0%3D",
+          alt: "Alternative : Emilie — diction théâtrale (i6ke7jvmGEVUyV4zjSaT).",
+        },
+        sylvanor: {
+          role: "Héraut de Sylvanor",
+          accent: "#2d7a46",
+          use: "Gardienne elfe, claire, lointaine, posée",
+          voice: "Chloé — lumineuse et élégante",
+          id: "I6eWD84OrEngt4S4Antm",
+          preview:
+            "https://storage.googleapis.com/eleven-public-prod/database/workspace/1da06ea679a54975ad96a2221fe6530d/voices/I6eWD84OrEngt4S4Antm/q0RC8Ebcoa7pTB8VGCJp.mp3",
+          alt: "Alternative : Hélène — documentaire, élégante (a2NqrzzRklNWkb04aqW1).",
+        },
+      };
+
+      const SCRIPTS = [
+        {
+          title: "Introduction du menu",
+          voice: "chroniqueur",
+          note: "≈ 45 s, sur la piste « L'Atlas de Valdren ». Se joue une fois au premier lancement.",
+          lines: [
+            [
+              "Ouverture",
+              "[slowly] [deep voice] Il fut un temps où Valdren n'avait qu'un seul maître…",
+            ],
+            [
+              "",
+              "[pause] Puis la Couronne d'Astre se brisa, et l'Empire d'Ostre s'éteignit en une nuit.",
+            ],
+            [
+              "",
+              "[softly] Depuis, les cartographes ont rangé leurs plumes. Aucune frontière ne tient plus d'une saison.",
+            ],
+            ["Aldoria", "[pause] Les chevaliers d'Aldoria fortifient leurs marches."],
+            ["Kharag", "[dramatically] Les Clans de Kharag descendent des steppes de cendre."],
+            ["Morvane", "[whispers] Dans les Marches de Morvane, les morts se relèvent…"],
+            [
+              "Sylvanor",
+              "[softly] et sous les frondaisons de Sylvanor, quelque chose vous observe.",
+            ],
+            [
+              "Appel",
+              "[pause] [dramatically] L'Atlas est vierge, seigneur. Il attend vos couleurs.",
+            ],
+            ["Titre", "[long pause] Levez vos bannières."],
+          ],
+        },
+        {
+          title: "Partie d'apprentissage",
+          voice: "chroniqueur",
+          note: "Une partie guidée sur une petite carte, contre trois tribus. Chaque réplique se déclenche à une étape et attend que le joueur ait fait l'action avant de passer à la suivante.",
+          lines: [
+            [
+              "Accueil",
+              "[warmly] Bienvenue, apprenti seigneur. Avant de conquérir Valdren, apprenons ensemble à tenir une plume… et une épée.",
+            ],
+            [
+              "La carte",
+              "Faites glisser l'Atlas pour le parcourir, et approchez-vous avec la molette. Chaque couleur est un royaume ; le papier nu, des terres sans maître.",
+            ],
+            [
+              "Déploiement",
+              "Choisissez une terre libre, loin des côtes si possible, et plantez-y votre bannière.",
+            ],
+            [
+              "Expansion",
+              "Cliquez sur une terre libre voisine. Vos troupes avanceront tout le long de votre frontière, comme l'encre qui s'étend sur la page.",
+            ],
+            [
+              "Ratio",
+              "Ce curseur fixe la part de vos troupes envoyée au combat. Trop peu, l'assaut s'essouffle… trop, et vos marches restent sans défense.",
+            ],
+            [
+              "Troupes",
+              "Vos troupes se reforment avec le temps. Plus votre royaume est vaste, plus il peut nourrir de soldats.",
+            ],
+            [
+              "Terrain",
+              "Les plaines s'offrent à vous. Les forêts, les collines et les montagnes… se font désirer : vos assauts y avancent plus lentement.",
+            ],
+            [
+              "Or et mines",
+              "L'or s'accumule dans vos coffres. Les mines, marquées d'un tertre doré, en rapportent davantage : emparez-vous-en.",
+            ],
+            [
+              "Bourg",
+              "Vous avez assez d'or. Bâtissez un Bourg sur vos terres : votre armée pourra grossir.",
+            ],
+            [
+              "Tour de garde",
+              "Une Tour de garde rend votre frontière coûteuse à franchir. Placez-la face à vos voisins les plus dangereux.",
+            ],
+            [
+              "Premier combat",
+              "[mischievously] Voici une tribu sauvage. Une proie facile… tant qu'elle reste petite. Attaquez-la.",
+            ],
+            [
+              "Le héraut",
+              "Pendant vos parties, votre héraut vous parlera. Écoutez-le : il annonce les alliances, les trahisons… et le danger.",
+            ],
+            [
+              "Victoire",
+              "Tenez huit terres sur dix, et Valdren s'inclinera devant vous. Ou soyez le dernier seigneur debout.",
+            ],
+            [
+              "Fin",
+              "[pause] Votre apprentissage est terminé. L'Atlas est à vous… [softly] ne le laissez pas se couvrir d'autres couleurs.",
+            ],
+          ],
+        },
+        {
+          title: "Héraut d'Aldoria",
+          voice: "aldoria",
+          note: "Noble, droit, un peu solennel. S'adresse au joueur en « messire ».",
+          lines: [
+            ["Choix du peuple", "Pour la Couronne et pour Aldoria ! Nos murailles tiendront."],
+            ["Début de la guerre", "Sonnez le ralliement ! La guerre est déclarée."],
+            ["Ordre d'attaque 1", "Chevaliers, en avant !"],
+            ["Ordre d'attaque 2", "Au nom du Roi, prenez ces terres !"],
+            ["Bâtiment achevé", "Les maçons ont terminé, messire."],
+            ["Or insuffisant", "[sighs] Le trésor est vide, messire."],
+            ["Attaqué", "[shouting] On assiège nos marches ! Aux remparts !"],
+            ["Alliance proposée", "Un seigneur nous tend la main, messire."],
+            ["Alliance scellée", "Le pacte est scellé. Honneur à nos alliés."],
+            ["Trahison", "[angry] Parjure ! Ils ont trahi leur serment !"],
+            ["Royaume anéanti", "Une bannière ennemie de moins sur la carte."],
+            ["Menace de victoire", "[nervous] Un rival tient déjà la moitié du continent…"],
+            ["Sort ultime", "[shouting] Le ciel s'embrase ! À couvert !"],
+            ["Dernière minute", "Une minute, messire. Tout se joue maintenant."],
+            ["Victoire", "[excited] Aldoria règne ! Que sonnent les cloches !"],
+            ["Défaite", "[sad] La bannière est tombée… mais pas l'honneur."],
+            [
+              "Éliminé par un autre",
+              "[sad] Un royaume s'éteint, messire. Puisse le nôtre lui survivre.",
+            ],
+          ],
+        },
+        {
+          title: "Héraut de Kharag",
+          voice: "kharag",
+          note: "Phrases courtes, rythme martelé, rire carnassier. Méprise la faiblesse, respecte la force.",
+          lines: [
+            ["Choix du peuple", "[raspy] [deep voice] Kharag ne plie pas. Kharag PREND."],
+            ["Début de la guerre", "[shouting] La chasse commence !"],
+            ["Ordre d'attaque 1", "[shouting] Sang et cendre !"],
+            ["Ordre d'attaque 2", "[laughs] Encore des terres à brûler !"],
+            ["Bâtiment achevé", "[raspy] Le kraal est debout. Plus de guerriers !"],
+            ["Or insuffisant", "Pas d'or ? Alors pillez !"],
+            ["Attaqué", "[angry] Ils osent ? Qu'ils viennent !"],
+            ["Alliance proposée", "[raspy] Un faible veut notre protection."],
+            ["Alliance scellée", "Pacte de sang. [short pause] Pour l'instant."],
+            ["Trahison", "[angry] Ils nous ont plantés dans le dos ! Ils PAIERONT !"],
+            ["Royaume anéanti", "[laughs] Écrasés !"],
+            ["Menace de victoire", "Quelqu'un devient trop gros. Abattons-le."],
+            ["Sort ultime", "[shouting] Magie ! Les chamans hurlent !"],
+            ["Dernière minute", "Plus le temps ! Frappez fort !"],
+            ["Victoire", "[shouting] Les steppes ont avalé Valdren !"],
+            ["Défaite", "[raspy] [tired] Les ancêtres… nous attendent."],
+            ["Éliminé par un autre", "[laughs] Un de moins. Le plus fort reste."],
+          ],
+        },
+        {
+          title: "Héraut de Morvane",
+          voice: "morvane",
+          note: "Murmure, lenteur, ironie glacée. Jamais de cri, même dans le danger.",
+          lines: [
+            ["Choix du peuple", "[whispers] La mort n'est qu'un recrutement…"],
+            ["Début de la guerre", "[whispers] Que les vivants s'entretuent… nous ramasserons."],
+            ["Ordre d'attaque 1", "[softly] Levez-vous… et marchez."],
+            ["Ordre d'attaque 2", "[mischievously] Leurs morts seront les nôtres."],
+            ["Bâtiment achevé", "[whispers] L'ossuaire s'emplit. Bien."],
+            ["Or insuffisant", "Nos coffres sont aussi vides que nos tombes."],
+            ["Attaqué", "[sarcastic] Ils frappent des cadavres… comme c'est touchant."],
+            ["Alliance proposée", "[sarcastic] Un vivant veut nous serrer la main. Amusant."],
+            ["Alliance scellée", "[softly] Pacte conclu. Les morts sont patients."],
+            ["Trahison", "[whispers] Trahis… Nous nous en souviendrons. Longtemps."],
+            ["Royaume anéanti", "[softly] Encore des âmes pour l'ossuaire."],
+            ["Menace de victoire", "[whispers] Un royaume enfle… comme un cadavre au soleil."],
+            ["Sort ultime", "[whispers] Une grande magie déchire le voile…"],
+            ["Dernière minute", "Une minute… L'éternité attendra."],
+            ["Victoire", "[whispers] Silence sur Valdren. Enfin."],
+            ["Défaite", "[laughs softly] On ne tue pas deux fois les Damnés…"],
+            ["Éliminé par un autre", "[softly] Un royaume tombe. Il viendra grossir nos rangs."],
+          ],
+        },
+        {
+          title: "Héraut de Sylvanor",
+          voice: "sylvanor",
+          note: "Clair, posé, comme venu de loin. L'émotion affleure quand la forêt souffre.",
+          lines: [
+            ["Choix du peuple", "[softly] La forêt se souvient de chaque pas."],
+            ["Début de la guerre", "[softly] Le vent tourne. La guerre est là."],
+            ["Ordre d'attaque 1", "Glissez entre les arbres. Frappez."],
+            ["Ordre d'attaque 2", "Que les racines reprennent ces terres."],
+            ["Bâtiment achevé", "L'arbre gardien veille désormais."],
+            ["Or insuffisant", "Nos réserves sont épuisées."],
+            ["Attaqué", "[nervous] On abat nos chênes ! Défendez la lisière !"],
+            ["Alliance proposée", "Un royaume souhaite cheminer à nos côtés."],
+            ["Alliance scellée", "Nos racines se mêlent aux leurs."],
+            ["Trahison", "[sad] Ils ont rompu le pacte… La forêt n'oubliera pas."],
+            ["Royaume anéanti", "Un royaume s'est éteint. La forêt reprendra ses terres."],
+            ["Menace de victoire", "[nervous] Un royaume s'étend comme un incendie…"],
+            ["Sort ultime", "[gasps] La magie hurle à travers les arbres !"],
+            ["Dernière minute", "Une minute… Respirez, et frappez juste."],
+            ["Victoire", "[warmly] Valdren reverdira sous notre garde."],
+            ["Défaite", "[sad] Les feuilles tombent… et la forêt se tait."],
+            ["Éliminé par un autre", "[softly] Encore une lumière qui s'éteint sur la carte."],
+          ],
+        },
+      ];
+
+      const CUES = [
+        {
+          title: "L'Atlas de Valdren",
+          role: "Thème principal — menu",
+          duration: 120,
+          loop: true,
+          desc: "Le thème du jeu : une mélodie noble au luth et à la flûte, reprise par tout l'ensemble avec tambours et sacqueboutes, puis apaisée pour boucler.",
+          prompt:
+            "Renaissance early music ensemble, noble and adventurous main theme. Opens with solo lute and alto recorder playing a stately melody, then viola da gamba consort, sackbuts and a tabor drum join for a proud, building middle section, before settling back to lute and recorder. Moderate tempo, warm acoustic hall reverb, instrumental, no vocals, seamless loop.",
+        },
+        {
+          title: "Le cabinet du cartographe",
+          role: "État Calme — exploration",
+          duration: 180,
+          loop: true,
+          desc: "Fond discret pour les longues phases d'expansion : arpèges de luth, bourdon de viole, flûte lointaine. Ne doit jamais fatiguer.",
+          prompt:
+            "Calm Renaissance ambient piece for a strategy game map. Gentle fingerpicked lute arpeggios over a soft viola da gamba drone, an occasional distant recorder phrase, light frame drum heartbeat. Slow tempo, contemplative and warm, sparse arrangement leaving space, instrumental, no vocals, seamless loop.",
+        },
+        {
+          title: "Bruits de marche",
+          role: "État Tension",
+          duration: 150,
+          loop: true,
+          desc: "Une menace approche : ostinato de violes, tambour de marche, chalémies inquiètes. Même tonalité que l'état Calme pour des fondus propres.",
+          prompt:
+            "Tense medieval war preparation music. Driving ostinato on low viols and cello-like gambas, a steady marching snare and tabor rhythm, nervous shawm and crumhorn motifs, rising tension without resolution. Moderate-fast tempo, dark minor mode, acoustic early music instruments, instrumental, no vocals, seamless loop.",
+        },
+        {
+          title: "Le choc des bannières",
+          role: "État Bataille",
+          duration: 150,
+          loop: true,
+          desc: "Pleine bataille : timbales, sacqueboutes en fanfare, cordes frottées énergiques, cymbales antiques. Épique mais sans orchestre moderne.",
+          prompt:
+            "Epic Renaissance battle music. Thunderous timpani and large war drums, blaring sackbut and natural trumpet fanfares, aggressive bowed viols, hurdy-gurdy drone, clashing antique cymbals. Fast driving tempo, heroic and violent, early music ensemble rather than modern orchestra, instrumental, no vocals, seamless loop.",
+        },
+        {
+          title: "Le crépuscule de l'Atlas",
+          role: "État Crépuscule — fin de partie",
+          duration: 90,
+          loop: true,
+          desc: "La partie bascule : orgue positif, cloches lentes, viole solitaire. Grave, suspendu, presque sacré.",
+          prompt:
+            "Solemn and suspenseful late-Renaissance music. Slow positive organ chords, a lonely viola da gamba melody, tolling bronze bells every few bars, a low drone building gradually in intensity. Slow tempo, grave and fateful mood, instrumental, no vocals, seamless loop.",
+        },
+        {
+          title: "Fanfare d'Aldoria",
+          role: "Thème de peuple — sélection",
+          duration: 25,
+          loop: false,
+          desc: "Fanfare de cuivres anciens et tambour, pleine de majesté.",
+          prompt:
+            "Short regal fanfare for a medieval human kingdom. Natural trumpets and sackbuts in proud harmony, timpani rolls, a final majestic chord. Bright, noble, triumphant, early brass ensemble, instrumental, no vocals.",
+        },
+        {
+          title: "Tambours de Kharag",
+          role: "Thème de peuple — sélection",
+          duration: 25,
+          loop: false,
+          desc: "Tambours de guerre tribaux, vielle à roue grinçante, cor de corne.",
+          prompt:
+            "Short brutal war theme for an orc warrior clan. Pounding tribal war drums, a gritty hurdy-gurdy drone, a deep animal horn blast, stomping rhythm. Aggressive, primal, raw acoustic sound, instrumental, no vocals.",
+        },
+        {
+          title: "Requiem de Morvane",
+          role: "Thème de peuple — sélection",
+          duration: 25,
+          loop: false,
+          desc: "Orgue sombre, violes dissonantes, glas lointain.",
+          prompt:
+            "Short eerie theme for an undead necromancer faction. Dark church organ cluster chords, dissonant sul ponticello viols, a distant funeral bell, ghostly sustained tones. Slow, cold, ominous and elegant, instrumental, no vocals.",
+        },
+        {
+          title: "Chant des Sylves",
+          role: "Thème de peuple — sélection",
+          duration: 25,
+          loop: false,
+          desc: "Harpe celtique, flûtes, nyckelharpa : lumineux et mystérieux.",
+          prompt:
+            "Short mystical theme for a forest elf people. Celtic harp glissandi, airy wooden flutes, a nyckelharpa melody, soft shimmering chimes. Gentle, luminous, ancient and mysterious, instrumental, no vocals.",
+        },
+        {
+          title: "Victoire",
+          role: "Jingle de fin",
+          duration: 30,
+          loop: false,
+          desc: "Reprise triomphale du thème principal, cloches à la volée.",
+          prompt:
+            "Triumphant Renaissance victory music. Full early music ensemble with natural trumpets, sackbuts, timpani and festive pealing church bells, a joyful soaring melody resolving to a grand final chord. Fast tempo, celebratory, instrumental, no vocals.",
+        },
+        {
+          title: "Défaite",
+          role: "Jingle de fin",
+          duration: 25,
+          loop: false,
+          desc: "Viole seule, thème principal en mineur, qui s'éteint.",
+          prompt:
+            "Melancholic defeat music. A lone viola da gamba plays a slow lament in a minor key, soft lute chords underneath, fading to silence. Very slow, sorrowful and dignified, instrumental, no vocals.",
+        },
+      ];
+
+      const SFX = [
+        [
+          "Clic d'interface",
+          0.5,
+          "A quick scratch of a quill pen on thick parchment paper, short and crisp.",
+        ],
+        [
+          "Ouverture de panneau",
+          1.2,
+          "An old parchment scroll being unrolled quickly, dry paper rustle.",
+        ],
+        [
+          "Validation (bâtir)",
+          1,
+          "A wax seal being firmly pressed onto paper, soft thud with a slight squish.",
+        ],
+        [
+          "Pièce d'or (mine, revenu)",
+          0.8,
+          "A few heavy gold coins dropping into a leather purse, metallic clink.",
+        ],
+        [
+          "Début de la guerre",
+          3,
+          "A deep medieval war horn blowing a long call across a valley, distant echo.",
+        ],
+        [
+          "Attaque lancée",
+          1.5,
+          "A quick muffled war drum roll followed by a distant battle cry, far away.",
+        ],
+        [
+          "Frontière attaquée",
+          2,
+          "A warning bell ringing urgently from a castle tower, three rapid strikes.",
+        ],
+        ["Bâtiment achevé", 2, "A single resonant bronze church bell strike with a long decay."],
+        [
+          "Alliance scellée",
+          1.5,
+          "Two metal goblets clinking together, followed by a warm low murmur.",
+        ],
+        [
+          "Trahison",
+          2,
+          "A sword being drawn from a scabbard with a sharp metallic ring, then a tense low drone.",
+        ],
+        [
+          "Sort lancé",
+          3,
+          "A magical arcane whoosh rising in pitch with crackling energy and a shimmering tail.",
+        ],
+        [
+          "Impact de sort",
+          4,
+          "A massive magical explosion with deep rumble, crackling fire and falling debris, far away.",
+        ],
+        ["Victoire", 4, "A distant crowd cheering with medieval trumpets and pealing bells."],
+        ["Défaite", 3, "Crows cawing over an empty battlefield, cold wind, a single distant bell."],
+        [
+          "Ambiance carte (boucle)",
+          20,
+          "Soft wind over hills with very distant birds and occasional faint rustling of paper, calm, loop.",
+        ],
+        [
+          "Ambiance côte (boucle)",
+          20,
+          "Gentle sea waves lapping on a rocky shore with distant seagulls, calm, loop.",
+        ],
+      ];
+
+      // Rendu --------------------------------------------------------------------------------------
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
+      const highlightTags = (t) =>
+        esc(t).replace(/\[[^\]]+\]/g, (m) => `<span class="tag">${m}</span>`);
+      const spokenLength = (t) => t.length;
+
+      document.getElementById("cast").innerHTML = Object.values(VOICES)
+        .map(
+          (v) => `<article class="role" style="--accent:${v.accent}">
+            <h3>${esc(v.role)}</h3>
+            <div class="who">${esc(v.use)}</div>
+            <div><strong>${esc(v.voice)}</strong> <span class="id">${v.id}</span></div>
+            <audio controls preload="none" src="${v.preview}"></audio>
+            <div class="alt">${esc(v.alt)}</div>
+          </article>`,
+        )
+        .join("");
+
+      let totalChars = 0;
+      document.getElementById("scripts-list").innerHTML = SCRIPTS.map((s) => {
+        const v = VOICES[s.voice];
+        const chars = s.lines.reduce((n, [, t]) => n + spokenLength(t), 0);
+        totalChars += chars;
+        return `<div class="script">
+          <div class="script__head">
+            <strong style="color:${v.accent}">${esc(s.title)}</strong>
+            <span class="script__meta">${esc(v.role)} · ${esc(v.voice.split(" — ")[0])} · ${s.lines.length} répliques · ${chars} caractères</span>
+          </div>
+          <div class="line"><span class="line__cue">Direction</span><span class="line__text"><em>${esc(s.note)}</em></span><span></span></div>
+          ${s.lines
+            .map(
+              ([cue, text]) => `<div class="line"><span class="line__cue">${esc(cue)}</span>
+                <span class="line__text">${highlightTags(text)}</span><span class="chars">${spokenLength(text)} car.</span></div>`,
+            )
+            .join("")}
+        </div>`;
+      }).join("");
+
+      const fmt = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+      document.getElementById("cues").innerHTML = CUES.map(
+        (c, i) => `<article class="cue">
+          <div><div class="cue__title">${esc(c.title)}</div>
+            <div class="cue__facts">${esc(c.role)}<br />${fmt(c.duration)} · ${c.loop ? "boucle" : "une fois"}</div></div>
+          <div><p class="cue__desc">${esc(c.desc)}</p>
+            <div class="prompt"><button class="copy" data-copy="cue-${i}">Copier</button><span id="cue-${i}">${esc(c.prompt)}</span></div></div>
+        </article>`,
+      ).join("");
+
+      document.getElementById("sfx").innerHTML = SFX.map(
+        ([event, d, prompt]) =>
+          `<tr><td>${esc(event)}</td><td>${d} s</td><td><code>${esc(prompt)}</code></td></tr>`,
+      ).join("");
+
+      const musicSeconds = CUES.reduce((n, c) => n + c.duration, 0);
+      const sfxSeconds = SFX.reduce((n, [, d]) => n + d, 0);
+      const lines = SCRIPTS.reduce((n, s) => n + s.lines.length, 0);
+      document.getElementById("totals").innerHTML = `
+        <div class="total"><big>${lines} répliques</big>${totalChars} caractères de voix<br />≈ ${totalChars} crédits (eleven_v4, tarif à confirmer), un essai chacune</div>
+        <div class="total"><big>${CUES.length} pistes</big>${fmt(musicSeconds)} de musique au total<br />dont 5 boucles de fond</div>
+        <div class="total"><big>${SFX.length} bruitages</big>${sfxSeconds.toFixed(1)} s au total<br />dont 2 ambiances en boucle</div>`;
+
+      document.addEventListener("click", async (event) => {
+        const button = event.target.closest(".copy");
+        if (!button) return;
+        const text = document.getElementById(button.dataset.copy)?.textContent ?? "";
+        try {
+          await navigator.clipboard.writeText(text);
+          button.textContent = "Copié";
+        } catch {
+          button.textContent = "Échec";
+        }
+        setTimeout(() => (button.textContent = "Copier"), 1500);
+      });
+    </script>
+  </body>
+</html>
