@@ -22,3 +22,6 @@ Thumbs.db
 # Claude Code : réglages personnels non partagés
 .claude/settings.local.json
 CLAUDE.local.md
+
+# Originaux des images générées (lourds) : seules les versions optimisées sont versionnées.
+tools/assets/originals/

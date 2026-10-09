@@ -19,8 +19,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(HERE, "..", "..");
-const OUT_DIR = join(ROOT, "packages", "client", "public", "assets", "generated");
+const OUT_DIR = join(HERE, "originals");
 const LEDGER = join(HERE, "ledger.json");
 const ENDPOINT = "https://api.openai.com/v1/images/generations";
 
@@ -76,8 +75,10 @@ if ((spentUsd() + plannedUsd) * USD_TO_EUR > BUDGET_EUR) {
 }
 const apiKey = process.env.OPENAI_API_KEY;
 if (!apiKey) {
-  console.error("\nVariable OPENAI_API_KEY absente. Exemple (PowerShell) :");
-  console.error('  $env:OPENAI_API_KEY = "sk-..."; npm run assets:generate');
+  console.error(
+    "\nClé OPENAI_API_KEY absente. Créez un fichier .env à la racine du projet contenant :",
+  );
+  console.error("  OPENAI_API_KEY=sk-...   (fichier ignoré par Git, jamais publié)");
   process.exit(1);
 }
 

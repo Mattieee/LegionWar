@@ -45,10 +45,10 @@
     {
       "id": "sea-serpent",
       "group": "Monstres marins et navires",
-      "prompt": "A coiling sea serpent emerging from stylized engraved waves, as drawn on old maps, isolated.",
+      "prompt": "A coiling sea serpent emerging from stylized engraved waves, as drawn on old maps, isolated. Drawn on a plain, flat, evenly lit cream paper background filling the whole image: no vignette, no dark corners, no shadow, no halo, no frame.",
       "size": "1024x1024",
       "quality": "medium",
-      "background": "transparent"
+      "background": "opaque"
     },
     {
       "id": "sea-whale",
@@ -61,26 +61,26 @@
     {
       "id": "sea-kraken",
       "group": "Monstres marins et navires",
-      "prompt": "A kraken with tentacles rising from engraved waves, old map marginal decoration, isolated.",
+      "prompt": "A kraken with tentacles rising from engraved waves, old map marginal decoration, isolated. Drawn on a plain, flat, evenly lit cream paper background filling the whole image: no vignette, no dark corners, no shadow, no halo, no frame.",
       "size": "1024x1024",
       "quality": "medium",
-      "background": "transparent"
+      "background": "opaque"
     },
     {
       "id": "ship-galleon",
       "group": "Monstres marins et navires",
-      "prompt": "A three-masted galleon under full sail on small engraved waves, side view, as on antique sea charts, isolated.",
+      "prompt": "A three-masted galleon under full sail on small engraved waves, side view, as on antique sea charts, isolated. Drawn on a plain, flat, evenly lit cream paper background filling the whole image: no vignette, no dark corners, no shadow, no halo, no frame.",
       "size": "1024x1024",
       "quality": "medium",
-      "background": "transparent"
+      "background": "opaque"
     },
     {
       "id": "ship-longship",
       "group": "Monstres marins et navires",
-      "prompt": "A medieval longship with a square sail and a row of shields, on small engraved waves, side view, isolated.",
+      "prompt": "A medieval longship with a square sail and a row of shields, on small engraved waves, side view, isolated. Drawn on a plain, flat, evenly lit cream paper background filling the whole image: no vignette, no dark corners, no shadow, no halo, no frame.",
       "size": "1024x1024",
       "quality": "medium",
-      "background": "transparent"
+      "background": "opaque"
     },
     {
       "id": "ship-cog",
@@ -125,18 +125,18 @@
     {
       "id": "building-bastion",
       "group": "Icônes de bâtiments",
-      "prompt": "Map symbol of an arcane bastion: a squat round tower crowned by a large engraved rune-carved crystal, three-quarter view, compact icon, isolated, centered.",
+      "prompt": "Map symbol of an arcane bastion: a squat round tower crowned by a large engraved rune-carved crystal, three-quarter view, compact icon, isolated, centered. Drawn on a plain, flat, evenly lit cream paper background filling the whole image: no vignette, no dark corners, no shadow, no halo, no frame.",
       "size": "1024x1024",
       "quality": "medium",
-      "background": "transparent"
+      "background": "opaque"
     },
     {
       "id": "building-sanctuaire",
       "group": "Icônes de bâtiments",
-      "prompt": "Map symbol of a mystical sanctuary: a domed temple with a tall spire radiating engraved rays of light, three-quarter view, compact icon, isolated, centered.",
+      "prompt": "Map symbol of a mystical sanctuary: a domed temple with a tall spire radiating engraved rays of light, three-quarter view, compact icon, isolated, centered. Drawn on a plain, flat, evenly lit cream paper background filling the whole image: no vignette, no dark corners, no shadow, no halo, no frame.",
       "size": "1024x1024",
       "quality": "medium",
-      "background": "transparent"
+      "background": "opaque"
     },
     {
       "id": "emblem-aldoria",

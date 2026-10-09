@@ -1,0 +1,313 @@
+{
+  "currency": "USD",
+  "entries": [
+    {
+      "date": "2026-10-09T18:54:43.462Z",
+      "id": "paper-1",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 145,
+      "outputTokens": 439,
+      "costUsd": 0.0139,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:54:53.397Z",
+      "id": "paper-2",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 139,
+      "outputTokens": 439,
+      "costUsd": 0.0139,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:55:05.164Z",
+      "id": "compass-rose",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 128,
+      "outputTokens": 439,
+      "costUsd": 0.0138,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:55:17.810Z",
+      "id": "cartouche-title",
+      "model": "gpt-image-2.5-flare",
+      "size": "1536x1024",
+      "quality": "medium",
+      "inputTokens": 125,
+      "outputTokens": 343,
+      "costUsd": 0.0109,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:55:30.014Z",
+      "id": "cartouche-victory",
+      "model": "gpt-image-2.5-flare",
+      "size": "1536x1024",
+      "quality": "medium",
+      "inputTokens": 122,
+      "outputTokens": 343,
+      "costUsd": 0.0109,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:55:41.253Z",
+      "id": "sea-serpent",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 107,
+      "outputTokens": 439,
+      "costUsd": 0.0137,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:55:52.913Z",
+      "id": "sea-whale",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 114,
+      "outputTokens": 439,
+      "costUsd": 0.0137,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:56:03.969Z",
+      "id": "sea-kraken",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 105,
+      "outputTokens": 439,
+      "costUsd": 0.0137,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:56:17.831Z",
+      "id": "ship-galleon",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 113,
+      "outputTokens": 439,
+      "costUsd": 0.0137,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:56:30.992Z",
+      "id": "ship-longship",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 111,
+      "outputTokens": 439,
+      "costUsd": 0.0137,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:56:43.945Z",
+      "id": "ship-cog",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 109,
+      "outputTokens": 439,
+      "costUsd": 0.0137,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:56:55.612Z",
+      "id": "building-bourg",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 121,
+      "outputTokens": 439,
+      "costUsd": 0.0138,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:57:06.381Z",
+      "id": "building-tour",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 114,
+      "outputTokens": 439,
+      "costUsd": 0.0137,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:57:18.623Z",
+      "id": "building-port",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 118,
+      "outputTokens": 439,
+      "costUsd": 0.0138,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:57:29.603Z",
+      "id": "building-comptoir",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 116,
+      "outputTokens": 439,
+      "costUsd": 0.0138,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:57:41.791Z",
+      "id": "building-bastion",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 121,
+      "outputTokens": 439,
+      "costUsd": 0.0138,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:57:53.075Z",
+      "id": "building-sanctuaire",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 121,
+      "outputTokens": 439,
+      "costUsd": 0.0138,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:58:02.894Z",
+      "id": "emblem-aldoria",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 121,
+      "outputTokens": 439,
+      "costUsd": 0.0138,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:58:14.207Z",
+      "id": "emblem-kharag",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 117,
+      "outputTokens": 439,
+      "costUsd": 0.0138,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:58:24.682Z",
+      "id": "emblem-morvane",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 117,
+      "outputTokens": 439,
+      "costUsd": 0.0138,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:58:39.306Z",
+      "id": "emblem-sylvanor",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 120,
+      "outputTokens": 439,
+      "costUsd": 0.0138,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T18:59:00.526Z",
+      "id": "frontispice",
+      "model": "gpt-image-2.5-flare",
+      "size": "1536x1024",
+      "quality": "high",
+      "inputTokens": 144,
+      "outputTokens": 1372,
+      "costUsd": 0.0419,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T19:03:28.870Z",
+      "id": "sea-serpent",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 142,
+      "outputTokens": 439,
+      "costUsd": 0.0139,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T19:03:41.047Z",
+      "id": "sea-kraken",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 140,
+      "outputTokens": 439,
+      "costUsd": 0.0139,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T19:03:51.935Z",
+      "id": "ship-galleon",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 148,
+      "outputTokens": 439,
+      "costUsd": 0.0139,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T19:04:04.044Z",
+      "id": "ship-longship",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 146,
+      "outputTokens": 439,
+      "costUsd": 0.0139,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T19:04:14.694Z",
+      "id": "building-bastion",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 156,
+      "outputTokens": 439,
+      "costUsd": 0.014,
+      "measured": true
+    },
+    {
+      "date": "2026-10-09T19:04:25.038Z",
+      "id": "building-sanctuaire",
+      "model": "gpt-image-2.5-flare",
+      "size": "1024x1024",
+      "quality": "medium",
+      "inputTokens": 156,
+      "outputTokens": 439,
+      "costUsd": 0.014,
+      "measured": true
+    }
+  ]
+}

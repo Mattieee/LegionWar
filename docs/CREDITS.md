@@ -14,9 +14,17 @@ Tout asset ajouté au projet (police, image, son, musique) doit figurer ici avec
 
 Budget total autorisé : **10 €**. Toute génération doit être validée au préalable (liste et coût estimé).
 
-| Date | Asset                     | Modèle | Qualité / taille | Coût | Cumul      |
-| ---- | ------------------------- | ------ | ---------------- | ---- | ---------- |
-| —    | _(aucune pour l'instant)_ |        |                  |      | 0 € / 10 € |
+Le détail ligne à ligne (tokens, coût mesuré) est dans `tools/assets/ledger.json` ; les consignes
+de génération dans `tools/assets/prompts.json`. Images générées par IA (OpenAI), sans reprise
+d'œuvre existante.
+
+Les originaux (PNG, non versionnés) sont dans `tools/assets/originals/` ; `npm run assets:optimize`
+en tire les WebP du jeu (`packages/client/public/art/`) et le grain de papier du design system.
+
+| Date       | Lot                                                                                                                                                             | Modèle              | Qualité / taille                      | Coût   | Cumul         |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | ------------------------------------- | ------ | ------------- |
+| 2026-10-09 | Premier passage, 22 images : papiers, rose des vents, cartouches, frontispice, 6 bâtiments, 4 emblèmes, 3 monstres marins, 3 navires (16 retenues, 6 à refaire) | gpt-image-2.5-flare | moyenne 1024 px (frontispice : haute) | 0,30 € | 0,30 € / 10 € |
+| 2026-10-09 | Second passage, 6 images refaites sur fond opaque : serpent de mer, kraken, galion, drakkar, bastion, sanctuaire                                                | gpt-image-2.5-flare | moyenne 1024 px                       | 0,08 € | 0,38 € / 10 € |
 
 ## Sons et musiques
 
