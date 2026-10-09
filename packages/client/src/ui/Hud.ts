@@ -3,6 +3,7 @@ import {
   BUILDINGS,
   BuildingKind,
   RACES,
+  Race,
   costFor,
   modifiersOf,
   type AttackView,
@@ -32,6 +33,30 @@ export interface HudState {
 export type EventTone = "info" | "good" | "bad";
 
 const LOG_SIZE = 7;
+
+/** Compteur de la mécanique propre à chaque peuple (GDD §7.3). */
+const RACE_STAT: Record<Race, { label: string; hint: string; value: (p: PlayerView) => string }> = {
+  [Race.Aldoria]: {
+    label: "Remparts",
+    hint: "Une frontière tenue 10 à 20 s se fortifie : l'assaillant y perd 1,5× plus de troupes.",
+    value: (p) => `${formatNumber(p.marks)} lieues`,
+  },
+  [Race.Kharag]: {
+    label: "Or pillé",
+    hint: "15 or par terre prise à un royaume (7 sur une tribu), sauf sur un charnier.",
+    value: (p) => formatNumber(p.pillaged),
+  },
+  [Race.Morvane]: {
+    label: "Morts relevés",
+    hint: "Prendre un charnier, champ de bataille de moins d'une minute, relève 15 % de ses morts.",
+    value: (p) => formatNumber(p.raised),
+  },
+  [Race.Sylvanor]: {
+    label: "Bosquets",
+    hint: "Vos plaines proches d'une forêt se boisent et se défendent comme une forêt.",
+    value: (p) => formatNumber(p.marks),
+  },
+};
 const BUILD_KEYS: Record<BuildingKind, string> = {
   [BuildingKind.Bourg]: "1",
   [BuildingKind.Tour]: "2",
@@ -43,11 +68,15 @@ export class Hud {
   private readonly $: <T extends HTMLElement>(sel: string) => T;
   private readonly log: { text: string; tone: EventTone }[] = [];
   private ended = false;
+  private skin: Race | null = null;
 
   constructor(root: HTMLElement, callbacks: HudCallbacks) {
     this.el = document.createElement("div");
     this.el.className = "hud";
+    // L'habillage du peuple joué couvre tout le HUD sauf la modale de fin, restée sur papier :
+    // son cartouche est une gravure à l'encre, illisible sur un fond sombre.
     this.el.innerHTML = `
+      <div class="hud__skin" id="hud-skin">
       <section class="lw-panel lw-panel--translucent hud__me" aria-label="Votre royaume">
         <div class="hud__identity">
           <span class="lw-shield lw-shield--lg" id="hud-shield" aria-hidden="true"><span id="hud-emblem"></span></span>
@@ -57,6 +86,7 @@ export class Hud {
         <div class="lw-stat"><span class="lw-stat__label">Troupes</span><span class="lw-stat__value" id="hud-troops"></span></div>
         <div class="lw-progress" role="presentation"><div class="lw-progress__fill" id="hud-troops-bar"></div></div>
         <div class="lw-stat"><span class="lw-stat__label">Territoire</span><span class="lw-stat__value" id="hud-land"></span></div>
+        <div class="lw-stat" id="hud-race-stat" hidden><span class="lw-stat__label" id="hud-race-label"></span><span class="lw-stat__value" id="hud-race-value"></span></div>
         <hr class="lw-divider" />
         <label class="lw-field">
           <span class="lw-stat__label">Ratio d'attaque <span class="lw-kbd">T</span> <span class="lw-kbd">Y</span> :
@@ -88,6 +118,7 @@ export class Hud {
           .join("")}
       </nav>
       <div class="hud__hover lw-text-sm" id="hud-hover"></div>
+      </div>
       <div class="lw-modal" id="hud-modal" hidden>
         <div class="lw-panel lw-modal__dialog hud__end" role="dialog" aria-modal="true" aria-labelledby="hud-modal-title">
           <div class="hud__end-cartouche" id="hud-modal-cartouche">
@@ -123,6 +154,12 @@ export class Hud {
       : "";
 
     if (me) {
+      if (me.race !== this.skin) {
+        this.skin = me.race;
+        this.$("#hud-skin").className = me.race
+          ? `hud__skin lw-skin lw-skin--${me.race}`
+          : "hud__skin";
+      }
       const race = me.race ? RACES[me.race] : null;
       this.$("#hud-emblem").textContent = race?.emblem ?? "";
       this.$("#hud-shield").className = me.race
@@ -136,6 +173,15 @@ export class Hud {
         `${formatNumber(me.troops)} / ${formatNumber(me.maxTroops)}`;
       this.$("#hud-troops-bar").style.width =
         `${Math.min(100, (me.troops / Math.max(1, me.maxTroops)) * 100)}%`;
+      const stat = me.race ? RACE_STAT[me.race] : null;
+      const statRow = this.$("#hud-race-stat");
+      statRow.hidden = stat === null;
+      if (stat) {
+        const label = this.$("#hud-race-label");
+        label.textContent = stat.label;
+        label.dataset.tooltip = stat.hint;
+        this.$("#hud-race-value").textContent = stat.value(me);
+      }
       this.$("#hud-land").textContent = formatPercent(
         (me.tiles / Math.max(1, state.landTiles)) * 100,
       );

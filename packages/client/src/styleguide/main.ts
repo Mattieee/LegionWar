@@ -276,6 +276,25 @@ ${section(
   </div>
   `,
 )}
+${section(
+  "habillages",
+  "Habillages de faction",
+  "La carte reste l'Atlas ; l'interface prend la matière du peuple joué. <code>.lw-skin .lw-skin--{race}</code> redéfinit les tokens sémantiques (fonds, textes, bordures, bouton principal, police des titres) : les composants qu'il contient suivent sans autre règle. Tokens : <code>--lw-skin-{race}-*</code>.",
+  `<div class="sg-grid">${ALL_RACES.map(
+    (race) => `<div class="lw-skin lw-skin--${race}">
+      <div class="lw-panel sg-demo-panel">
+        <div class="lw-panel__header"><h4 class="lw-title-3">${escapeHtml(RACES[race].name)}</h4>
+          <span class="lw-shield lw-shield--hatched lw-tincture-${raceTincture(race)}" aria-hidden="true"><span>${RACES[race].emblem}</span></span></div>
+        <div class="lw-stat"><span class="lw-stat__label">Or</span><span class="lw-stat__value">18,4 k</span></div>
+        <div class="lw-stat"><span class="lw-stat__label">Troupes</span><span class="lw-stat__value">52 k / 90 k</span></div>
+        <div class="lw-progress"><div class="lw-progress__fill" style="width: 58%"></div></div>
+        <div class="sg-row"><span class="lw-badge lw-text-accent">Accent</span><span class="lw-badge lw-badge--success">Allié</span><span class="lw-badge lw-badge--danger">Parjure</span><span class="lw-badge lw-badge--info">Neutre</span></div>
+        <div class="sg-row"><button class="lw-button lw-button--primary">Lever l'ost</button><button class="lw-button">Secondaire</button></div>
+        <ul class="sg-stack sg-toasts"><li class="lw-toast lw-toast--bad">Une attaque déferle sur vos terres !</li></ul>
+      </div>
+    </div>`,
+  ).join("")}</div>`,
+)}
 </main>
 <footer class="sg-footer lw-text-xs lw-text-muted">Généré depuis les tokens — modifiez <code>tokens.ts</code>, puis <code>npm run tokens</code>.</footer>
 `;

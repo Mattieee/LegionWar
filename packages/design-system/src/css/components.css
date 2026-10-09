@@ -8,7 +8,7 @@
 
 /* Typographie ---------------------------------------------------------------------------------- */
 .lw-display {
-  font-family: var(--lw-font-family-display);
+  font-family: var(--lw-font-family-title);
   font-size: var(--lw-font-size-display);
   font-weight: var(--lw-font-weight-display);
   letter-spacing: var(--lw-font-tracking-display);
@@ -544,7 +544,7 @@
 }
 
 .lw-card__title {
-  font-family: var(--lw-font-family-display);
+  font-family: var(--lw-font-family-title);
   font-size: var(--lw-font-size-lg);
   line-height: var(--lw-font-leading-tight);
   color: var(--lw-text-primary);
@@ -593,6 +593,191 @@
 
 .lw-toast--info {
   border-left-color: var(--lw-feedback-info);
+}
+
+/* Habillage de faction (« matières de faction ») ------------------------------------------------
+ * <div class="lw-skin lw-skin--kharag">…panneaux, boutons, toasts…</div>
+ * La carte reste l'Atlas ; l'interface prend la matière du peuple joué. L'habillage redéfinit
+ * les tokens sémantiques : tous les composants .lw-* qu'il contient suivent sans autre règle.
+ * Ne pas y placer de gravure à l'encre sur fond transparent (illisible sur fond sombre). */
+.lw-skin--aldoria {
+  --_s-font: var(--lw-skin-aldoria-font);
+  --_s-surface: var(--lw-skin-aldoria-surface);
+  --_s-raised: var(--lw-skin-aldoria-raised);
+  --_s-inset: var(--lw-skin-aldoria-inset);
+  --_s-text: var(--lw-skin-aldoria-text);
+  --_s-text-secondary: var(--lw-skin-aldoria-text-secondary);
+  --_s-text-muted: var(--lw-skin-aldoria-text-muted);
+  --_s-accent: var(--lw-skin-aldoria-accent);
+  --_s-info: var(--lw-skin-aldoria-info);
+  --_s-danger: var(--lw-skin-aldoria-danger);
+  --_s-success: var(--lw-skin-aldoria-success);
+  --_s-border: var(--lw-skin-aldoria-border);
+  --_s-trim: var(--lw-skin-aldoria-trim);
+  --_s-action-bg: var(--lw-skin-aldoria-action-bg);
+  --_s-action-bg-hover: var(--lw-skin-aldoria-action-bg-hover);
+  --_s-action-text: var(--lw-skin-aldoria-action-text);
+  /* Pierre de taille : assises horizontales, joints, lumière rasante. */
+  --_s-material:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 23px,
+      color-mix(in srgb, var(--_s-inset) 70%, transparent) 23px 24px
+    ),
+    linear-gradient(160deg, var(--_s-raised), var(--_s-inset));
+  --_s-radius: var(--lw-radius-sm);
+}
+
+.lw-skin--kharag {
+  --_s-font: var(--lw-skin-kharag-font);
+  --_s-surface: var(--lw-skin-kharag-surface);
+  --_s-raised: var(--lw-skin-kharag-raised);
+  --_s-inset: var(--lw-skin-kharag-inset);
+  --_s-text: var(--lw-skin-kharag-text);
+  --_s-text-secondary: var(--lw-skin-kharag-text-secondary);
+  --_s-text-muted: var(--lw-skin-kharag-text-muted);
+  --_s-accent: var(--lw-skin-kharag-accent);
+  --_s-info: var(--lw-skin-kharag-info);
+  --_s-danger: var(--lw-skin-kharag-danger);
+  --_s-success: var(--lw-skin-kharag-success);
+  --_s-border: var(--lw-skin-kharag-border);
+  --_s-trim: var(--lw-skin-kharag-trim);
+  --_s-action-bg: var(--lw-skin-kharag-action-bg);
+  --_s-action-bg-hover: var(--lw-skin-kharag-action-bg-hover);
+  --_s-action-text: var(--lw-skin-kharag-action-text);
+  /* Planches clouées : rivets aux coins, lames verticales, fil du bois. */
+  --_s-material:
+    radial-gradient(circle at 10px 10px, var(--_s-trim) 2.5px, transparent 3.5px),
+    radial-gradient(circle at calc(100% - 10px) 10px, var(--_s-trim) 2.5px, transparent 3.5px),
+    radial-gradient(circle at 10px calc(100% - 10px), var(--_s-trim) 2.5px, transparent 3.5px),
+    radial-gradient(
+      circle at calc(100% - 10px) calc(100% - 10px),
+      var(--_s-trim) 2.5px,
+      transparent 3.5px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--_s-inset) 85%, transparent) 0 2px,
+      transparent 2px 46px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--_s-raised) 55%, transparent) 0 3px,
+      transparent 3px 7px
+    ),
+    linear-gradient(180deg, var(--_s-raised), var(--_s-inset));
+  --_s-radius: 0;
+}
+
+.lw-skin--morvane {
+  --_s-font: var(--lw-skin-morvane-font);
+  --_s-surface: var(--lw-skin-morvane-surface);
+  --_s-raised: var(--lw-skin-morvane-raised);
+  --_s-inset: var(--lw-skin-morvane-inset);
+  --_s-text: var(--lw-skin-morvane-text);
+  --_s-text-secondary: var(--lw-skin-morvane-text-secondary);
+  --_s-text-muted: var(--lw-skin-morvane-text-muted);
+  --_s-accent: var(--lw-skin-morvane-accent);
+  --_s-info: var(--lw-skin-morvane-info);
+  --_s-danger: var(--lw-skin-morvane-danger);
+  --_s-success: var(--lw-skin-morvane-success);
+  --_s-border: var(--lw-skin-morvane-border);
+  --_s-trim: var(--lw-skin-morvane-trim);
+  --_s-action-bg: var(--lw-skin-morvane-action-bg);
+  --_s-action-bg-hover: var(--lw-skin-morvane-action-bg-hover);
+  --_s-action-text: var(--lw-skin-morvane-action-text);
+  /* Crypte : lueur verdâtre venue d'en haut, arc en ogive. */
+  --_s-material:
+    radial-gradient(
+      ellipse at 50% 0%,
+      color-mix(in srgb, var(--_s-accent) 16%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(180deg, var(--_s-raised), var(--_s-inset));
+  --_s-radius: 14px 14px 4px 4px;
+}
+
+.lw-skin--sylvanor {
+  --_s-font: var(--lw-skin-sylvanor-font);
+  --_s-surface: var(--lw-skin-sylvanor-surface);
+  --_s-raised: var(--lw-skin-sylvanor-raised);
+  --_s-inset: var(--lw-skin-sylvanor-inset);
+  --_s-text: var(--lw-skin-sylvanor-text);
+  --_s-text-secondary: var(--lw-skin-sylvanor-text-secondary);
+  --_s-text-muted: var(--lw-skin-sylvanor-text-muted);
+  --_s-accent: var(--lw-skin-sylvanor-accent);
+  --_s-info: var(--lw-skin-sylvanor-info);
+  --_s-danger: var(--lw-skin-sylvanor-danger);
+  --_s-success: var(--lw-skin-sylvanor-success);
+  --_s-border: var(--lw-skin-sylvanor-border);
+  --_s-trim: var(--lw-skin-sylvanor-trim);
+  --_s-action-bg: var(--lw-skin-sylvanor-action-bg);
+  --_s-action-bg-hover: var(--lw-skin-sylvanor-action-bg-hover);
+  --_s-action-text: var(--lw-skin-sylvanor-action-text);
+  /* Écorce veinée sous un clair de lune. */
+  --_s-material:
+    radial-gradient(
+      ellipse at 50% -10%,
+      color-mix(in srgb, var(--_s-trim) 24%, transparent),
+      transparent 55%
+    ),
+    repeating-linear-gradient(
+      95deg,
+      color-mix(in srgb, var(--_s-inset) 60%, transparent) 0 3px,
+      transparent 3px 11px
+    ),
+    linear-gradient(180deg, var(--_s-raised), var(--_s-inset));
+  --_s-radius: 22px 4px;
+}
+
+.lw-skin {
+  --lw-font-family-title: var(--_s-font);
+  --lw-bg-surface: var(--_s-surface);
+  --lw-bg-raised: var(--_s-raised);
+  --lw-bg-inset: var(--_s-inset);
+  --lw-bg-hover: var(--_s-raised);
+  --lw-text-primary: var(--_s-text);
+  --lw-text-secondary: var(--_s-text-secondary);
+  --lw-text-muted: var(--_s-text-muted);
+  --lw-text-accent: var(--_s-accent);
+  --lw-text-info: var(--_s-info);
+  --lw-text-danger: var(--_s-danger);
+  --lw-text-success: var(--_s-success);
+  --lw-text-emboss: var(--_s-inset);
+  --lw-border-subtle: var(--_s-border);
+  --lw-border-default: var(--_s-border);
+  --lw-border-hover: var(--_s-text-muted);
+  --lw-border-strong: var(--_s-trim);
+  --lw-action-primary-bg: var(--_s-action-bg);
+  --lw-action-primary-bg-hover: var(--_s-action-bg-hover);
+  --lw-action-primary-text: var(--_s-action-text);
+  --lw-action-primary-border: var(--_s-trim);
+  --lw-action-secondary-bg: var(--_s-raised);
+  --lw-action-secondary-bg-hover: var(--_s-inset);
+  --lw-action-secondary-text: var(--_s-text);
+  --lw-action-secondary-border: var(--_s-border);
+  color: var(--lw-text-primary);
+}
+
+.lw-skin .lw-panel {
+  background: var(--_s-material);
+  background-blend-mode: normal;
+  border: 2px solid var(--_s-trim);
+  border-radius: var(--_s-radius);
+  box-shadow:
+    inset 0 0 0 3px var(--_s-inset),
+    inset 0 0 0 4px color-mix(in srgb, var(--_s-trim) 35%, transparent),
+    inset 0 0 26px color-mix(in srgb, var(--_s-inset) 80%, transparent),
+    var(--lw-shadow-md);
+  backdrop-filter: none;
+}
+
+.lw-skin .lw-panel__header {
+  border-bottom-color: color-mix(in srgb, var(--_s-trim) 60%, transparent);
+}
+
+.lw-skin .lw-button--primary {
+  font-family: var(--lw-font-family-title);
 }
 
 /* Modale --------------------------------------------------------------------------------------- */

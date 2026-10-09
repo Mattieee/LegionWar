@@ -206,8 +206,14 @@ body {
   pointer-events: none;
 }
 
-.hud > * {
+.hud > *,
+.hud__skin > * {
   pointer-events: auto;
+}
+
+/* Porte l'habillage de faction sans créer de boîte : les panneaux restent placés par .hud. */
+.hud__skin {
+  display: contents;
 }
 
 .hud__me {

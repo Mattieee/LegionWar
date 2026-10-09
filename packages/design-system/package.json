@@ -16,8 +16,12 @@
     "tokens": "tsx scripts/build-tokens.ts"
   },
   "dependencies": {
+    "@fontsource/cinzel": "^5.3.0",
     "@fontsource/eb-garamond": "^5.3.0",
+    "@fontsource/grenze-gotisch": "^5.3.0",
     "@fontsource/im-fell-english": "^5.3.0",
-    "@fontsource/im-fell-english-sc": "^5.3.0"
+    "@fontsource/im-fell-english-sc": "^5.3.0",
+    "@fontsource/uncial-antiqua": "^5.3.0",
+    "@fontsource/unifrakturmaguntia": "^5.3.0"
   }
 }

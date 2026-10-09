@@ -1,17 +1,22 @@
 import {
   BOAT_TILES_PER_TICK,
   BUILDINGS,
+  CHARNIER_TICKS,
   GOLD_PER_MINE_PER_TICK,
+  GROVE_REACH,
+  GROVE_SWEEP_TICKS,
   HASH_INTERVAL,
   LANDING_CANDIDATES,
   LANDING_SEARCH_LIMIT,
   MAX_BOATS,
   MIN_SPAWN_DISTANCE,
   MULTIPLAYER_SPAWN_PHASE_TICKS,
+  RAMPART_INTERVAL,
   SPAWN_ATTEMPTS,
   SPAWN_ATTEMPTS_STRICT,
   SPAWN_RADIUS,
   START_TROOPS,
+  STATE_HASH_INTERVAL,
   STRUCTURE_MIN_DIST,
   TOWER_RANGE,
   WIN_CHECK_INTERVAL,
@@ -21,11 +26,11 @@ import {
   maxTroops,
   troopIncrease,
 } from "../config/Rules";
-import { mixHash } from "../core/hash";
+import { arrayHash, mixHash } from "../core/hash";
 import { PseudoRandom } from "../core/PseudoRandom";
 import type { GameMap } from "../map/GameMap";
 import { generateMap } from "../map/MapGenerator";
-import { MAX_PLAYER_ID } from "../map/Terrain";
+import { MAX_PLAYER_ID, TerrainKind } from "../map/Terrain";
 import { Attack } from "./Attack";
 import { BotBrain } from "./BotAI";
 import { type Boat, SeaScratch, findSeaRoute, landingCandidates } from "./Naval";
@@ -57,6 +62,15 @@ interface Building {
 
 const BUILDING_KINDS = new Set<string>(Object.values(BuildingKind));
 
+/** Champ de bataille récent : morts qui y gisent et tick où il disparaît. */
+interface Charnier {
+  dead: number;
+  expires: number;
+}
+
+/** Valeur de `forestDist` pour une tuile hors de portée d'une forêt. */
+const FAR_FROM_FOREST = 255;
+
 /**
  * État complet d'une partie et boucle de simulation.
  * Déterministe : mêmes config + même suite de tours ⇒ même état, au bit près, sur tout client.
@@ -87,6 +101,23 @@ export class Game {
   private buildingsDirty = true;
   private changed: number[] = [];
   private events: GameEvent[] = [];
+
+  // Mécaniques de race
+  private readonly charniers = new Map<number, Charnier>();
+  /**
+   * Échéances des charniers dans l'ordre de pose (tuile, tick), lues depuis `charnierHead` :
+   * l'expiration coûte O(1) amorti. Une entrée périmée (charnier ravivé depuis) est ignorée.
+   */
+  private charnierQueue: number[] = [];
+  private charnierQueueExpiry: number[] = [];
+  private charnierHead = 0;
+  /** Distance de chaque tuile à la forêt la plus proche (≤ GROVE_REACH), si un Sylvain joue. */
+  private readonly forestDist: Uint8Array | null;
+  /** Joueurs dont les plaines se boisent. */
+  private readonly groveOwners: Player[];
+  /** Balayage des bosquets : pas premier avec la taille de la carte, pour une pousse dispersée. */
+  private readonly groveStride: number;
+  private groveCursor = 0;
 
   constructor(readonly config: GameConfig) {
     const seed = config.seed >>> 0;
@@ -130,6 +161,11 @@ export class Game {
         bot.alive = false;
       }
     }
+
+    this.groveOwners = this.players.filter((p): p is Player => p !== null && p.mods.grove);
+    // Calculé une fois ici : à la volée, il provoquait un pic de ~20 ms en cours de partie.
+    this.forestDist = this.groveOwners.length > 0 ? this.computeForestDist() : null;
+    this.groveStride = coprimeStride(this.map.size);
   }
 
   // Accès ---------------------------------------------------------------------------------------
@@ -199,6 +235,9 @@ export class Game {
     } else {
       this.updateEconomy();
       this.updateConstructions();
+      this.updateCharniers();
+      this.updateRamparts();
+      this.updateGroves();
       for (const brain of this.brains) brain.tick(this.ticks);
       this.updateBoats();
       for (const attack of this.attacks) attack.tick();
@@ -455,6 +494,112 @@ export class Game {
     this.events.push({ type: "eliminated", player: p.id, by, gold });
   }
 
+  // Mécaniques de race --------------------------------------------------------------------------
+
+  /** Morts gisant sur un charnier (0 s'il n'y en a pas). */
+  charnierDead(tile: number): number {
+    return this.charniers.get(tile)?.dead ?? 0;
+  }
+
+  /**
+   * Pose (ou ravive) un charnier après une prise de force. Appelé juste après `conquer` :
+   * la tuile figure déjà dans les changements du tick.
+   */
+  markCharnier(tile: number, dead: number): void {
+    const expires = this.ticks + CHARNIER_TICKS;
+    this.map.setCharnier(tile, true);
+    this.charniers.set(tile, { dead, expires });
+    this.charnierQueue.push(tile);
+    this.charnierQueueExpiry.push(expires);
+  }
+
+  private updateCharniers(): void {
+    const queue = this.charnierQueue;
+    const expiry = this.charnierQueueExpiry;
+    while (
+      this.charnierHead < queue.length &&
+      (expiry[this.charnierHead] as number) <= this.ticks
+    ) {
+      const tile = queue[this.charnierHead] as number;
+      const expires = expiry[this.charnierHead] as number;
+      this.charnierHead++;
+      if (this.charniers.get(tile)?.expires !== expires) continue;
+      this.charniers.delete(tile);
+      this.map.setCharnier(tile, false);
+      this.changed.push(tile);
+    }
+    // Compacte la file quand la partie déjà lue en occupe plus de la moitié.
+    if (this.charnierHead > 4096 && this.charnierHead * 2 > queue.length) {
+      this.charnierQueue = queue.slice(this.charnierHead);
+      this.charnierQueueExpiry = expiry.slice(this.charnierHead);
+      this.charnierHead = 0;
+    }
+  }
+
+  /** Aldoria : à chaque ronde, les tuiles frontière déjà vues à la ronde précédente se fortifient. */
+  private updateRamparts(): void {
+    if (this.ticks % RAMPART_INTERVAL !== 0) return;
+    for (const p of this.players) {
+      if (!p || !p.alive || !p.mods.rampart) continue;
+      const next = new Set<number>();
+      for (const t of p.border) {
+        if (this.map.hasMark(t)) continue;
+        if (p.rampartCandidates.has(t)) {
+          this.map.setMark(t, true);
+          p.marks++;
+          this.changed.push(t);
+        } else {
+          next.add(t);
+        }
+      }
+      p.rampartCandidates = next;
+    }
+  }
+
+  /** Sylvanor : balaie une part de la carte et boise les plaines sylvaines proches d'une forêt. */
+  private updateGroves(): void {
+    const dist = this.forestDist;
+    if (dist === null || !this.groveOwners.some((p) => p.alive)) return;
+    const map = this.map;
+    const batch = Math.ceil(map.size / GROVE_SWEEP_TICKS);
+    for (let i = 0; i < batch; i++) {
+      const t = this.groveCursor;
+      this.groveCursor = (this.groveCursor + this.groveStride) % map.size;
+      if ((dist[t] as number) > GROVE_REACH || map.hasMark(t)) continue;
+      const owner = this.players[map.owner(t)];
+      if (!owner || !owner.mods.grove || map.kind(t) !== TerrainKind.Plain) continue;
+      map.setMark(t, true);
+      owner.marks++;
+      this.changed.push(t);
+    }
+  }
+
+  /** Parcours en largeur depuis toutes les forêts, borné à GROVE_REACH, sur la terre praticable. */
+  private computeForestDist(): Uint8Array {
+    const map = this.map;
+    const dist = new Uint8Array(map.size).fill(FAR_FROM_FOREST);
+    let frontier: number[] = [];
+    for (let t = 0; t < map.size; t++) {
+      if (map.isLand(t) && map.kind(t) === TerrainKind.Forest) {
+        dist[t] = 0;
+        frontier.push(t);
+      }
+    }
+    for (let d = 1; d <= GROVE_REACH; d++) {
+      const next: number[] = [];
+      for (const t of frontier) {
+        for (const n of map.neighbors(t)) {
+          if (dist[n] === FAR_FROM_FOREST && map.isPassableLand(n)) {
+            dist[n] = d;
+            next.push(n);
+          }
+        }
+      }
+      frontier = next;
+    }
+    return dist;
+  }
+
   // Territoire ----------------------------------------------------------------------------------
 
   conquer(tile: number, newOwner: number): void {
@@ -465,6 +610,11 @@ export class Game {
     if (old !== 0 && previous) {
       previous.tiles--;
       previous.border.delete(tile);
+    }
+    // La marque (rempart, bosquet) n'a de sens que pour le propriétaire qui l'a posée.
+    if (map.hasMark(tile)) {
+      map.setMark(tile, false);
+      if (previous) previous.marks--;
     }
     map.setOwner(tile, newOwner);
     map.setBlight(tile, false);
@@ -481,8 +631,17 @@ export class Game {
     const p = this.players[owner];
     if (owner === 0 || !p) return;
     const isBorder = this.map.neighbors(t).some((n) => this.map.owner(n) !== owner);
-    if (isBorder) p.border.add(t);
-    else p.border.delete(t);
+    if (isBorder) {
+      p.border.add(t);
+      return;
+    }
+    p.border.delete(t);
+    // Un rempart qui n'est plus en lisière est abandonné.
+    if (p.mods.rampart && this.map.hasMark(t)) {
+      this.map.setMark(t, false);
+      p.marks--;
+      this.changed.push(t);
+    }
   }
 
   touchesOwner(tile: number, ownerId: number): boolean {
@@ -621,7 +780,13 @@ export class Game {
       h = mixHash(h, p.troops);
       h = mixHash(h, p.tiles);
       h = mixHash(h, p.gold);
+      h = mixHash(h, p.marks);
+      h = mixHash(h, p.pillaged);
+      h = mixHash(h, p.raised);
     }
+    h = mixHash(h, this.charniers.size);
+    h = mixHash(h, this.charnierHead);
+    h = mixHash(h, this.groveCursor);
     for (const a of this.attacks) h = mixHash(h, Math.floor(a.troops));
     for (const b of this.boats) {
       h = mixHash(h, b.id);
@@ -632,6 +797,8 @@ export class Game {
       h = mixHash(h, b.landing);
       h = mixHash(h, b.target);
     }
+    // Les compteurs ne voient pas une divergence de propriété à nombre de tuiles égal.
+    if (this.ticks % STATE_HASH_INTERVAL === 0) h = mixHash(h, arrayHash(this.map.state));
     return h >>> 0;
   }
 
@@ -653,6 +820,9 @@ export class Game {
         gold: p.gold,
         bourgs: p.buildingCounts[BuildingKind.Bourg],
         tours: p.buildingCounts[BuildingKind.Tour],
+        marks: p.marks,
+        pillaged: p.pillaged,
+        raised: p.raised,
       });
     }
     return views;
@@ -706,4 +876,16 @@ export class Game {
     this.buildingsDirty = false;
     return result;
   }
+}
+
+/** Plus petit entier impair ≥ 0,618 × n premier avec n : un balayage de ce pas visite toute la carte. */
+function coprimeStride(n: number): number {
+  let stride = Math.floor(n * 0.618) | 1;
+  while (gcd(stride, n) !== 1) stride += 2;
+  return stride;
+}
+
+function gcd(a: number, b: number): number {
+  while (b !== 0) [a, b] = [b, a % b];
+  return a;
 }

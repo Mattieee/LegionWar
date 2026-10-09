@@ -115,19 +115,22 @@ le défenseur perd sa densité moyenne (troupes / tuiles) par tuile prise
 
 ### 7.1 Modificateurs [Proto]
 
-|                      | ⚜ Aldoria | ⚒ Kharag  | ☠ Morvane                             | ❦ Sylvanor             |
-| -------------------- | --------- | --------- | ------------------------------------- | ---------------------- |
-| Or                   | **×1,20** | ×0,85     | ×0,90                                 | ×1,05                  |
-| Plafond de troupes   | ×1        | ×1,05     | ×1                                    | ×0,95                  |
-| Régénération         | ×1        | ×1        | ×0,90                                 | ×1                     |
-| Pertes en attaque    | ×1        | **×0,85** | ×1                                    | ×1                     |
-| Défense              | ×1,10     | ×0,95     | ×1                                    | ×1                     |
-| Vitesse de conquête  | ×1        | **×1,15** | ×1                                    | ×1                     |
-| Coût des bâtiments   | **×0,85** | ×1        | ×1                                    | ×1                     |
-| Portée des tours     | **×1,25** | ×1        | ×1                                    | ×1                     |
-| Défense en forêt     | ×1        | ×1        | ×1                                    | **×1,5**               |
-| Progression en forêt | ×1        | ×1        | ×1                                    | **×0,7** (plus rapide) |
-| Moisson des morts    | —         | —         | **30 %** des pertes ennemies relevées | —                      |
+|                      | ⚜ Aldoria           | ⚒ Kharag  | ☠ Morvane                             | ❦ Sylvanor             |
+| -------------------- | ------------------- | --------- | ------------------------------------- | ---------------------- |
+| Or                   | **×1,20**           | ×0,75     | ×0,90                                 | ×1,05                  |
+| Plafond de troupes   | ×1                  | ×1        | ×1                                    | ×1                     |
+| Régénération         | ×1                  | ×1        | ×0,90                                 | ×1                     |
+| Pertes en attaque    | ×1                  | **×0,85** | ×1                                    | ×1                     |
+| Défense              | ×1 (remparts, §7.3) | ×0,95     | ×1                                    | ×1                     |
+| Vitesse de conquête  | ×1                  | **×1,10** | ×1                                    | ×1                     |
+| Coût des bâtiments   | **×0,85**           | ×1        | ×1                                    | ×1                     |
+| Portée des tours     | **×1,25**           | ×1        | ×1                                    | ×1                     |
+| Défense en forêt     | ×1                  | ×1        | ×1                                    | **×1,5**               |
+| Progression en forêt | ×1                  | ×1        | ×1                                    | **×0,7** (plus rapide) |
+| Moisson des morts    | —                   | —         | **25 %** des pertes ennemies relevées | —                      |
+| Mécanique propre     | Remparts            | Pillage   | Levée des charniers (15 %)            | Bosquets               |
+
+Rééquilibrage du 2026-10-09, mesuré par le game designer sur 300 parties simulées (4 seigneurs scriptés, un par race, sièges tournants, 60 tribus, carte moyenne) : avant, Aldoria 30,7 %, **Kharag 40 %**, Morvane 15,3 %, Sylvanor 14 % des parties menées ; après, **21,7 / 26,7 / 27,3 / 24,3 %** (écart d'une simulation à l'autre : environ ±5 points).
 
 ### 7.2 Identités
 
@@ -162,6 +165,19 @@ le défenseur perd sa densité moyenne (troupes / tuiles) par tuile prise
 - _Faiblesse :_ moins de troupes ; vulnérables en plaine.
 - _Bâtiments_ [Prévu] : Sylve-demeure, Havre, Marché des lunes, Arbre gardien, Puits de lune, Arbre ancestral.
 - _Sorts_ [Prévu] : Ronces, Colère des racines, **Courroux sylvestre** (ultime : les tuiles touchées deviennent de la **forêt**, le terrain des elfes).
+
+### 7.3 Mécaniques propres [Proto]
+
+Chaque peuple a une mécanique visible sur la carte. Constantes dans `Rules.ts` (`RAMPART_*`, `GROVE_*`, `CHARNIER_TICKS`, `PILLAGE_TRIBE_RATIO`) et `Races.ts` (`rampart`, `grove`, `pillageGold`, `charnierRaise`).
+
+- **Charniers (commun) :** toute tuile prise de force entre deux royaumes (tribus comprises) devient un **charnier pendant 60 s**. Ses morts (pertes de l'attaquant et du défenseur sur cette tuile) y gisent ; une nouvelle bataille ravive le charnier et remplace ses morts. La conquête de terres libres, l'annexion et le débarquement sur la plage n'en créent pas.
+- **⚜ Remparts (Aldoria) :** toutes les 10 s, une tuile frontière déjà en lisière à la ronde précédente devient un **rempart** : l'assaillant y subit des **pertes ×1,5** et avance **1,5× plus lentement**. Pas de cumul avec une tour (la tour l'emporte). Le rempart disparaît quand la tuile est prise ou n'est plus en lisière : une brèche ouvre sur un intérieur sans défense. Les côtes comptent comme frontière et protègent des débarquements.
+- **⚒ Pillage (Kharag) :** chaque tuile prise à un royaume rapporte **15 or** (7 sur une tribu), sauf si c'est un charnier (terre déjà ravagée). Kharag finance environ la moitié de sa guerre par la guerre.
+- **☠ Levée des charniers (Morvane) :** prendre un charnier relève **15 % de ses morts**, en plus de la moisson. Morvane devient un charognard qui suit les guerres des autres. La Peste noire (corruption durable, bit 13) reste distincte.
+- **❦ Bosquets (Sylvanor) :** sur ses terres, les **plaines à 8 tuiles ou moins d'une forêt se boisent** en 20 s au plus (balayage dispersé de la carte) ; un bosquet compte comme une **forêt au combat** tant qu'il reste sylvain. Environ 10 % des terres sylvaines deviennent bosquets.
+- **État des tuiles :** bit 12 = marque du propriétaire (rempart ou bosquet selon sa race, effacée à chaque changement de propriétaire), bit 14 = charnier, bit 15 libre. Le hash d'état couvre les compteurs de chaque seigneur (marques, or pillé, morts relevés), le nombre de charniers et, toutes les 10 s, l'état complet des tuiles.
+- **Rendu :** remparts en créneaux encre et pierre ; bosquets en feuillage semé d'arbres ; charniers en cendre et ossements (braises chez Kharag) ; terres de Morvane désaturées et violacées. Le HUD affiche le compteur du peuple (remparts, or pillé, morts relevés, bosquets).
+- **À venir :** les heuristiques des seigneurs IA (Kharag vise les fronts sans charniers, Morvane les fronts couverts de charniers…) ; l'interdiction du pillage et de la levée contre les alliés avec la diplomatie.
 
 ## 8. Bâtiments
 
@@ -294,5 +310,7 @@ Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, 
 - La part de victoires par race doit rester **entre 20 et 30 %** à niveau égal.
 - Le délai avant que les terres libres soient épuisées est mesuré à **20 s environ** sur une carte moyenne avec 60 tribus ; viser 20 à 40 s.
 - Le premier Bourg arrive vers 2 min de jeu (125 k d'or à environ 1 000 à 1 200 or/s) : vérifier que ce n'est pas trop lent.
-- La moisson de Morvane (30 %) peut faire boule de neige pendant les guerres longues : à surveiller.
-- Le bonus forestier de Sylvanor dépend de la carte. Mesuré sur 4 graines (carte moyenne) : forêt **25 à 37 %** des terres, plaine 36 à 44 %, collines 20 à 25 %, montagnes 5 à 14 %, pics 1 %. C'est peut-être trop favorable à Sylvanor ; le seuil d'humidité `0.53` du générateur permet de réduire la forêt si besoin.
+- La moisson de Morvane (25 %) et la levée des charniers (15 %) peuvent faire boule de neige pendant les guerres longues : si c'est le cas, interdire la levée sur les charniers créés par Morvane lui-même.
+- Le banc d'essai des mécaniques propres fait beaucoup de va-et-vient (environ 55 % des prises tombent sur un charnier) : avec de vrais joueurs, Morvane pourrait être plus faible et Kharag piller davantage. Suivre l'or pillé et les morts relevés.
+- Aldoria est sous-estimée par ce banc d'essai : ses bots ne construisent pas de tours.
+- Le bonus forestier de Sylvanor dépend de la carte. Mesuré sur 4 graines (carte moyenne) : forêt **25 à 37 %** des terres, plaine 36 à 44 %, collines 20 à 25 %, montagnes 5 à 14 %, pics 1 %. On craignait que ce soit trop favorable à Sylvanor, mais la simulation de 2026-10-09 le donnait au contraire faible (14 % des parties menées) avant les bosquets. À revérifier sur les graines très boisées (37 % de forêt) ; le seuil d'humidité `0.53` du générateur permet de réduire la forêt si besoin.

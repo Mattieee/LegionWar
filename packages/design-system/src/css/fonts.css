@@ -4,6 +4,8 @@
  * IM Fell English SC : titres et libellés, capitales de l'imprimerie de John Fell (1670).
  * IM Fell English    : textes d'ambiance (italique de cartographe).
  * EB Garamond        : texte d'interface et chiffres, lisible en petite taille.
+ * Titres des habillages de faction : Cinzel (Aldoria), Grenze Gotisch (Kharag),
+ * UnifrakturMaguntia (Morvane), Uncial Antiqua (Sylvanor).
  */
 @import "@fontsource/im-fell-english-sc/latin-400.css";
 @import "@fontsource/im-fell-english/latin-400.css";
@@ -12,3 +14,9 @@
 @import "@fontsource/eb-garamond/latin-400-italic.css";
 @import "@fontsource/eb-garamond/latin-500.css";
 @import "@fontsource/eb-garamond/latin-600.css";
+@import "@fontsource/cinzel/latin-400.css";
+@import "@fontsource/cinzel/latin-700.css";
+@import "@fontsource/grenze-gotisch/latin-400.css";
+@import "@fontsource/grenze-gotisch/latin-700.css";
+@import "@fontsource/unifrakturmaguntia/latin-400.css";
+@import "@fontsource/uncial-antiqua/latin-400.css";

@@ -50,33 +50,35 @@ Les joueurs de .io et de RTS nostalgiques de Warcraft III, pour des sessions de 
 
 ## Feuille de route
 
-| Phase                       | Objectif                 | Contenu principal                                                                                                     |
-| --------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| **v0.1** Prototype ✅       | Valider la boucle de jeu | Voir le tableau ci-dessus                                                                                             |
-| **v0.2** Multijoueur        | Jouer à plusieurs        | Écran de lobby, connexion du client au serveur relais, détection de désynchronisation (hash), reconnexion, spectateur |
-| **v0.3** Bâtiments complets | Profondeur économique    | Port, Comptoir et routes commerciales (caravanes), bâtiments propres à chaque race, amélioration des bâtiments        |
-| **v0.4** Naval              | Débarquements            | ~~Barges de transport~~ (livré), navires de guerre, nefs marchandes                                                   |
-| **v0.5** Magie              | Le « nucléaire » fantasy | Sanctuaire, sorts mineur/majeur/ultime par race, Bastion runique (contre-sort), terres maudites                       |
-| **v0.6** Diplomatie         | Couche sociale           | Alliances, trahison, embargo, dons, emojis, messages rapides                                                          |
-| **v0.7** IA Seigneurs       | Adversaires crédibles    | Nations IA liées à la carte, 4 niveaux de difficulté                                                                  |
-| **v0.8** Contenu            | Rejouabilité             | Cartes dessinées (Valdren), modes Équipes, temps de paix, cycle jour/nuit, héros (à étudier)                          |
-| **v1.0** Lancement          | Ouverture publique       | Comptes, classements, file publique, hébergement, modération, internationalisation                                    |
+| Phase                        | Objectif                    | Contenu principal                                                                                                              |
+| ---------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **v0.1** Prototype ✅        | Valider la boucle de jeu    | Voir le tableau ci-dessus                                                                                                      |
+| **v0.2** Multijoueur         | Jouer à plusieurs           | Écran de lobby, connexion du client au serveur relais, détection de désynchronisation (hash), reconnexion, spectateur          |
+| **v0.2b** Peuples marqués ✅ | Des factions à part entière | Habillage d'interface par peuple, mécaniques propres (remparts, pillage, levée des charniers, bosquets), rééquilibrage chiffré |
+| **v0.3** Bâtiments complets  | Profondeur économique       | Port, Comptoir et routes commerciales (caravanes), bâtiments propres à chaque race, amélioration des bâtiments                 |
+| **v0.4** Naval               | Débarquements               | ~~Barges de transport~~ (livré), navires de guerre, nefs marchandes                                                            |
+| **v0.5** Magie               | Le « nucléaire » fantasy    | Sanctuaire, sorts mineur/majeur/ultime par race, Bastion runique (contre-sort), terres maudites                                |
+| **v0.6** Diplomatie          | Couche sociale              | Alliances, trahison, embargo, dons, emojis, messages rapides                                                                   |
+| **v0.7** IA Seigneurs        | Adversaires crédibles       | Nations IA liées à la carte, 4 niveaux de difficulté                                                                           |
+| **v0.8** Contenu             | Rejouabilité                | Cartes dessinées (Valdren), modes Équipes, temps de paix, cycle jour/nuit, héros (à étudier)                                   |
+| **v1.0** Lancement           | Ouverture publique          | Comptes, classements, file publique, hébergement, modération, internationalisation                                             |
 
 ## Journal des décisions
 
-| Date       | Décision                                                                     | Raison                                                                                 |
-| ---------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| 2026-10-09 | **Réécriture propre**, sans fork d'OpenFront                                 | Liberté de licence et maîtrise totale du code ; le code d'OpenFront est sous AGPL-3.0  |
-| 2026-10-09 | **4 races asymétriques** sur un socle de règles commun                       | Saveur Warcraft III tout en gardant l'équilibrage maîtrisable                          |
-| 2026-10-09 | **Lockstep déterministe** : le serveur relaie, les clients simulent          | Des centaines de joueurs pour un coût serveur minimal ; replays gratuits               |
-| 2026-10-09 | **Canvas 2D** pour le prototype, WebGL plus tard si besoin                   | Simple et suffisant jusqu'à environ 1 M de tuiles ; mesuré : tick moteur de 1 à 2 ms   |
-| 2026-10-09 | **JSON** sur WebSocket (pas de format binaire pour l'instant)                | Débogage simple ; un format binaire pourra venir à l'échelle                           |
-| 2026-10-09 | **Aucun outil cloud Anthropic** (Artifacts, Claude Docs, agents distants)    | Exigence du porteur de projet ; tout reste dans le dépôt                               |
-| 2026-10-09 | **Design system maison** (tokens TS → CSS généré, composants `.lw-*`)        | Une seule source pour le DOM et le Canvas ; contraste vérifié par les tests            |
-| 2026-10-09 | Direction artistique **« Atlas + Héraldique »** (choisie parmi 6 moodboards) | La carte est le cœur du jeu ; les armoiries rendent 60 joueurs lisibles et accessibles |
-| 2026-10-09 | Polices **IM Fell English (SC)** + **EB Garamond** (OFL), embarquées         | Typographie d'atlas du XVIIe siècle, Garamond lisible pour le HUD                      |
-| 2026-10-09 | Images IA via OpenAI **sur validation**, budget **10 €**                     | Assets à moindre coût, dépense maîtrisée                                               |
-| 2026-10-09 | Univers et noms **100 % originaux**                                          | Éviter toute propriété intellectuelle de Blizzard                                      |
+| Date       | Décision                                                                                                                 | Raison                                                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-09 | **Réécriture propre**, sans fork d'OpenFront                                                                             | Liberté de licence et maîtrise totale du code ; le code d'OpenFront est sous AGPL-3.0                                                   |
+| 2026-10-09 | **4 races asymétriques** sur un socle de règles commun                                                                   | Saveur Warcraft III tout en gardant l'équilibrage maîtrisable                                                                           |
+| 2026-10-09 | **Lockstep déterministe** : le serveur relaie, les clients simulent                                                      | Des centaines de joueurs pour un coût serveur minimal ; replays gratuits                                                                |
+| 2026-10-09 | **Canvas 2D** pour le prototype, WebGL plus tard si besoin                                                               | Simple et suffisant jusqu'à environ 1 M de tuiles ; mesuré : tick moteur de 1 à 2 ms                                                    |
+| 2026-10-09 | **JSON** sur WebSocket (pas de format binaire pour l'instant)                                                            | Débogage simple ; un format binaire pourra venir à l'échelle                                                                            |
+| 2026-10-09 | **Aucun outil cloud Anthropic** (Artifacts, Claude Docs, agents distants)                                                | Exigence du porteur de projet ; tout reste dans le dépôt                                                                                |
+| 2026-10-09 | **Design system maison** (tokens TS → CSS généré, composants `.lw-*`)                                                    | Une seule source pour le DOM et le Canvas ; contraste vérifié par les tests                                                             |
+| 2026-10-09 | Direction artistique **« Atlas + Héraldique »** (choisie parmi 6 moodboards)                                             | La carte est le cœur du jeu ; les armoiries rendent 60 joueurs lisibles et accessibles                                                  |
+| 2026-10-09 | Polices **IM Fell English (SC)** + **EB Garamond** (OFL), embarquées                                                     | Typographie d'atlas du XVIIe siècle, Garamond lisible pour le HUD                                                                       |
+| 2026-10-09 | **Factions marquées** : interface en « matières de faction », carte en Atlas (moodboard `docs/moodboards/factions.html`) | Les peuples ne différaient que par des chiffres ; l'habillage du HUD donne le souffle Warcraft sans sacrifier la lisibilité de la carte |
+| 2026-10-09 | Images IA via OpenAI **sur validation**, budget **10 €**                                                                 | Assets à moindre coût, dépense maîtrisée                                                                                                |
+| 2026-10-09 | Univers et noms **100 % originaux**                                                                                      | Éviter toute propriété intellectuelle de Blizzard                                                                                       |
 
 ## Risques
 

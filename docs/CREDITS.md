@@ -4,11 +4,15 @@ Tout asset ajouté au projet (police, image, son, musique) doit figurer ici avec
 
 ## Polices
 
-| Police             | Auteur                                               | Licence                   | Source                                 | Usage                        |
-| ------------------ | ---------------------------------------------------- | ------------------------- | -------------------------------------- | ---------------------------- |
-| IM Fell English SC | Igino Marini (d'après les fontes de John Fell, 1670) | SIL Open Font License 1.1 | `@fontsource/im-fell-english-sc` (npm) | Titres, boutons, libellés    |
-| IM Fell English    | Igino Marini (d'après les fontes de John Fell, 1670) | SIL Open Font License 1.1 | `@fontsource/im-fell-english` (npm)    | Textes d'ambiance (italique) |
-| EB Garamond        | Georg Duffner, Octavio Pardo                         | SIL Open Font License 1.1 | `@fontsource/eb-garamond` (npm)        | Texte d'interface, chiffres  |
+| Police             | Auteur                                               | Licence                   | Source                                 | Usage                          |
+| ------------------ | ---------------------------------------------------- | ------------------------- | -------------------------------------- | ------------------------------ |
+| IM Fell English SC | Igino Marini (d'après les fontes de John Fell, 1670) | SIL Open Font License 1.1 | `@fontsource/im-fell-english-sc` (npm) | Titres, boutons, libellés      |
+| IM Fell English    | Igino Marini (d'après les fontes de John Fell, 1670) | SIL Open Font License 1.1 | `@fontsource/im-fell-english` (npm)    | Textes d'ambiance (italique)   |
+| EB Garamond        | Georg Duffner, Octavio Pardo                         | SIL Open Font License 1.1 | `@fontsource/eb-garamond` (npm)        | Texte d'interface, chiffres    |
+| Cinzel             | The Cinzel Project Authors (Natanael Gama)           | SIL Open Font License 1.1 | `@fontsource/cinzel` (npm)             | Titres de l'habillage Aldoria  |
+| Grenze Gotisch     | The Grenze Gotisch Project Authors (Omnibus-Type)    | SIL Open Font License 1.1 | `@fontsource/grenze-gotisch` (npm)     | Titres de l'habillage Kharag   |
+| UnifrakturMaguntia | j. « mach » wust, Peter Wiegel                       | SIL Open Font License 1.1 | `@fontsource/unifrakturmaguntia` (npm) | Titres de l'habillage Morvane  |
+| Uncial Antiqua     | Brian J. Bonislawsky (Astigmatic)                    | SIL Open Font License 1.1 | `@fontsource/uncial-antiqua` (npm)     | Titres de l'habillage Sylvanor |
 
 ## Images générées
 

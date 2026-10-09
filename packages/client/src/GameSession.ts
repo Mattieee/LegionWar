@@ -1,7 +1,10 @@
 import {
   BUILDINGS,
   BuildingKind,
+  CHARNIER_BIT,
   GameMap,
+  MARK_BIT,
+  Race,
   TERRAIN_NAMES,
   TICK_MS,
   TOWER_RANGE,
@@ -161,8 +164,13 @@ export class GameSession {
   ): void {
     this.map = new GameMap(width, height, terrain);
     this.mines = mines;
-    this.territory = new TerritoryLayer(width, height, terrain, state, (owner) =>
-      this.colorOf(owner),
+    this.territory = new TerritoryLayer(
+      width,
+      height,
+      terrain,
+      state,
+      (owner) => this.colorOf(owner),
+      (owner) => this.players.get(owner)?.race ?? null,
     );
     this.scene = new SceneRenderer(
       this.canvas,
@@ -194,9 +202,10 @@ export class GameSession {
 
   private onTick(result: TickResult): void {
     this.server.acknowledge();
-    this.territory?.applyChanges(result.changedTiles);
+    // Les joueurs d'abord : la peinture d'une tuile dépend de la race de son propriétaire.
     this.playerList = result.players;
     this.players = new Map(result.players.map((p) => [p.id, p]));
+    this.territory?.applyChanges(result.changedTiles);
     this.myId = result.players.find((p) => p.clientId === CLIENT_ID)?.id ?? null;
     if (result.buildings) this.buildings = result.buildings;
     this.attacks = result.attacks;
@@ -367,6 +376,12 @@ export class GameSession {
     const owner = this.territory.owner(t);
     const parts = [TERRAIN_NAMES[this.map.kind(t)]];
     if (this.mines.includes(t)) parts.push("Mine d'or");
+    // L'état des tuiles (marques, charniers) vit dans la couche de territoire, pas dans this.map.
+    const state = this.territory.state[t] as number;
+    const race = this.players.get(owner)?.race;
+    if (state & MARK_BIT && race === Race.Aldoria) parts.push("Rempart");
+    if (state & MARK_BIT && race === Race.Sylvanor) parts.push("Bosquet");
+    if (state & CHARNIER_BIT) parts.push("Charnier");
     parts.push(owner === 0 ? "Terres libres" : this.nameOf(owner));
     this.hud?.setHover(parts.join(" · "));
   }

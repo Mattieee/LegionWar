@@ -18,6 +18,14 @@ export class Player {
   /** Tuiles possédées ayant au moins un voisin d'un autre propriétaire (ordre d'insertion déterministe). */
   readonly border = new Set<number>();
   readonly mods: RaceModifiers;
+  /** Aldoria : tuiles frontière vues à la ronde précédente (futurs remparts). */
+  rampartCandidates = new Set<number>();
+  /** Tuiles possédées portant la marque de la race (remparts ou bosquets). */
+  marks = 0;
+  /** Kharag : or gagné par le pillage depuis le début de la partie. */
+  pillaged = 0;
+  /** Morvane : troupes relevées sur les charniers depuis le début de la partie. */
+  raised = 0;
 
   constructor(
     readonly id: number,

@@ -129,7 +129,7 @@ export function showMenu(root: HTMLElement, onStart: (choice: MenuChoice) => voi
 function raceCard(id: Race): string {
   const info = RACES[id];
   return `
-    <button type="button" class="lw-card menu__race" data-race="${id}" aria-pressed="false" style="--lw-card-accent: ${raceColor(id)}">
+    <button type="button" class="lw-card menu__race" data-race="${id}" aria-pressed="false" style="--lw-card-accent: ${raceColor(id)}; --lw-font-family-title: var(--lw-skin-${id}-font)">
       <img class="menu__race-emblem" src="/art/emblems/${id}.webp" alt="" width="256" height="256" />
       <span class="lw-card__head">
         <span class="lw-shield lw-shield--lg lw-shield--hatched lw-tincture-${raceTincture(id)}" aria-hidden="true"><span>${info.emblem}</span></span>

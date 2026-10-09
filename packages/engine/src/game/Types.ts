@@ -62,6 +62,12 @@ export interface PlayerView {
   gold: number;
   bourgs: number;
   tours: number;
+  /** Remparts (Aldoria) ou bosquets (Sylvanor) possédés. */
+  marks: number;
+  /** Or pillé (Kharag). */
+  pillaged: number;
+  /** Troupes relevées sur les charniers (Morvane). */
+  raised: number;
 }
 
 export interface BuildingView {

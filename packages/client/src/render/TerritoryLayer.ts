@@ -1,11 +1,36 @@
 import { tokenRgb, tokens } from "@legionwar/design-system";
-import { OWNER_MASK } from "@legionwar/engine";
+import { CHARNIER_BIT, MARK_BIT, OWNER_MASK, Race } from "@legionwar/engine";
 import { type RGB, terrainColor } from "./colors";
 
 const WASH_INTERIOR = tokens.map.washInterior;
 const WASH_EDGE = tokens.map.washEdge;
 const BORDER_INK = tokens.map.borderInk;
 const INK = tokenRgb("map.ink");
+
+/** Marques des mécaniques de race (remparts, bosquets, charniers, terres mortes). */
+const MARKS = {
+  rampartInk: tokenRgb("map.marks.rampartInk"),
+  rampartStone: tokenRgb("map.marks.rampartStone"),
+  grove: tokenRgb("map.marks.grove"),
+  groveStrength: tokens.map.marks.groveStrength,
+  groveTree: tokenRgb("map.marks.groveTree"),
+  ash: tokenRgb("map.marks.ash"),
+  ashStrength: tokens.map.marks.ashStrength,
+  bone: tokenRgb("map.marks.bone"),
+  ember: tokenRgb("map.marks.ember"),
+  deadland: tokenRgb("map.marks.deadland"),
+  deadlandStrength: tokens.map.marks.deadlandStrength,
+};
+
+/** Luminance de la teinte des terres mortes : la teinte garde la clarté du papier. */
+const DEADLAND_LUM = 0.3 * MARKS.deadland[0] + 0.59 * MARKS.deadland[1] + 0.11 * MARKS.deadland[2];
+
+/** Bruit stable par tuile, pour semer arbres, ossements et braises (rendu seulement). */
+function speckle(t: number): number {
+  let h = Math.imul(t ^ 0x27d4eb2d, 0x165667b1);
+  h ^= h >>> 15;
+  return (h >>> 0) % 97;
+}
 
 /**
  * Image de la carte (1 pixel par tuile), rendue comme un atlas : papier, lavis d'aquarelle
@@ -29,6 +54,7 @@ export class TerritoryLayer {
     terrain: Uint8Array,
     readonly state: Uint16Array,
     private readonly colorOf: (owner: number) => RGB,
+    private readonly raceOf: (owner: number) => Race | null,
   ) {
     this.canvas = document.createElement("canvas");
     this.canvas.width = width;
@@ -120,29 +146,72 @@ export class TerritoryLayer {
     const data = this.image.data;
     const i = t * 4;
     const b = t * 3;
-    const owner = this.owner(t);
-    const r = this.base[b] as number;
-    const g = this.base[b + 1] as number;
-    const bl = this.base[b + 2] as number;
+    const state = this.state[t] as number;
+    const owner = state & OWNER_MASK;
+    let r = this.base[b] as number;
+    let g = this.base[b + 1] as number;
+    let bl = this.base[b + 2] as number;
+    let out: RGB;
     if (owner === 0) {
-      data[i] = r;
-      data[i + 1] = g;
-      data[i + 2] = bl;
+      out = [r, g, bl];
     } else {
       const c = this.colorOf(owner);
+      const race = this.raceOf(owner);
+      const marked = (state & MARK_BIT) !== 0;
+      if (race === Race.Morvane) {
+        // Terres mortes : le papier perd sa couleur et vire au violacé.
+        const lum = 0.3 * r + 0.59 * g + 0.11 * bl;
+        const k = MARKS.deadlandStrength;
+        r = lerp(r, Math.min(255, (lum * MARKS.deadland[0]) / DEADLAND_LUM), k);
+        g = lerp(g, Math.min(255, (lum * MARKS.deadland[1]) / DEADLAND_LUM), k);
+        bl = lerp(bl, Math.min(255, (lum * MARKS.deadland[2]) / DEADLAND_LUM), k);
+      } else if (marked && race === Race.Sylvanor) {
+        // Bosquet : feuillage mêlé au papier, semé de petits arbres à l'encre.
+        r = lerp(r, MARKS.grove[0], MARKS.groveStrength);
+        g = lerp(g, MARKS.grove[1], MARKS.groveStrength);
+        bl = lerp(bl, MARKS.grove[2], MARKS.groveStrength);
+        if (speckle(t) < 24) [r, g, bl] = mixRgb([r, g, bl], MARKS.groveTree, 0.55);
+      }
       if (this.differsWithin(t, owner, 1)) {
-        // Frontière : trait d'encre teinté de la couleur du royaume.
-        data[i] = c[0] * (1 - BORDER_INK) + INK[0] * BORDER_INK;
-        data[i + 1] = c[1] * (1 - BORDER_INK) + INK[1] * BORDER_INK;
-        data[i + 2] = c[2] * (1 - BORDER_INK) + INK[2] * BORDER_INK;
+        if (marked && race === Race.Aldoria) {
+          // Rempart : créneaux, encre et pierre en alternance, la pierre teintée du blason.
+          const x = t % this.width;
+          const y = (t - x) / this.width;
+          out = (x + y) % 2 === 0 ? MARKS.rampartInk : mixRgb(MARKS.rampartStone, c, 0.3);
+        } else {
+          // Frontière : trait d'encre teinté de la couleur du royaume.
+          out = mixRgb(c, INK, BORDER_INK);
+        }
       } else {
         // Lavis : multiplication papier × pigment, plus dense près du bord.
         const a = this.differsWithin(t, owner, 2) ? WASH_EDGE : WASH_INTERIOR;
-        data[i] = r * (1 - a + (a * c[0]) / 255);
-        data[i + 1] = g * (1 - a + (a * c[1]) / 255);
-        data[i + 2] = bl * (1 - a + (a * c[2]) / 255);
+        out = [
+          r * (1 - a + (a * c[0]) / 255),
+          g * (1 - a + (a * c[1]) / 255),
+          bl * (1 - a + (a * c[2]) / 255),
+        ];
       }
+      if ((state & CHARNIER_BIT) !== 0) out = this.charnier(t, out, race);
     }
+    data[i] = out[0];
+    data[i + 1] = out[1];
+    data[i + 2] = out[2];
     data[i + 3] = 255;
   }
+
+  /** Charnier : cendre et ossements épars ; braises quand les Clans de Kharag tiennent la terre. */
+  private charnier(t: number, color: RGB, race: Race | null): RGB {
+    const s = speckle(t);
+    if (race === Race.Kharag && s < 14) return MARKS.ember;
+    if (s > 88) return mixRgb(color, MARKS.bone, 0.6);
+    return mixRgb(color, MARKS.ash, MARKS.ashStrength);
+  }
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+function mixRgb(a: RGB, b: RGB, t: number): RGB {
+  return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
 }

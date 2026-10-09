@@ -62,6 +62,8 @@ const FONT_FLAVOR = tokens.font.family.flavor;
 /** Taille des noms sur la carte, en pixels CSS : discrets comme sur un atlas. */
 const LABEL_MAX_PX = 17;
 const LABEL_MIN_PX = 9;
+/** Les seigneurs signent dans la police de leur peuple, dès que la taille la rend lisible. */
+const RACE_LABEL_MIN_PX = 13;
 /** Largeur des bâtiments gravés : 4,2 tuiles, et jamais moins de 16 px à l'écran. */
 const BUILDING_TILES = 4.2;
 const BUILDING_MIN_PX = 16;
@@ -462,13 +464,16 @@ export class SceneRenderer {
       ) {
         continue;
       }
+      const race = player.race;
+      const family = (px: number): string =>
+        race && px >= RACE_LABEL_MIN_PX ? tokens.skin[race].font : FONT_DISPLAY;
       // Le nom ne doit pas déborder largement de son territoire.
-      ctx.font = `${fontPx}px ${FONT_DISPLAY}`;
+      ctx.font = `${fontPx}px ${family(fontPx)}`;
       const fit = (span * 1.4) / Math.max(1, ctx.measureText(player.name).width);
       if (fit < 1) {
         fontPx *= fit;
         if (fontPx < LABEL_MIN_PX) continue;
-        ctx.font = `${fontPx}px ${FONT_DISPLAY}`;
+        ctx.font = `${fontPx}px ${family(fontPx)}`;
       }
       const withShield = player.race !== null && fontPx >= 12;
       const nameWidth = ctx.measureText(player.name).width;

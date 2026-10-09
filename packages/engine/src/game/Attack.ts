@@ -1,5 +1,6 @@
-import { ANNEX_THRESHOLD, TERRAIN_COMBAT, attackLogic } from "../config/Rules";
+import { ANNEX_THRESHOLD, PILLAGE_TRIBE_RATIO, TERRAIN_COMBAT, attackLogic } from "../config/Rules";
 import { MinHeap } from "../core/MinHeap";
+import { TerrainKind } from "../map/Terrain";
 import type { Game } from "./Game";
 import type { Player } from "./Player";
 
@@ -59,22 +60,30 @@ export class Attack {
       const tile = this.front.pop();
       if (map.owner(tile) !== this.targetId || !game.touchesOwner(tile, this.attacker.id)) continue;
 
+      // La marque de la tuile appartient au défenseur : bosquet sylvain ou rempart d'Aldoria.
+      const mark = defender !== null && map.hasMark(tile) ? defender.mods : null;
+      const wasCharnier = map.hasCharnier(tile);
       const result = attackLogic({
-        kind: map.kind(tile),
+        kind: mark?.grove ? TerrainKind.Forest : map.kind(tile),
         attacker: this.attacker,
         defender,
         attackTroops: this.troops,
         borderSize,
         towerCover: defender !== null && game.hasTowerCover(defender, tile),
+        rampart: mark?.rampart ?? false,
         landTiles: map.numLandTiles,
       });
       budget -= result.tickFraction;
       this.troops -= result.attackerLoss;
+      let killed = 0;
       if (defender !== null) {
-        const killed = defender.removeTroops(result.defenderLoss);
+        killed = defender.removeTroops(result.defenderLoss);
         this.troops += killed * this.attacker.mods.harvestRatio;
+        this.spoils(defender, tile, wasCharnier);
       }
       game.conquer(tile, this.attacker.id);
+      // Toute prise de force entre deux royaumes laisse un charnier (pas les terres libres).
+      if (defender !== null) game.markCharnier(tile, Math.floor(result.attackerLoss + killed));
 
       if (defender !== null && defender.tiles < ANNEX_THRESHOLD) {
         game.annex(defender, this.attacker);
@@ -82,6 +91,27 @@ export class Attack {
         return;
       }
       this.addNeighbors(tile);
+    }
+  }
+
+  /**
+   * Butin de race sur une tuile prise à un royaume : Kharag pille ce qui n'a pas encore été
+   * ravagé, Morvane relève les morts d'un charnier.
+   */
+  private spoils(defender: Player, tile: number, wasCharnier: boolean): void {
+    const attacker = this.attacker;
+    const mods = attacker.mods;
+    if (wasCharnier) {
+      if (mods.charnierRaise > 0) {
+        const raised = Math.floor(this.game.charnierDead(tile) * mods.charnierRaise);
+        this.troops += raised;
+        attacker.raised += raised;
+      }
+    } else if (mods.pillageGold > 0) {
+      const ratio = defender.kind === "bot" ? PILLAGE_TRIBE_RATIO : 1;
+      const gold = Math.floor(mods.pillageGold * ratio);
+      attacker.addGold(gold);
+      attacker.pillaged += gold;
     }
   }
 

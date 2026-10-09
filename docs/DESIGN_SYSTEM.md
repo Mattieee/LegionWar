@@ -111,7 +111,25 @@ Les espacements, tailles de police, rayons, ombres, durées et z-index sont des 
 | Ambiance, statistiques, journal | **IM Fell English** italique                                                          | `--lw-font-family-flavor`  |
 | Interface et chiffres           | **EB Garamond** 400/500/600 (chiffres elzéviriens dans le texte, alignés dans le HUD) | `--lw-font-family-body`    |
 
+Les titres (`h1`–`h4`, `lw-display`, `lw-card__title`) passent par `--lw-font-family-title`, qui vaut la police d'affichage par défaut et la police du peuple dans un habillage de faction (voir plus bas).
+
 Toutes sont sous licence SIL OFL 1.1 et embarquées par Vite (sous-ensemble latin, aucun CDN).
+
+### Habillages de faction (« matières de faction »)
+
+Choisis sur [moodboards/factions.html](moodboards/factions.html) : **la carte reste l'Atlas, l'interface prend la matière du peuple joué.** `lw-skin lw-skin--{race}` redéfinit les tokens sémantiques (fonds, textes, bordures, boutons, police des titres) ; tous les composants `.lw-*` qu'il contient suivent. Les panneaux y prennent la texture du peuple.
+
+| Peuple   | Matière                                         | Police des titres  | Tokens                 |
+| -------- | ----------------------------------------------- | ------------------ | ---------------------- |
+| Aldoria  | Pierre de taille, filet d'or, bouton azur       | Cinzel             | `--lw-skin-aldoria-*`  |
+| Kharag   | Planches clouées, rivets de fer, bouton gueules | Grenze Gotisch     | `--lw-skin-kharag-*`   |
+| Morvane  | Crypte d'améthyste, filet d'os, lueur verdâtre  | UnifrakturMaguntia | `--lw-skin-morvane-*`  |
+| Sylvanor | Écorce veinée, pierre de lune, coins en feuille | Uncial Antiqua     | `--lw-skin-sylvanor-*` |
+
+- **En jeu :** tout le HUD porte l'habillage du peuple joué, sauf la modale de fin, qui reste sur papier (son cartouche est une gravure à l'encre).
+- **Menu :** chaque carte de peuple affiche son nom dans la police du peuple.
+- **Carte :** les noms des seigneurs s'écrivent dans la police de leur peuple à partir de 13 px, en police d'atlas en dessous.
+- Ne jamais poser une gravure à l'encre sur fond transparent dans un habillage sombre.
 
 ## Composants
 
@@ -133,6 +151,7 @@ Convention BEM préfixée : `.lw-bloc`, `.lw-bloc__element`, `.lw-bloc--variante
 | Carte sélectionnable | `lw-card`, `__head`, `__title`, `__subtitle`, `__body`, `__list`                                                            | Accent via `--lw-card-accent` ; `aria-pressed`               |
 | Notification         | `lw-toast` + `--good` / `--bad` / `--info`                                                                                  | Billet de papier, italique                                   |
 | Modale               | `lw-modal`, `__dialog`, `__title`, `__actions`                                                                              | `role="dialog"`, focus sur l'action                          |
+| Habillage de faction | `lw-skin` + `lw-skin--{race}`                                                                                               | Redéfinit les tokens sémantiques ; voir ci-dessus            |
 | Infobulle            | attribut `data-tooltip="…"`                                                                                                 | Encre sur papier inversé                                     |
 | Typographie          | `lw-display`, `lw-title-1..3`, `lw-flavor`, `lw-overline`, `lw-text-sm/xs`, `lw-text-muted`, `lw-text-accent`, `lw-numeric` |                                                              |
 
@@ -146,7 +165,8 @@ Convention BEM préfixée : `.lw-bloc`, `.lw-bloc__element`, `.lw-bloc--variante
   - texte inversé ≥ 4,5:1 sur la table ;
   - étiquettes de la carte ≥ 4,5:1 sur la plaine, la montagne et leur halo ;
   - boutons ≥ 4,5:1, au repos comme au survol ;
-  - focus et bordures ≥ 3:1.
+  - focus et bordures ≥ 3:1 ;
+  - pour chaque habillage de faction : textes ≥ 4,5:1 sur ses trois fonds, bouton principal ≥ 4,5:1, filet ≥ 3:1.
 
 ## Faire évoluer le système
 

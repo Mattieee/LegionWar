@@ -1,7 +1,9 @@
 import {
   BLIGHT_BIT,
+  CHARNIER_BIT,
   LAND_BIT,
   LOW_MASK,
+  MARK_BIT,
   OCEAN_BIT,
   OWNER_MASK,
   SHORE_BIT,
@@ -96,6 +98,24 @@ export class GameMap {
   setBlight(t: number, blight: boolean): void {
     const s = this.state[t] as number;
     this.state[t] = blight ? s | BLIGHT_BIT : s & ~BLIGHT_BIT;
+  }
+
+  hasMark(t: number): boolean {
+    return ((this.state[t] as number) & MARK_BIT) !== 0;
+  }
+
+  setMark(t: number, mark: boolean): void {
+    const s = this.state[t] as number;
+    this.state[t] = mark ? s | MARK_BIT : s & ~MARK_BIT;
+  }
+
+  hasCharnier(t: number): boolean {
+    return ((this.state[t] as number) & CHARNIER_BIT) !== 0;
+  }
+
+  setCharnier(t: number, charnier: boolean): void {
+    const s = this.state[t] as number;
+    this.state[t] = charnier ? s | CHARNIER_BIT : s & ~CHARNIER_BIT;
   }
 
   /** Voisins orthogonaux (N, S, O, E) dans les limites de la carte. */

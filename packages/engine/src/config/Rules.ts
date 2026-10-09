@@ -25,6 +25,8 @@ export const BOURG_TROOP_BONUS = 250_000;
 export const WIN_PERCENT = 80;
 export const WIN_CHECK_INTERVAL = 10;
 export const HASH_INTERVAL = 10;
+/** Le hash couvre aussi l'état complet des tuiles à cet intervalle (≈ 2 ms sur 2 M de tuiles). */
+export const STATE_HASH_INTERVAL = 100;
 /** Sous ce nombre de tuiles, un joueur conquis est annexé en entier. */
 export const ANNEX_THRESHOLD = 50;
 
@@ -34,6 +36,21 @@ export const TOWER_RANGE = 20;
 /** Pertes de l'attaquant ×4 et progression ×2,5 plus lente sous couverture d'une tour. */
 export const TOWER_LOSS_MULT = 4;
 export const TOWER_COST_MULT = 2.5;
+
+// Mécaniques de race (voir GDD §7.3) ------------------------------------------------------------
+/** Aldoria : une tuile frontière tenue deux rondes de suite devient un rempart. Ronde = 10 s. */
+export const RAMPART_INTERVAL = 100;
+/** Pertes de l'attaquant ×1,5 et progression 1,5× plus lente sur un rempart (sans cumul avec une tour). */
+export const RAMPART_LOSS_MULT = 1.5;
+export const RAMPART_COST_MULT = 1.5;
+/** Sylvanor : les plaines à cette distance d'une forêt (en tuiles) se boisent. */
+export const GROVE_REACH = 8;
+/** Durée d'un balayage complet de la carte par la pousse des bosquets (20 s). */
+export const GROVE_SWEEP_TICKS = 200;
+/** Durée de vie d'un charnier (60 s). */
+export const CHARNIER_TICKS = 600;
+/** Kharag : part du butin quand la tuile pillée appartient à une tribu. */
+export const PILLAGE_TRIBE_RATIO = 0.5;
 
 // Naval ---------------------------------------------------------------------------------------
 /** Barges de débarquement en mer simultanément, par seigneur. */
@@ -129,6 +146,8 @@ export interface CombatInput {
   borderSize: number;
   /** Une tour de garde du défenseur couvre la tuile. */
   towerCover: boolean;
+  /** La tuile est un rempart du défenseur (ignoré si une tour la couvre déjà). */
+  rampart: boolean;
   /** Tuiles terrestres de la carte (échelle du bonus « grand territoire »). */
   landTiles: number;
 }
@@ -171,6 +190,9 @@ export function attackLogic(input: CombatInput): CombatResult {
   if (input.towerCover) {
     mag *= TOWER_LOSS_MULT;
     tileCost *= TOWER_COST_MULT;
+  } else if (input.rampart) {
+    mag *= RAMPART_LOSS_MULT;
+    tileCost *= RAMPART_COST_MULT;
   }
   mag *= defender.mods.defenseMult * attacker.mods.attackLossMult;
   if (kind === TerrainKind.Forest) mag *= defender.mods.forestDefenseMult;

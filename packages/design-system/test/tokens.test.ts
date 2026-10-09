@@ -100,6 +100,27 @@ describe("accessibilité (WCAG 2.1 AA)", () => {
     }
   });
 
+  describe.each(ALL_RACES)("habillage %s", (race) => {
+    const skin = (key: string): string => color(`skin.${race}.${key}`);
+
+    it("les textes sont lisibles (≥ 4,5:1) sur ses trois fonds", () => {
+      for (const text of ["text", "textSecondary", "accent", "info", "danger", "success"]) {
+        for (const bg of ["surface", "raised", "inset"]) {
+          expect(contrastRatio(skin(text), skin(bg)), `${text} / ${bg}`).toBeGreaterThanOrEqual(
+            4.5,
+          );
+        }
+      }
+    });
+
+    it("le bouton principal est lisible et le filet se détache du fond", () => {
+      for (const bg of ["actionBg", "actionBgHover"]) {
+        expect(contrastRatio(skin("actionText"), skin(bg)), bg).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(contrastRatio(skin("trim"), skin("surface"))).toBeGreaterThanOrEqual(3);
+    });
+  });
+
   it("l'anneau de focus et les bordures se distinguent du fond (≥ 3:1)", () => {
     for (const path of ["focus.ring", "border.default", "feedback.danger", "feedback.success"]) {
       expect(contrastRatio(color(path), color("bg.surface")), path).toBeGreaterThanOrEqual(3);

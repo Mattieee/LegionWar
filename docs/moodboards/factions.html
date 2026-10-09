@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LegionWar — Moodboard des factions</title>
+    <meta
+      name="description"
+      content="Trois traitements pour donner à chacun des quatre peuples de LegionWar une identité propre : interface, carte, bâtiments, palette, typographie, ton."
+    />
+    <!-- Polices d'exploration (Google Fonts) : ce document de travail n'est pas embarqué dans le jeu. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cinzel+Decorative:wght@700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Grenze+Gotisch:wght@600;800&family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&family=UnifrakturMaguntia&family=Uncial+Antiqua&display=swap"
+    />
+    <style>
+      /* Habillage neutre du document : il ne doit pas influencer la comparaison. */
+      :root {
+        --page: #15151a;
+        --card: #1e1e25;
+        --line: #33333d;
+        --ink: #ecebef;
+        --muted: #a2a1ad;
+        --accent: #f0c36a;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--ink);
+        font:
+          16px/1.55 system-ui,
+          "Segoe UI",
+          sans-serif;
+      }
+      .wrap {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+      header.top {
+        padding: 56px 0 16px;
+      }
+      header.top h1 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 4vw, 42px);
+      }
+      .lead {
+        max-width: 80ch;
+        color: var(--muted);
+      }
+      nav.toc {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 20px 0 8px;
+      }
+      nav.toc a {
+        padding: 6px 12px;
+        color: var(--ink);
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+      }
+      nav.toc a:hover {
+        border-color: var(--accent);
+      }
+      section.dir {
+        margin: 48px 0;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+      .dir__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 16px;
+      }
+      .dir__head h2 {
+        margin: 0;
+        font-size: 28px;
+      }
+      .dir__tag {
+        color: var(--accent);
+        font-size: 14px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .dir__pitch {
+        max-width: 85ch;
+        color: var(--muted);
+      }
+      .pros {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+        margin: 12px 0 20px;
+        font-size: 14px;
+      }
+      .pros div {
+        padding: 10px 14px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      .pros b {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--accent);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        gap: 16px;
+      }
+      .fcard {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      .fcard svg.map {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 4px;
+      }
+      .swatches {
+        display: flex;
+        gap: 6px;
+      }
+      .swatches span {
+        flex: 1;
+        height: 22px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .note b {
+        color: var(--ink);
+      }
+
+      /* Panneau d'interface factice (HUD) ------------------------------------------------------ */
+      .hud {
+        position: relative;
+        padding: 14px 16px 16px;
+        font-family: "EB Garamond", serif;
+        font-size: 15px;
+      }
+      .hud__id {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .hud__id svg {
+        flex: none;
+        width: 40px;
+        height: 48px;
+      }
+      .hud__name {
+        margin: 0;
+        font-size: 19px;
+        line-height: 1.1;
+      }
+      .hud__people {
+        margin: 2px 0 0;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.8;
+      }
+      .hud__stat {
+        display: flex;
+        justify-content: space-between;
+        padding: 1px 0;
+      }
+      .hud__stat b {
+        font-variant-numeric: lining-nums tabular-nums;
+      }
+      .hud__btn {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+        padding: 7px 10px;
+        font: inherit;
+        font-size: 15px;
+        cursor: default;
+      }
+      .hud__toast {
+        margin: 10px 0 0;
+        padding: 6px 10px;
+        font-style: italic;
+        font-size: 14px;
+      }
+
+      /* Recommandation ----------------------------------------------------------------------- */
+      .reco {
+        margin: 48px 0 80px;
+        padding: 20px 24px;
+        background: var(--card);
+        border: 1px solid var(--accent);
+        border-radius: 10px;
+      }
+      .reco h2 {
+        margin-top: 0;
+      }
+      .reco li {
+        margin: 6px 0;
+      }
+      table.cmp {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0;
+        font-size: 14px;
+      }
+      table.cmp th,
+      table.cmp td {
+        padding: 8px 10px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      table.cmp th {
+        color: var(--accent);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="wrap top">
+      <h1>Les quatre peuples — moodboard des factions</h1>
+      <p class="lead">
+        Constat : aujourd'hui, les factions ne diffèrent que par des pourcentages, un symbole et une
+        couleur d'écu. Ce qui donne le souffle « Warcraft », c'est que chaque peuple a
+        <b>son monde</b> : son architecture, ses matières, sa typographie, son ton, et une trace
+        visible sur la carte. Trois traitements possibles, du plus fidèle à l'Atlas actuel au plus
+        héroïque. Chaque planche montre les quatre peuples : panneau d'interface, extrait de carte
+        avec la marque de la race, bâtiments, palette et réplique.
+      </p>
+      <nav class="toc" aria-label="Sommaire">
+        <a href="#A">A · Atlas enluminé</a>
+        <a href="#B">B · Matières de faction</a>
+        <a href="#C">C · Peint héroïque</a>
+        <a href="#reco">Recommandation</a>
+      </nav>
+    </header>
+
+    <main class="wrap" id="boards"></main>
+
+    <section class="wrap reco" id="reco">
+      <h2>Comparatif et recommandation</h2>
+      <table class="cmp">
+        <thead>
+          <tr>
+            <th></th>
+            <th>A · Atlas enluminé</th>
+            <th>B · Matières de faction</th>
+            <th>C · Peint héroïque</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>Effet « Warcraft »</th>
+            <td>Moyen : les peuples se distinguent, l'ensemble reste un livre ancien</td>
+            <td>Fort : chaque peuple a son interface, comme les HUD de race</td>
+            <td>Très fort : couleurs vives, relief, ton épique</td>
+          </tr>
+          <tr>
+            <th>Lisibilité de la carte</th>
+            <td>Excellente (fond clair, encre)</td>
+            <td>Excellente (la carte reste l'Atlas)</td>
+            <td>Bonne, mais 200 royaumes colorés sur un fond vert saturé fatiguent l'œil</td>
+          </tr>
+          <tr>
+            <th>Continuité avec l'existant</th>
+            <td>Totale : gravures, papier, polices</td>
+            <td>Carte et gravures gardées ; seul le HUD change selon la race</td>
+            <td>Refonte : carte, design system, gravures à refaire</td>
+          </tr>
+          <tr>
+            <th>Coût</th>
+            <td>Code + gravures colorées (~0,3 €)</td>
+            <td>Code CSS + 4 polices + ornements éventuels (~0,2 €)</td>
+            <td>Refonte DA complète + toutes les images (~2 à 3 €)</td>
+          </tr>
+          <tr>
+            <th>Risque « fait IA »</th>
+            <td>Faible</td>
+            <td>Faible si les matières restent sobres</td>
+            <td>Élevé : c'est exactement l'esthétique générique qu'on a quittée</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><b>Ma recommandation : B pour l'interface, A pour la carte.</b></p>
+      <ul>
+        <li>
+          <b>La carte reste l'Atlas</b>, mais chaque royaume y laisse sa marque : remparts et routes
+          d'Aldoria, terres brûlées de Kharag, corruption de Morvane, forêt qui avance de Sylvanor.
+          C'est aussi là que se verront les mécaniques propres.
+        </li>
+        <li>
+          <b>L'interface prend la matière du peuple joué</b> : pierre et or, bois cloué et cuir, os
+          et améthyste, écorce et pierre de lune. C'est le signal le plus « Warcraft » qui soit, et
+          il ne coûte que du CSS (tokens de race dans le design system).
+        </li>
+        <li>
+          <b>Une police de titre par peuple</b> (capitales romaines, gothique brutale, fraktur,
+          onciale), le texte courant restant en EB Garamond pour la lisibilité.
+        </li>
+        <li>
+          <b>Les gravures de faction passent en enluminé</b> (encre + couleurs du peuple) :
+          emblèmes, bâtiments par race. À générer plus tard, avec ton accord sur la liste et le
+          coût.
+        </li>
+      </ul>
+      <p class="note">
+        Les répliques et noms sont originaux (aucun emprunt à Blizzard). Les polices de cette page
+        viennent de Google Fonts ; celles retenues seront embarquées via @fontsource (licence OFL).
+      </p>
+    </section>
+
+    <script>
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"']/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+        );
+
+      /* Les peuples ---------------------------------------------------------------------------- */
+      const FACTIONS = [
+        {
+          id: "aldoria",
+          name: "Royaume d'Aldoria",
+          people: "Humains",
+          glyph: "⚜",
+          font: "'Cinzel', serif",
+          fontLabel: "Cinzel — capitales romaines gravées",
+          c: {
+            main: "#1f4e9c",
+            accent: "#d4a94a",
+            dark: "#14243f",
+            light: "#e9eef7",
+            wash: "#3b6cc0",
+          },
+          voice: "Les remparts tiendront. Pour la couronne !",
+          stats: ["18 420", "52 300"],
+          button: "Lever l'ost",
+          sign: "Remparts et routes : frontière crénelée, chaussées pavées entre les places fortes.",
+          buildings: ["keep", "chapel"],
+        },
+        {
+          id: "kharag",
+          name: "Clans de Kharag",
+          people: "Orcs",
+          glyph: "⚒",
+          font: "'Grenze Gotisch', serif",
+          fontLabel: "Grenze Gotisch — gothique taillée à la hache",
+          c: {
+            main: "#9e2a1e",
+            accent: "#d9822b",
+            dark: "#2a120c",
+            light: "#efe0c4",
+            wash: "#b8432f",
+          },
+          voice: "Sang et cendres ! Les clans marchent !",
+          stats: ["6 980", "71 900"],
+          button: "Sonner la horde",
+          sign: "Terres brûlées : sillons de cendre et braises sur les terres prises par la force.",
+          buildings: ["hut", "totem"],
+        },
+        {
+          id: "morvane",
+          name: "Damnés de Morvane",
+          people: "Morts-vivants",
+          glyph: "☠",
+          font: "'UnifrakturMaguntia', serif",
+          fontLabel: "UnifrakturMaguntia — fraktur funèbre",
+          c: {
+            main: "#5b2a6e",
+            accent: "#9ccf5b",
+            dark: "#1a1020",
+            light: "#e3dcea",
+            wash: "#6e3a86",
+          },
+          voice: "La mort n'est qu'un enrôlement.",
+          stats: ["9 210", "64 050"],
+          button: "Réveiller les morts",
+          sign: "Corruption : des veines violettes gagnent le terrain autour de ses terres.",
+          buildings: ["ziggurat", "obelisk"],
+        },
+        {
+          id: "sylvanor",
+          name: "Cercle de Sylvanor",
+          people: "Elfes sylvains",
+          glyph: "❦",
+          font: "'Uncial Antiqua', serif",
+          fontLabel: "Uncial Antiqua — onciale des anciens bois",
+          c: {
+            main: "#2f6b3a",
+            accent: "#b9c9dc",
+            dark: "#10241a",
+            light: "#e6efe2",
+            wash: "#3f8a4c",
+          },
+          voice: "Les bois se souviennent de chaque pas.",
+          stats: ["14 760", "47 600"],
+          button: "Éveiller la forêt",
+          sign: "La forêt avance : des bosquets poussent sur ses terres et débordent la frontière.",
+          buildings: ["tree", "well"],
+        },
+      ];
+
+      /* Bâtiments (silhouettes, viewBox 40×40, base en y = 38) ----------------------------------- */
+      const BUILDING = {
+        keep: "M8 38V16H6V10h4v3h3v-3h4v3h3v-3h4v6h-2v22Zm18 0V20h-2v-5h3v2h2v-2h3v2h2v-2h3v5h-2v18Z M14 38v-7a3 3 0 0 1 6 0v7Z",
+        chapel: "M6 38V22l9-8 9 8v16Zm18-16 4-14 4 14v16h-8Z M28 6h0v-4 M13 38v-6a2 2 0 0 1 4 0v6Z",
+        hut: "M3 38c2-10 8-17 17-19 9 2 15 9 17 19Z M20 19 13 4l4 13M20 19l7-15-4 13 M8 30l-6-8 8 5M32 30l6-8-8 5 M17 38v-6h6v6Z",
+        totem: "M17 38V8h6v30Z M12 12h16l-3 4H15Z M10 22h20l-4 4H14Z M20 2l5 6H15Z M14 30h12v3H14Z",
+        ziggurat:
+          "M2 38h36v-6H2Z M6 32h28v-6H6Z M10 26h20v-6H10Z M14 20h12v-6H14Z M17 14h6V8h-6Z M19 8V3h2v5Z",
+        obelisk: "M15 38 17 8l3-5 3 5 2 30Z M11 38h18v-3H11Z M18 18h4v6h-4Z",
+        tree: "M20 38c-3-6-2-12 0-16-6 1-13-3-13-9 0-6 6-10 13-10s13 4 13 10c0 6-7 10-13 9 2 4 3 10 0 16Z M18 38v-5a2 2 0 0 1 4 0v5Z",
+        well: "M6 38V26c0-8 6-14 14-14s14 6 14 14v12h-5V27c0-5-4-9-9-9s-9 4-9 9v11Z M20 4a5 5 0 1 0 5 6 4 4 0 1 1-5-6Z M11 38h18v-4H11Z",
+      };
+
+      /* Écu de la faction ----------------------------------------------------------------------- */
+      const shield = (f, style) => {
+        const stroke = style === "C" ? f.c.accent : style === "B" ? f.c.accent : "#2a1d12";
+        return `<svg viewBox="0 0 40 48" aria-hidden="true">
+          <path d="M2 2h36v24c0 11-9 17-18 20C11 43 2 37 2 26Z" fill="${f.c.main}" stroke="${stroke}" stroke-width="${style === "C" ? 3 : 2}"/>
+          ${style === "A" ? `<path d="M2 2h36v24c0 11-9 17-18 20C11 43 2 37 2 26Z" fill="url(#hatch-${f.id})" opacity=".35"/>` : ""}
+          <text x="20" y="27" text-anchor="middle" font-size="18" fill="${style === "A" ? "#f4ecd8" : f.c.light}">${f.glyph}</text></svg>`;
+      };
+
+      /* Motif de la marque de race sur la carte ------------------------------------------------- */
+      const TERRITORY =
+        "M70 34C118 12 196 20 236 50c36 28 24 78-24 94-50 16-110 8-140-18C40 102 34 54 70 34Z";
+
+      function signature(f, d, key) {
+        const ink = d === "C" ? f.c.dark : "#2a1d12";
+        switch (f.id) {
+          case "aldoria":
+            return `
+              <path d="${TERRITORY}" fill="none" stroke="${d === "C" ? f.c.accent : ink}" stroke-width="5" stroke-dasharray="7 4" opacity=".85"/>
+              <path d="M96 70 Q150 62 196 104 M150 64 Q160 100 140 128" fill="none" stroke="${d === "A" ? "#8a6a3a" : f.c.accent}" stroke-width="2.4" stroke-dasharray="1 3" stroke-linecap="round"/>`;
+          case "kharag":
+            return `
+              <path d="${TERRITORY}" fill="url(#ash-${key})" opacity="${d === "C" ? 0.75 : 0.6}"/>
+              ${[
+                [110, 60],
+                [160, 82],
+                [205, 70],
+                [130, 112],
+                [190, 122],
+                [96, 90],
+                [222, 100],
+              ]
+                .map(
+                  ([x, y]) =>
+                    `<circle cx="${x}" cy="${y}" r="2.2" fill="${f.c.accent}"/><circle cx="${x}" cy="${y}" r="5" fill="${f.c.accent}" opacity=".25"/>`,
+                )
+                .join("")}`;
+          case "morvane":
+            return `
+              <g fill="none" stroke="${d === "A" ? "#4a1f5a" : f.c.main}" stroke-width="2" stroke-linecap="round" opacity=".9">
+                <path d="M150 85 C 190 70 220 40 262 30 M232 46 l14 -22"/>
+                <path d="M150 85 C 200 100 240 130 280 150 M246 128 l22 -4"/>
+                <path d="M150 85 C 110 110 80 140 40 158 M78 140 l-6 18"/>
+                <path d="M150 85 C 120 60 90 40 46 20 M90 44 l-20 4"/>
+              </g>
+              <path d="${TERRITORY}" fill="url(#blight-${key})" opacity=".55"/>
+              ${d !== "A" ? `<circle cx="150" cy="85" r="16" fill="${f.c.accent}" opacity=".18"/>` : ""}`;
+          case "sylvanor": {
+            const trees = [
+              [96, 58],
+              [120, 48],
+              [150, 46],
+              [182, 52],
+              [214, 66],
+              [228, 96],
+              [204, 126],
+              [168, 136],
+              [128, 130],
+              [92, 112],
+              [76, 84],
+              [252, 70],
+              [262, 110],
+              [52, 66],
+              [244, 146],
+            ];
+            return trees
+              .map(
+                ([x, y]) =>
+                  `<g transform="translate(${x} ${y})"><path d="M0 7V2" stroke="${ink}" stroke-width="1.2"/><circle r="5.5" cy="-1" fill="${d === "A" ? "#5d8a52" : f.c.wash}" stroke="${ink}" stroke-width="1"/></g>`,
+              )
+              .join("");
+          }
+        }
+        return "";
+      }
+
+      /* Extrait de carte ------------------------------------------------------------------------ */
+      function mapSample(f, d) {
+        const key = `${d}-${f.id}`;
+        const painted = d === "C";
+        const paper = painted ? "url(#grass-" + key + ")" : "#efe5c8";
+        const sea = painted ? "#2f6fa8" : "#c9d7d3";
+        const coast = painted ? "#cfe7ff" : "#2a1d12";
+        const washOpacity = d === "A" ? 0.32 : d === "B" ? 0.42 : 0.5;
+        const border = painted ? f.c.accent : f.c.dark;
+        const b1 = BUILDING[f.buildings[0]];
+        const b2 = BUILDING[f.buildings[1]];
+        const bFill = d === "A" ? "#efe5c8" : d === "B" ? f.c.dark : f.c.light;
+        const bStroke = d === "A" ? "#2a1d12" : d === "B" ? f.c.accent : f.c.dark;
+        const label = d === "C" ? f.c.light : "#2a1d12";
+        const halo = d === "C" ? f.c.dark : "#efe5c8";
+        return `<svg class="map" viewBox="0 0 300 170" role="img" aria-label="Extrait de carte : ${esc(f.name)}">
+          <defs>
+            <linearGradient id="grass-${key}" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#8db357"/><stop offset="1" stop-color="#5f8a3c"/></linearGradient>
+            <pattern id="ash-${key}" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+              <rect width="8" height="8" fill="${f.c.dark}" opacity=".25"/><path d="M0 0v8" stroke="${f.c.dark}" stroke-width="2.4"/></pattern>
+            <pattern id="blight-${key}" width="10" height="10" patternUnits="userSpaceOnUse">
+              <circle cx="3" cy="3" r="1.3" fill="${f.c.main}"/><circle cx="8" cy="7" r="0.9" fill="${f.c.accent}"/></pattern>
+            <filter id="glow-${key}" x="-10%" y="-10%" width="120%" height="120%">
+              <feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <rect width="300" height="170" fill="${paper}"/>
+          <path d="M0 120 C 30 128 40 150 30 170 H0Z M260 0 C 270 20 290 26 300 24 V0Z" fill="${sea}"/>
+          ${painted ? "" : `<path d="M0 126 C 26 132 34 150 25 170 M264 0 C 274 16 290 20 300 18" fill="none" stroke="${coast}" stroke-width=".8" opacity=".6"/>`}
+          <path d="${TERRITORY}" fill="${f.c.wash}" opacity="${washOpacity}"/>
+          ${signature(f, d, key)}
+          <path d="${TERRITORY}" fill="none" stroke="${border}" stroke-width="${painted ? 3 : 1.6}" ${painted ? `filter="url(#glow-${key})"` : ""}/>
+          <g transform="translate(108 58) scale(.9)" fill="${bFill}" stroke="${bStroke}" stroke-width="1.6" stroke-linejoin="round"><path d="${b1}"/></g>
+          <g transform="translate(176 86) scale(.75)" fill="${bFill}" stroke="${bStroke}" stroke-width="1.8" stroke-linejoin="round"><path d="${b2}"/></g>
+          <text x="150" y="160" text-anchor="middle" font-family="${esc(f.font)}" font-size="17" fill="${label}" stroke="${halo}" stroke-width="3.5" paint-order="stroke">${esc(f.name)}</text>
+        </svg>`;
+      }
+
+      /* Panneau d'interface selon le traitement --------------------------------------------------- */
+      const PANEL = {
+        // A : papier de l'Atlas, filet double et lettrine aux couleurs du peuple.
+        A: (f) => ({
+          box: `background:#efe5c8;color:#2a1d12;border:1px solid #8a6a3a;box-shadow:0 0 0 3px #efe5c8,0 0 0 4px ${f.c.main},inset 0 0 30px rgba(90,70,48,.22);border-radius:6px`,
+          name: `font-family:${f.font};color:${f.c.main}`,
+          button: `font-family:${f.font};background:${f.c.main};color:#f4ecd8;border:1px solid #2a1d12;box-shadow:inset 0 0 0 2px ${f.c.accent}55;border-radius:4px`,
+          toast: `background:#f6efdc;border-left:4px solid ${f.c.main};color:#2a1d12`,
+        }),
+        // B : la matière du peuple.
+        B: (f) => ({
+          box: MATERIAL[f.id],
+          name: `font-family:${f.font};color:${f.c.accent};text-shadow:0 2px 0 rgba(0,0,0,.6)`,
+          button: BUTTON_B[f.id],
+          toast: `background:rgba(0,0,0,.35);border-left:4px solid ${f.c.accent};color:${f.c.light}`,
+        }),
+        // C : relief héroïque, métal doré et couleurs franches.
+        C: (f) => ({
+          box: `background:linear-gradient(180deg,${f.c.main},${f.c.dark});color:${f.c.light};border:4px solid transparent;border-image:linear-gradient(180deg,#f7d77a,#9a6a1c,#f2c75c) 1;box-shadow:0 8px 24px rgba(0,0,0,.6),inset 0 0 22px rgba(0,0,0,.55)`,
+          name: `font-family:${f.font};color:#f7d77a;text-shadow:0 2px 0 #000,0 0 12px ${f.c.accent}88`,
+          button: `font-family:${f.font};font-weight:700;background:linear-gradient(180deg,#f7d77a,#b07a22);color:#2a1606;border:2px solid #3a2208;border-radius:6px;box-shadow:inset 0 2px 0 #fff6,0 3px 0 #3a2208`,
+          toast: `background:rgba(0,0,0,.45);border:1px solid #f7d77a66;color:${f.c.light}`,
+        }),
+      };
+
+      const rivets = (color) =>
+        `radial-gradient(circle at 10px 10px,${color} 2.5px,transparent 3.5px),radial-gradient(circle at calc(100% - 10px) 10px,${color} 2.5px,transparent 3.5px),radial-gradient(circle at 10px calc(100% - 10px),${color} 2.5px,transparent 3.5px),radial-gradient(circle at calc(100% - 10px) calc(100% - 10px),${color} 2.5px,transparent 3.5px)`;
+
+      const MATERIAL = {
+        // Pierre de taille, filet d'or.
+        aldoria: `background:repeating-linear-gradient(0deg,transparent 0 23px,rgba(0,0,0,.18) 23px 24px),linear-gradient(160deg,#8d93a0,#5d6370 60%,#4a4f5b);color:#f1f3f7;border:2px solid #d4a94a;box-shadow:inset 0 0 0 3px #3a3f4a,inset 0 0 26px rgba(0,0,0,.45),0 6px 18px rgba(0,0,0,.5);border-radius:3px`,
+        // Planches clouées, cuir et fer.
+        kharag: `background:${rivets("#c9c3b8")},repeating-linear-gradient(90deg,rgba(0,0,0,.25) 0 2px,transparent 2px 46px),repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 3px,transparent 3px 7px),linear-gradient(180deg,#6b3d20,#4a2614);color:#f2e3c6;border:3px solid #2a1a10;box-shadow:inset 0 0 0 2px #8a5a32,inset 0 0 30px rgba(0,0,0,.55),0 6px 18px rgba(0,0,0,.5);border-radius:2px`,
+        // Os, améthyste et lueur verdâtre.
+        morvane: `background:radial-gradient(ellipse at 50% 0%,rgba(156,207,91,.18),transparent 60%),linear-gradient(180deg,#2b1a33,#170d1c);color:#e3dcea;border:2px solid #d8cfb8;box-shadow:inset 0 0 0 4px #2b1a33,inset 0 0 0 5px #9ccf5b66,inset 0 0 28px rgba(0,0,0,.6),0 6px 18px rgba(0,0,0,.5);border-radius:14px 14px 4px 4px`,
+        // Écorce, pierre de lune, feuillage.
+        sylvanor: `background:radial-gradient(ellipse at 50% -10%,rgba(185,201,220,.25),transparent 55%),repeating-linear-gradient(95deg,rgba(0,0,0,.18) 0 3px,transparent 3px 11px),linear-gradient(180deg,#24432c,#142a1c);color:#e6efe2;border:2px solid #b9c9dc;box-shadow:inset 0 0 0 3px #142a1c,inset 0 0 0 4px #b9c9dc55,inset 0 0 26px rgba(0,0,0,.5),0 6px 18px rgba(0,0,0,.5);border-radius:22px 4px 22px 4px`,
+      };
+
+      const BUTTON_B = {
+        aldoria: `font-family:'Cinzel',serif;font-weight:700;background:linear-gradient(180deg,#2a62bd,#1f4e9c);color:#fff;border:2px solid #d4a94a;border-radius:2px;letter-spacing:.06em`,
+        kharag: `font-family:'Grenze Gotisch',serif;font-weight:800;font-size:17px;background:#9e2a1e;color:#f2e3c6;border:3px solid #2a1a10;border-radius:0;clip-path:polygon(4% 0,100% 0,96% 100%,0 100%)`,
+        morvane: `font-family:'UnifrakturMaguntia',serif;font-size:17px;background:linear-gradient(180deg,#5b2a6e,#3a1848);color:#e9ffd6;border:1px solid #9ccf5b;border-radius:12px;box-shadow:0 0 10px #9ccf5b55`,
+        sylvanor: `font-family:'Uncial Antiqua',serif;background:linear-gradient(180deg,#3f8a4c,#2f6b3a);color:#f1f7ee;border:1px solid #b9c9dc;border-radius:18px 4px 18px 4px`,
+      };
+
+      function hud(f, d) {
+        const s = PANEL[d](f);
+        return `<div class="hud" style="${s.box}">
+          <div class="hud__id">${shield(f, d)}<div><h3 class="hud__name" style="${s.name}">${esc(f.name)}</h3><p class="hud__people">${esc(f.people)}</p></div></div>
+          <div class="hud__stat"><span>Or</span><b>${f.stats[0]}</b></div>
+          <div class="hud__stat"><span>Troupes</span><b>${f.stats[1]}</b></div>
+          <button class="hud__btn" style="${s.button}" type="button" tabindex="-1">${esc(f.button)}</button>
+          <p class="hud__toast" style="${s.toast}">« ${esc(f.voice)} »</p>
+        </div>`;
+      }
+
+      /* Les trois traitements ------------------------------------------------------------------- */
+      const DIRECTIONS = [
+        {
+          id: "A",
+          name: "Atlas enluminé",
+          tag: "Continuité",
+          pitch:
+            "On garde le papier, l'encre et les cartouches. Chaque peuple y apporte sa couleur comme un enlumineur : filet et lettrine à ses couleurs, bouton teinté, écu hachuré, et une marque dessinée à l'encre sur ses terres.",
+          pros: [
+            ["Pour", "Cohérent avec tout l'existant ; carte très lisible ; zéro refonte."],
+            [
+              "Contre",
+              "Les quatre interfaces restent des feuilles de papier : l'effet « faction » est réel mais discret.",
+            ],
+            ["Ce qui change", "Couleurs, polices de titre et marque de la race sur la carte."],
+          ],
+        },
+        {
+          id: "B",
+          name: "Matières de faction",
+          tag: "Le plus « Warcraft » sans tout casser",
+          pitch:
+            "La carte reste l'Atlas, mais l'interface prend la matière du peuple joué, comme les HUD de race des grands jeux de stratégie : pierre de taille et or pour Aldoria, planches clouées et cuir pour Kharag, os et améthyste pour Morvane, écorce et pierre de lune pour Sylvanor.",
+          pros: [
+            [
+              "Pour",
+              "Dès l'écran de jeu, on sait quel peuple on joue ; la carte garde sa lisibilité.",
+            ],
+            [
+              "Contre",
+              "Quatre habillages à tenir dans le design system (tokens de race, variantes de panneaux).",
+            ],
+            [
+              "Ce qui change",
+              "HUD, boutons, toasts et menu selon la race ; la carte porte la marque de chaque royaume.",
+            ],
+          ],
+        },
+        {
+          id: "C",
+          name: "Peint héroïque",
+          tag: "Rupture",
+          pitch:
+            "On quitte l'Atlas : carte peinte en couleurs franches (prairies vertes, mer bleue), cadres en métal doré, relief, lueurs. C'est l'esthétique des jeux de stratégie fantastiques des années 2000.",
+          pros: [
+            ["Pour", "Effet épique immédiat ; très proche de la référence."],
+            [
+              "Contre",
+              "Refonte de la DA ; carte chargée avec 200 royaumes ; risque de retomber dans le « look IA » générique.",
+            ],
+            ["Ce qui change", "Tout : carte, design system, gravures (à régénérer)."],
+          ],
+        },
+      ];
+
+      const boards = document.getElementById("boards");
+      // Hachures héraldiques pour les écus du traitement A.
+      boards.insertAdjacentHTML(
+        "beforeend",
+        `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+          ${FACTIONS.map((f) => `<pattern id="hatch-${f.id}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(${f.id === "aldoria" ? 90 : f.id === "kharag" ? 0 : f.id === "morvane" ? 45 : -45})"><path d="M0 0v4" stroke="#000" stroke-width="1"/></pattern>`).join("")}
+        </defs></svg>`,
+      );
+
+      for (const d of DIRECTIONS) {
+        boards.insertAdjacentHTML(
+          "beforeend",
+          `<section class="dir" id="${d.id}">
+            <div class="dir__head"><h2>${d.id} · ${esc(d.name)}</h2><span class="dir__tag">${esc(d.tag)}</span></div>
+            <p class="dir__pitch">${esc(d.pitch)}</p>
+            <div class="pros">${d.pros.map(([k, v]) => `<div><b>${esc(k)}</b>${esc(v)}</div>`).join("")}</div>
+            <div class="grid">
+              ${FACTIONS.map(
+                (f) => `<article class="fcard" aria-label="${esc(f.name)}">
+                  ${hud(f, d.id)}
+                  ${mapSample(f, d.id)}
+                  <div class="swatches" aria-hidden="true">${[f.c.main, f.c.accent, f.c.dark, f.c.light].map((c) => `<span style="background:${c}"></span>`).join("")}</div>
+                  <p class="note"><b>Titres :</b> ${esc(f.fontLabel)}</p>
+                  <p class="note"><b>Sur la carte :</b> ${esc(f.sign)}</p>
+                </article>`,
+              ).join("")}
+            </div>
+          </section>`,
+        );
+      }
+    </script>
+  </body>
+</html>

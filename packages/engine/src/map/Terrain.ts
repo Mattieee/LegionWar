@@ -10,7 +10,11 @@
  *
  * État (mutable, 2 octets) :
  *   bits 0-11 propriétaire (0 = terres libres) → 4095 joueurs max
+ *   bit 12    marque du propriétaire, dont le sens dépend de sa race : rempart (Aldoria),
+ *             bosquet (Sylvanor). Effacée à chaque changement de propriétaire.
  *   bit 13    terre maudite (corruption laissée par les sorts)
+ *   bit 14    charnier : champ de bataille récent, quel que soit le propriétaire
+ *   bit 15    libre
  */
 export const LAND_BIT = 0x80;
 export const SHORE_BIT = 0x40;
@@ -20,7 +24,9 @@ export const KIND_MASK = 0x07;
 export const VARIANT_SHIFT = 3;
 
 export const OWNER_MASK = 0x0fff;
+export const MARK_BIT = 0x1000;
 export const BLIGHT_BIT = 0x2000;
+export const CHARNIER_BIT = 0x4000;
 export const MAX_PLAYER_ID = OWNER_MASK;
 
 export enum TerrainKind {

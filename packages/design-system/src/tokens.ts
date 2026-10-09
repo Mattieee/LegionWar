@@ -9,7 +9,8 @@
  *  1. Primitives  (`color`, `font`, `space`…) : valeurs brutes, sans intention.
  *  2. Sémantiques (`bg`, `text`, `border`, `action`, `feedback`, `focus`, `progress`) :
  *     intention d'usage, exprimées par alias `{chemin.vers.primitive}`.
- *  3. Domaine jeu (`race`, `heraldry`, `map`) : armoiries et rendu de la carte (Canvas).
+ *  3. Domaine jeu (`race`, `heraldry`, `skin`, `map`) : armoiries, habillage de l'interface
+ *     par peuple et rendu de la carte (Canvas).
  *
  * `src/css/tokens.css` est GÉNÉRÉ à partir de ce fichier (`npm run tokens`). Ne pas l'éditer à la main.
  * Règle : les composants n'utilisent que les niveaux 2 et 3, jamais les primitives de couleur.
@@ -45,6 +46,8 @@ export const tokens = {
       display: '"IM Fell English SC", "Palatino Linotype", Georgia, serif',
       flavor: '"IM Fell English", "Palatino Linotype", Georgia, serif',
       body: '"EB Garamond", Garamond, "Times New Roman", serif',
+      /** Titres : la police d'affichage, remplacée par celle du peuple dans un habillage. */
+      title: "{font.family.display}",
     },
     // Échelle compacte (ratio ≈ 1,2) : le HUD doit laisser toute la place à la carte.
     size: {
@@ -166,6 +169,89 @@ export const tokens = {
     morvane: "{heraldry.purpure}",
     sylvanor: "{heraldry.vert}",
   },
+  /**
+   * Habillage de l'interface selon le peuple joué (« matières de faction ») : la carte reste
+   * l'Atlas, le HUD prend la matière du peuple. Chaque habillage redéfinit les tokens
+   * sémantiques (fonds, textes, bordures, bouton principal) et la police des titres.
+   */
+  skin: {
+    // Pierre de taille et filet d'or.
+    aldoria: {
+      font: '"Cinzel", "IM Fell English SC", Georgia, serif',
+      surface: "#424854",
+      raised: "#4a505c",
+      inset: "#343943",
+      text: "#f3f1ea",
+      textSecondary: "#d3d6dc",
+      textMuted: "#aeb3bd",
+      accent: "#f0d27e",
+      info: "#b8d3f5",
+      danger: "#ffb3aa",
+      success: "#a9e4ba",
+      border: "#8b919c",
+      trim: "#d4a94a",
+      actionBg: "#1f4e9c",
+      actionBgHover: "#183f80",
+      actionText: "#ffffff",
+    },
+    // Planches clouées, cuir et fer.
+    kharag: {
+      font: '"Grenze Gotisch", "IM Fell English SC", Georgia, serif',
+      surface: "#4a2a17",
+      raised: "#5a3420",
+      inset: "#3a2011",
+      text: "#f4e6c9",
+      textSecondary: "#dcc6a0",
+      textMuted: "#b89c74",
+      accent: "#f0a24a",
+      info: "#a8c8ee",
+      danger: "#ff9a86",
+      success: "#b7dc8a",
+      border: "#8a5a32",
+      trim: "#c9c3b8",
+      actionBg: "#9e2a1e",
+      actionBgHover: "#7e1f15",
+      actionText: "#fbefd8",
+    },
+    // Os, améthyste et lueur verdâtre.
+    morvane: {
+      font: '"UnifrakturMaguntia", "IM Fell English SC", Georgia, serif',
+      surface: "#22142a",
+      raised: "#2d1b37",
+      inset: "#180d1e",
+      text: "#ece6f2",
+      textSecondary: "#cfc4da",
+      textMuted: "#a596b3",
+      accent: "#a8db66",
+      info: "#a9b8f5",
+      danger: "#ff9aaa",
+      success: "#a8db66",
+      border: "#6e4f80",
+      trim: "#d8cfb8",
+      actionBg: "#5b2a6e",
+      actionBgHover: "#46205a",
+      actionText: "#f1ffe4",
+    },
+    // Écorce, pierre de lune et feuillage.
+    sylvanor: {
+      font: '"Uncial Antiqua", "IM Fell English SC", Georgia, serif',
+      surface: "#1d3524",
+      raised: "#26432e",
+      inset: "#142a1c",
+      text: "#eef4ea",
+      textSecondary: "#cddbc8",
+      textMuted: "#a3b8a0",
+      accent: "#d6e4f2",
+      info: "#b3d0f2",
+      danger: "#ffa396",
+      success: "#b5e3a0",
+      border: "#5f7f68",
+      trim: "#b9c9dc",
+      actionBg: "#2f6b3a",
+      actionBgHover: "#24542d",
+      actionText: "#f6fbf3",
+    },
+  },
   map: {
     table: "{color.table.800}",
     terrain: {
@@ -196,6 +282,24 @@ export const tokens = {
     labelSelf: "{color.garance.700}",
     labelHalo: "{color.paper.50}",
     vignette: "{color.ink.900}",
+    /** Marques des mécaniques de race sur la carte (GDD §7.3). */
+    marks: {
+      /** Remparts d'Aldoria : créneaux à l'encre alternés avec la pierre. */
+      rampartInk: "{color.ink.900}",
+      rampartStone: "#a59c8b",
+      /** Bosquets de Sylvanor : feuillage mêlé au papier, ponctué d'arbres à l'encre. */
+      grove: "#4d7340",
+      groveStrength: 0.42,
+      groveTree: "#26401f",
+      /** Charniers : cendre, ossements ; braises quand Kharag tient la terre. */
+      ash: "#5e554b",
+      ashStrength: 0.38,
+      bone: "{color.paper.50}",
+      ember: "#d0561f",
+      /** Terres de Morvane : papier désaturé et violacé (purement visuel). */
+      deadland: "#6a5a7c",
+      deadlandStrength: 0.4,
+    },
     playerHuman: { saturation: 0.62, lightness: 0.4 },
     playerBot: { saturation: 0.28, lightness: 0.46 },
   },

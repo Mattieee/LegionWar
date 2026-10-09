@@ -41,14 +41,14 @@ En lockstep, chaque client rejoue la même suite de tours. Le serveur n'envoie q
 
 ### Garanties
 
-| Risque                                                        | Parade                                                                                         |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `Math.random`                                                 | `PseudoRandom` (sfc32 + splitmix32, opérations 32 bits)                                        |
-| `Math.pow/exp/log`… dont le résultat varie selon le moteur JS | `DetMath` (séries de Taylor et atanh, seulement `+ − × ÷` et des bits)                         |
-| Horloge, timers                                               | Interdits dans le moteur (règles ESLint `no-restricted-*`)                                     |
-| Flottants cumulés                                             | Troupes et or en entiers (`Math.floor` à chaque modification)                                  |
-| Ordre d'itération                                             | Tableaux, `Map` et `Set` (ordre d'insertion) ; tris à comparateur total                        |
-| Divergence non détectée                                       | `hash()` de l'état tous les 10 ticks (dans `TickResult`) ; test « mêmes tours ⇒ mêmes hashes » |
+| Risque                                                        | Parade                                                                                                                                                                   |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Math.random`                                                 | `PseudoRandom` (sfc32 + splitmix32, opérations 32 bits)                                                                                                                  |
+| `Math.pow/exp/log`… dont le résultat varie selon le moteur JS | `DetMath` (séries de Taylor et atanh, seulement `+ − × ÷` et des bits)                                                                                                   |
+| Horloge, timers                                               | Interdits dans le moteur (règles ESLint `no-restricted-*`)                                                                                                               |
+| Flottants cumulés                                             | Troupes et or en entiers (`Math.floor` à chaque modification)                                                                                                            |
+| Ordre d'itération                                             | Tableaux, `Map` et `Set` (ordre d'insertion) ; tris à comparateur total                                                                                                  |
+| Divergence non détectée                                       | `hash()` tous les 10 ticks (compteurs des joueurs, attaques, barges, charniers), plus l'état complet des tuiles tous les 100 ticks ; test « mêmes tours ⇒ mêmes hashes » |
 
 ### Boucle d'un tour (`Game.executeTurn`)
 
@@ -81,10 +81,15 @@ Pour l'eau, les bits 0-4 contiennent la profondeur (distance à la côte, plafon
 
 **État** (`Uint16`, mutable) :
 
-| Bit(s) | Signification                                    |
-| ------ | ------------------------------------------------ |
-| 0-11   | Propriétaire (0 = libre ; 4 095 joueurs maximum) |
-| 13     | Terre maudite                                    |
+| Bit(s) | Signification                                                                                        |
+| ------ | ---------------------------------------------------------------------------------------------------- |
+| 0-11   | Propriétaire (0 = libre ; 4 095 joueurs maximum)                                                     |
+| 12     | Marque de race : rempart (Aldoria), bosquet (Sylvanor) ; effacée à chaque changement de propriétaire |
+| 13     | Terre maudite                                                                                        |
+| 14     | Charnier (bataille de moins de 60 s)                                                                 |
+| 15     | Libre                                                                                                |
+
+Le client reçoit l'état 16 bits complet des tuiles modifiées (`changedTiles`) et le garde dans `TerritoryLayer.state` (le `GameMap` du client ne porte que le terrain).
 
 ### Attaques
 
