@@ -26,6 +26,8 @@ import {
   START_TROOPS,
   STATE_HASH_INTERVAL,
   STRUCTURE_MIN_DIST,
+  TIME_LIMIT_TICKS,
+  TWILIGHT_START_TICKS,
   TOWER_RANGE,
   WIN_CHECK_INTERVAL,
   WIN_PERCENT,
@@ -33,6 +35,7 @@ import {
   goldPerTick,
   maxTroops,
   troopIncrease,
+  winPercentAt,
 } from "../config/Rules";
 import { arrayHash, mixHash } from "../core/hash";
 import { PseudoRandom } from "../core/PseudoRandom";
@@ -63,6 +66,7 @@ import {
   type PlayerView,
   type TickResult,
   type Turn,
+  type WinReason,
 } from "./Types";
 
 interface Building {
@@ -110,6 +114,10 @@ export class Game {
   readonly rng: PseudoRandom;
   ticks = 0;
   inSpawnPhase = true;
+  /** Tick de la fin du déploiement : l'horloge du Crépuscule part de là. */
+  warStartTick = 0;
+  /** Porteur de la Couronne au début du tick (0 = personne), fixe pendant les combats du tick. */
+  crownId = 0;
   winner: number | null = null;
 
   private readonly players: (Player | null)[] = [null];
@@ -340,12 +348,14 @@ export class Game {
         this.endSpawnPhase();
       }
     } else {
+      this.crownId = this.crownHolder()?.id ?? 0;
       this.updateEconomy();
       this.updateConstructions();
       this.updateCharniers();
       this.updateRamparts();
       this.updateGroves();
       this.updateDiplomacy();
+      if (this.warTicks() === TWILIGHT_START_TICKS) this.events.push({ type: "twilight" });
       for (const brain of this.brains) brain.tick(this.ticks);
       this.updateBoats();
       for (const attack of this.attacks) attack.tick();
@@ -427,6 +437,7 @@ export class Game {
   private endSpawnPhase(): void {
     if (!this.inSpawnPhase) return;
     this.inSpawnPhase = false;
+    this.warStartTick = this.ticks;
     for (const p of this.players) {
       if (p && p.kind === "human" && !p.spawned && !this.spawnRandom(p)) p.alive = false;
     }
@@ -997,6 +1008,16 @@ export class Game {
 
   // Victoire ------------------------------------------------------------------------------------
 
+  /** Ticks écoulés depuis la fin du déploiement (0 pendant le déploiement). */
+  warTicks(): number {
+    return this.inSpawnPhase ? 0 : this.ticks - this.warStartTick;
+  }
+
+  /** Seuil de victoire courant, en % des terres (80, puis il baisse au Crépuscule). */
+  winPercent(): number {
+    return winPercentAt(this.warTicks());
+  }
+
   private checkWin(): void {
     let leader: Player | null = null;
     let alive = 0;
@@ -1010,11 +1031,20 @@ export class Game {
       if (leader === null || p.tiles > leader.tiles) leader = p;
     }
     if (leader === null) return;
-    const dominates = leader.tiles * 100 > this.map.numLandTiles * WIN_PERCENT;
+    const dominates = leader.tiles * 100 > this.map.numLandTiles * this.winPercent();
     const lastStanding = alive === 1 && everSpawned > 1;
-    if (dominates || lastStanding) {
+    // À la limite de temps, le plus grand royaume l'emporte (le premier identifiant en cas d'égalité).
+    const timeUp = this.warTicks() >= TIME_LIMIT_TICKS;
+    if (dominates || lastStanding || timeUp) {
       this.winner = leader.id;
-      this.events.push({ type: "win", player: leader.id });
+      const reason: WinReason = lastStanding
+        ? "lastStanding"
+        : dominates
+          ? this.winPercent() < WIN_PERCENT
+            ? "twilight"
+            : "dominion"
+          : "timeLimit";
+      this.events.push({ type: "win", player: leader.id, reason });
     }
   }
 
@@ -1035,6 +1065,8 @@ export class Game {
       h = mixHash(h, p.betrayals);
     }
     h = this.diplomacy.hash(h);
+    // L'horloge de guerre commande le Crépuscule et la limite de temps.
+    h = mixHash(h, this.inSpawnPhase ? -1 : this.warStartTick);
     for (const [id, rel] of this.relations) {
       let sum = 0;
       for (let i = 0; i < rel.length; i++) sum = (sum * 31 + (rel[i] as number)) | 0;
@@ -1136,6 +1168,9 @@ export class Game {
       events: this.events,
       hash: this.ticks % HASH_INTERVAL === 0 ? this.hash() : null,
       winner: this.winner,
+      warTicks: this.warTicks(),
+      winPercent: this.winPercent(),
+      crown: this.crownId,
     };
     this.changed = [];
     this.events = [];

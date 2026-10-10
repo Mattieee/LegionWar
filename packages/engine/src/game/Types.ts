@@ -156,7 +156,9 @@ export type GameEvent =
   | { type: "buildingDone"; player: number; building: BuildingKind }
   | { type: "buildingCaptured"; player: number; from: number; building: BuildingKind }
   | { type: "buildingRejected"; player: number; reason: BuildRejection }
-  | { type: "win"; player: number }
+  | { type: "win"; player: number; reason: WinReason }
+  /** Le Crépuscule tombe : le seuil de victoire commence à baisser. */
+  | { type: "twilight" }
   | { type: "allianceRequested"; from: number; to: number }
   | { type: "allianceRejected"; from: number; to: number; expired: boolean }
   | { type: "allianceFormed"; a: number; b: number }
@@ -185,6 +187,12 @@ export type DiplomacyRejection =
   | "notRenewable"
   | "lastSurvivors";
 
+/**
+ * Cause d'une victoire : 80 % des terres, seuil abaissé par le Crépuscule, dernier royaume
+ * debout, ou plus grand royaume à la limite de temps (GDD §14).
+ */
+export type WinReason = "dominion" | "twilight" | "lastStanding" | "timeLimit";
+
 export type BuildRejection = "spawnPhase" | "notOwned" | "terrain" | "tooClose" | "gold";
 
 export interface TickResult {
@@ -203,4 +211,10 @@ export interface TickResult {
   /** Hash d'état (tous les 10 ticks) pour détecter les désynchronisations, sinon null. */
   hash: number | null;
   winner: number | null;
+  /** Ticks écoulés depuis la fin du déploiement (horloge du Crépuscule). */
+  warTicks: number;
+  /** Seuil de victoire courant, en % des terres (GDD §14). */
+  winPercent: number;
+  /** Porteur de la Couronne pendant ce tick (0 = personne), tel que le moteur l'applique. */
+  crown: number;
 }

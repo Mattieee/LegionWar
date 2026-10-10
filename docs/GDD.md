@@ -38,7 +38,7 @@ L'Empire d'Ostre unifiait Valdren depuis mille ans. Il s'est effondré en une nu
 4. **Construction** [Proto partiel] : Bourgs (population) et Tours de garde (défense) aujourd'hui ; ports, comptoirs et sanctuaires sont prévus.
 5. **Guerre** [Proto] : attaques terrestres contre les voisins ; annexion des petits royaumes.
 6. **Magie, mer et diplomatie** [Prévu] : sorts, flottes, alliances et trahisons.
-7. **Victoire** [Proto] : contrôler **plus de 80 %** des terres conquérables, ou être le dernier seigneur debout.
+7. **Victoire** [Proto] : contrôler **plus de 80 %** des terres conquérables (seuil qui baisse au Crépuscule, §14), ou être le dernier seigneur debout, ou le plus grand royaume à 35 min.
 
 ## 4. Carte et terrains
 
@@ -96,7 +96,7 @@ Régénération = (10 + troupes^0,73 / 4) × (1 − troupes / plafond) × 0,5   
 
 ```
 ratio  = troupes du défenseur / troupes de l'attaque
-pertes = mag × clamp(ratio, 0,6, 2) × (0,463 × bonusGrandTerritoire + 0,0039 × densité du défenseur)
+pertes = mag × clamp(ratio, 0,6, 2) × (0,463 × bonusGrandTerritoire(défenseur) + 0,0039 × densité du défenseur)
 le défenseur perd sa densité moyenne (troupes / tuiles) par tuile prise
 ```
 
@@ -108,8 +108,11 @@ le défenseur perd sa densité moyenne (troupes / tuiles) par tuile prise
 | Seigneur ou prétendant qui attaque une tribu | Pertes ×0,7                            |
 | Défenseur Parjure (§12.3)                    | Pertes ×0,5, progression ×1,25         |
 | Défense en forêt d'un elfe                   | Pertes ×1,5                            |
+| Attaquant qui porte la Couronne, vs royaume  | Pertes ×1,5 (pas contre une tribu)     |
 
-- **Bonus « grand territoire » :** un empire immense attaque et défend un peu moins bien, ce qui freine l'effet boule de neige.
+- **Bonus « grand territoire » :** un empire immense **se défend** moins bien : le terme principal des pertes de son assaillant et son temps par tuile sont multipliés par `1 − 0,3 / (1 + (0,45 × terres de la carte / terres du défenseur)^2,5)`, soit ×0,83 contre un empire à 50 %. La part attaquante de la formule du genre (pertes ×0,60 et conquête 1,7× plus rapide pour un empire à 50 % des terres) est **retirée** depuis le 2026-10-10 : elle accélérait la boule de neige, à l'inverse de ce que ce paragraphe annonçait.
+- **Poids de la Couronne** (`CROWN_LOSS_MULT`) : qui porte la Couronne (au moins 35 % des terres, le plus grand ; ♛ au classement) perd **50 % de troupes en plus** quand il attaque un royaume. Les tribus et les terres libres ne coûtent pas plus. Le porteur est fixé au début de chaque tick. En une phrase : « La Couronne se paie en sang. »
+- **Anti-boule de neige, mesures** (game designer, 2026-10-10 ; 4 prétendants Duc + 60 tribus, carte moyenne, 400 parties) : le meneur passait de 35 % à 80 % des terres en **2,9 min** médianes (50 → 80 % en 1,5 min), nourri à 63 % par les royaumes conquis ; il tient désormais **6,1 min** (50 → 80 % : 3,0 min). Les royaumes reprennent à la Couronne l'équivalent de 20 % de la carte au lieu de 10 %, et le porteur repasse sous 35 % au moins une fois dans 36 % des parties au lieu de 25 %. Écartés : régénération de la Couronne ×0,5 (22 % des parties sans vainqueur à 45 min), butin des tribus ×0,5 et plafond de la Couronne ×0,75 (sans effet), « défense du faible » (pertes × (terres de l'attaquant / terres du défenseur)^0,3 ; durée équivalente mais le seigneur gagne 59 % des parties contre des Écuyers au lieu de 78 %), « fardeau » proportionnel à la taille (Aldoria à 35–38 %).
 - **Annexion :** un royaume réduit à **moins de 50 tuiles** est absorbé en entier par l'attaquant.
 - **Rythme** (`Rules.ts`, 2026-10-10) : nos cartes ont 9 à 15 fois moins de terres qu'une carte du monde d'OpenFront. À formules égales, l'ouverture y est 3 fois plus rapide et chaque vague 2,4 fois plus décisive : une vague décidait d'une guerre en 7 s, une tribu disparaissait en 0,5 s. Trois facteurs ralentissent la partie :
   - `CONQUEST_PACE = 0,25` : contre un royaume, la progression (`tickFraction`) est divisée par 0,25, soit des batailles **4× plus lentes** ;
@@ -268,7 +271,7 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 - **Plafond :** **5 alliances simultanées** par joueur, tribus comprises (mesure : 7 tribus voisines en médiane à 1–2 min ; sans plafond, on supprimerait toute pression dès la première minute).
 - **Effets :** impossible d'attaquer un allié ou de débarquer chez lui ; à la conclusion, les attaques en cours entre les deux se retirent **sans perte** ; une barge qui touche une plage devenue alliée rentre sans perte ; pillage et levée sont de fait impossibles contre un allié ; **les remparts ne se forment pas sur une frontière commune avec un allié** (ceux déjà posés restent) ; les dons deviennent possibles.
 - **Fin :** à l'expiration ; par rupture (Parjure, §12.3) ; quand un allié est éliminé.
-- **Victoire :** un seul vainqueur. Quand tous les seigneurs et prétendants encore en vie sont alliés entre eux, **les alliances ne se renouvellent plus** : « La Couronne ne se partage pas ».
+- **Victoire :** un seul vainqueur. Quand tous les seigneurs et prétendants encore en vie sont alliés entre eux, **les alliances ne se renouvellent plus** : « La Couronne ne se partage pas ». Au Crépuscule (§14), le seuil compare la part d'un **seul** royaume : les terres des alliés ne s'additionnent pas, et un allié peut l'emporter seul.
 
 ### 12.3 Trahison : le Parjure [Proto]
 
@@ -364,9 +367,10 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 ## 14. Fin de partie [Proto et Prévu]
 
 - **Victoire** [Proto] : plus de 80 % des terres conquérables, ou dernier seigneur ou prétendant debout. Les tribus ne gagnent jamais et ne comptent pas pour « dernier debout » ; des alliés ne gagnent pas ensemble.
-- **Crépuscule** [Prévu] : après 30 min, le seuil de victoire baisse de 2 points par minute.
-- **Horloge du Jugement** [Prévu, option] : une part de territoire minimale qui monte par vagues ; ceux qui restent en dessous dépérissent.
-- **Limite dure** [Prévu] : 170 min ; le plus grand royaume l'emporte.
+- **Crépuscule** [Proto] (`TWILIGHT_*`) : **20 min** après la fin du déploiement, le Crépuscule tombe ; chaque minute écoulée ensuite, le seuil de victoire perd **3 points** : 77 % à 21 min, 50 % à 30 min, 35 % (la Couronne) à 35 min. Le seuil courant et le compte à rebours sont envoyés au client (`TickResult.winPercent`, `warTicks`), et l'événement `twilight` l'annonce au journal. Pourquoi 20 min et pas 30 comme OpenFront : nos parties visent 10 à 20 min ; à 30 min le Crépuscule ne toucherait que 5 % des parties et les laisserait durer jusqu'à 45 min.
+- **Limite** [Proto] (`TIME_LIMIT_TICKS`) : à **35 min** de guerre, le plus grand royaume l'emporte, quelle que soit sa part (le premier identifiant en cas d'égalité). Remplace la limite de 170 min.
+- Mesures (400 parties, 4 prétendants Duc) : 9 % des parties se terminent par le Crépuscule ou la limite (part du vainqueur : 59 % en médiane, 34 % au minimum) ; aucune ne dépasse 35,3 min (déploiement compris). « Dernier debout » reste immédiat à tout moment.
+- **Horloge du Jugement** [Reporté, option] : une part de territoire minimale qui monte par vagues ; ceux qui restent en dessous dépérissent. Inutile tant que la limite de 35 min borne les parties : nos fins lentes viennent d'un meneur bloqué entre 55 et 75 %, pas de petits royaumes qui se cachent. À reconsidérer pour les grandes parties multijoueur.
 
 ## 15. Modes [Prévu]
 
@@ -425,10 +429,10 @@ Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, 
 - La part de victoires par race doit rester **entre 20 et 30 %** à niveau égal.
 - Le délai avant que les terres libres soient épuisées est mesuré à **50 s environ** sur une carte moyenne avec 60 tribus ; viser **40 à 60 s**. Si l'ouverture semble molle, c'est le premier réglage à revoir (`EXPANSION_PACE`, `REGEN_PACE`).
 - Cibles de rythme : une vague entre deux seigneurs **15 à 30 s**, une barge **10 à 20 s** pour une traversée moyenne, une guerre entre royaumes comparables **2 à 4 min**.
-- Durée de partie : les 15 à 25 min visées ne s'obtiennent pas par le rythme seul (le meneur fait boule de neige sur les tribus) ; ce sera le rôle des seigneurs IA et de l'anti-boule de neige. Cibles d'ici là : solo contre les tribus **≥ 5 min**, partie à 4 seigneurs **≈ 10 min**.
+- Durée de partie (cible : médiane de 10 à 20 min, aucune partie au-delà de 35 min). Mesures du game designer (2026-10-10), avant → après le poids de la Couronne, le bonus « grand territoire » défensif et le Crépuscule : 4 prétendants Duc + 60 tribus, carte moyenne, 400 parties : médiane **8,6 → 12,7 min** (p10–p90 : 6,6–14,5 → 8,8–27,3 ; maximum 34,6 min avec 1 % de parties sans vainqueur à 45 min → 35,3 min, toutes terminées) ; victoires par peuple Aldoria 23 → 29 %, Kharag 29 → 25 %, Morvane 26 → 23 %, Sylvanor 22 → 24 %. Un seigneur scripté contre 5 prétendants : il gagne **78 → 76 %** des parties contre des Écuyers, 18 → 13 % contre des Chevaliers, 4 → 3 % contre des Ducs, 0 % contre des Empereurs ; sa partie dure 7,4 → 9,1 min en médiane contre des Chevaliers (p10 5,0 → 5,6 min).
 - Les charniers relèvent deux fois moins de morts au nouveau rythme (vagues plus espacées). Allonger `CHARNIER_TICKS` à 900 a été mesuré sans effet (Morvane à 17 %) : le levier est la régénération de Morvane (−5 % depuis le 2026-10-10).
 - **IA des prétendants (2026-10-10)**, mesures du game designer : 4 prétendants Duc + 60 tribus, carte moyenne, 400 parties : parties gagnées en moins de 30 min **54 % → 98,5 %**, durée médiane 11,2 → **8,6 min** (p10–p90 : 6,6–14,3), trahisons par partie 0,44 → **1,2**. Un seigneur contre 5 prétendants : il gagne 78 % des parties contre des Écuyers, 18 % contre des Chevaliers (éliminé avant 5 min : 10 %), 4 % contre des Ducs, 0 % contre des Empereurs.
-- La durée médiane (≈ 9 min) reste sous la cible de 10 à 20 min : ce n'est pas l'IA qui l'allongera mais l'anti-boule de neige (Crépuscule, §14). Un seuil d'attaque à 1,5 allonge à 10 min mais refige 22 % des parties.
+- Les parties longues favorisent Aldoria (or ×1,2, Bourgs moins chers, remparts) : 29 % des victoires à 4 Ducs, et 34 à 37 % des victoires de prétendants contre un seigneur seul au niveau Duc ou Empereur (100 parties chacun, ±5 points ; 27 à 31 % avant). Remparts ×1,35 ou or ×1,1 mesurés sans effet net : refaire un banc solo de 400 parties avant de toucher au peuple.
 - Recherche de route maritime : pics de 60 à 85 ms par tick sur 2 M de tuiles avec 12 prétendants (budget 100 ms) ; la stratégie « île » l'utilise un peu plus. À optimiser.
 - Le premier Bourg arrive vers 2 min de jeu (125 k d'or à environ 1 000 à 1 200 or/s) : vérifier que ce n'est pas trop lent.
 - La moisson de Morvane (25 %) et la levée des charniers (15 %) peuvent faire boule de neige pendant les guerres longues : si c'est le cas, interdire la levée sur les charniers créés par Morvane lui-même.

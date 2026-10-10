@@ -4,7 +4,6 @@ import {
   BUILDINGS,
   BuildingKind,
   CHARNIER_BIT,
-  CROWN_PERCENT,
   DIFFICULTIES,
   RACES,
   costFor,
@@ -14,6 +13,7 @@ import {
   TERRAIN_NAMES,
   TICK_MS,
   TOWER_RANGE,
+  TWILIGHT_STEP_PERCENT,
   modifiersOf,
   type AttackView,
   type BoatRejection,
@@ -26,6 +26,7 @@ import {
   type GameEvent,
   type PlayerView,
   type TickResult,
+  type WinReason,
 } from "@legionwar/engine";
 import { Input } from "./input/Input";
 import { LocalServer } from "./LocalServer";
@@ -36,7 +37,7 @@ import { type Label, computeLabels } from "./render/Labels";
 import { SceneRenderer } from "./render/SceneRenderer";
 import { placeSeaOrnaments } from "./render/SeaDecor";
 import { TerritoryLayer } from "./render/TerritoryLayer";
-import { formatNumber } from "./ui/format";
+import { formatClock, formatNumber } from "./ui/format";
 import { Hud, type EventTone } from "./ui/Hud";
 import type { MenuEntry, MenuModel } from "./ui/ContextMenu";
 import type { DealCard } from "./ui/DealCards";
@@ -85,12 +86,6 @@ function disposition(relation: number): string {
   return "Amical";
 }
 
-/** Durée en ticks → « 2:05 ». */
-function clock(ticks: number): string {
-  const seconds = Math.max(0, Math.ceil(ticks / 10));
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
 /** Cartes de diplomatie visibles en même temps, au plus. */
 const MAX_DEALS = 3;
 
@@ -117,6 +112,10 @@ export class GameSession {
   private diplomacy: DiplomacyView | null = null;
   /** Tick courant de la simulation (échéances des alliances, Parjures). */
   private tick = 0;
+  /** Horloge de guerre, seuil de victoire et porteur de la Couronne, tels que le moteur les applique. */
+  private warTicks = 0;
+  private winPercent = 80;
+  private crown = 0;
   /** Alliés du joueur local : quand ils changent, les frontières concernées sont repeintes. */
   private myAllies = new Set<number>();
   /** Cartes de diplomatie déjà traitées par le joueur, masquées jusqu'à ce qu'elles disparaissent. */
@@ -281,6 +280,10 @@ export class GameSession {
     if (result.buildings) this.buildings = result.buildings;
     if (result.diplomacy) this.diplomacy = result.diplomacy;
     this.tick = result.tick;
+    this.warTicks = result.warTicks;
+    this.winPercent = result.winPercent;
+    const previousCrown = this.crown;
+    this.crown = result.crown;
     this.attacks = result.attacks;
     const previous = new Map(this.boats.map((b) => [b.id, b.tile]));
     this.boatFrom = new Map(result.boats.map((b) => [b.id, previous.get(b.id) ?? b.tile]));
@@ -297,6 +300,7 @@ export class GameSession {
     }
 
     for (const event of result.events) this.handleEvent(event);
+    if (this.crown !== previousCrown) this.announceCrown(previousCrown);
     this.syncAllies(me);
     this.hud?.deals.render(this.dealCards(me));
     this.hud?.update({
@@ -310,9 +314,29 @@ export class GameSession {
       landTiles: this.map?.numLandTiles ?? 1,
       goldPerSecond: this.goldPerSecond,
       tick: this.tick,
-      crown: this.crownHolder(),
+      crown: this.crown || null,
       nationLevel: this.nationLevel,
+      warTicks: this.warTicks,
+      winPercent: this.winPercent,
     });
+  }
+
+  /** Journal : la Couronne change de tête (GDD §6, « la Couronne se paie en sang »). */
+  private announceCrown(previous: number): void {
+    const me = this.myId;
+    if (this.crown === me) {
+      this.hud?.pushEvent(
+        "Vous portez la Couronne : vos attaques contre les royaumes coûtent 50 % de troupes en plus, et les Ducs et Empereurs se liguent contre vous.",
+        "bad",
+      );
+    } else if (previous === me && me !== null) {
+      this.hud?.pushEvent("Vous perdez la Couronne.", "info");
+    } else if (this.crown !== 0) {
+      this.hud?.pushEvent(
+        `${this.nameOf(this.crown)} porte la Couronne : ses conquêtes lui coûtent 50 % de troupes en plus.`,
+        "info",
+      );
+    }
   }
 
   /** Repeint les frontières quand les alliés du joueur changent (liseré allié). */
@@ -326,17 +350,6 @@ export class GameSession {
       changed.add(me.id);
       this.territory?.repaintOwners(changed);
     }
-  }
-
-  /** Seigneur ou prétendant qui tient au moins CROWN_PERCENT % des terres (le plus grand). */
-  private crownHolder(): number | null {
-    const land = this.map?.numLandTiles ?? 1;
-    let holder: PlayerView | null = null;
-    for (const p of this.playerList) {
-      if (!p.alive || p.kind === "bot" || p.tiles * 100 < land * CROWN_PERCENT) continue;
-      if (!holder || p.tiles > holder.tiles) holder = p;
-    }
-    return holder?.id ?? null;
   }
 
   /** Cartes actionnables : demandes d'alliance reçues, alliances à renouveler. */
@@ -366,7 +379,7 @@ export class GameSession {
       cards.push({
         key,
         title: "Alliance à renouveler",
-        text: `L'alliance avec ${this.nameOf(ally)} expire dans ${clock(left)}.${al.renew.includes(ally) ? " Votre allié l'a déjà renouvelée." : ""}`,
+        text: `L'alliance avec ${this.nameOf(ally)} expire dans ${formatClock(left)}.${al.renew.includes(ally) ? " Votre allié l'a déjà renouvelée." : ""}`,
         remaining: left / ALLIANCE_RENEW_WINDOW,
         actions: [
           { label: "Laisser expirer", run: () => this.dismissedDeals.add(key) },
@@ -408,9 +421,7 @@ export class GameSession {
       const victory = event.player === this.myId;
       hud.showEnd(
         victory ? "Victoire !" : "Défaite",
-        victory
-          ? "Le continent de Valdren s'incline devant votre bannière."
-          : `${this.nameOf(event.player)} règne désormais sur Valdren.`,
+        `${victory ? "Le continent de Valdren s'incline devant votre bannière" : `${this.nameOf(event.player)} règne désormais sur Valdren`} : ${this.winCause(event.reason, event.player)}`,
         victory,
       );
       return;
@@ -426,6 +437,23 @@ export class GameSession {
     if (targetsMe || betrayed) hud.alert();
     const described = this.describe(event);
     if (described) hud.pushEvent(described[0], described[1]);
+  }
+
+  /** Cause de la victoire, pour l'écran de fin (sinon une victoire sous 80 % paraît arbitraire). */
+  private winCause(reason: WinReason, winner: number): string {
+    const share = Math.round(
+      ((this.players.get(winner)?.tiles ?? 0) * 100) / Math.max(1, this.map?.numLandTiles ?? 1),
+    );
+    switch (reason) {
+      case "dominion":
+        return `${share} % des terres sous une seule bannière.`;
+      case "twilight":
+        return `au Crépuscule, ${share} % des terres ont suffi (seuil : ${this.winPercent} %).`;
+      case "lastStanding":
+        return "dernier royaume debout.";
+      case "timeLimit":
+        return `plus grand royaume quand sonna la 35e minute (${share} % des terres).`;
+    }
   }
 
   private describe(e: GameEvent): [string, EventTone] | null {
@@ -477,6 +505,11 @@ export class GameSession {
         return e.player === me ? [BOAT_REJECTION_TEXT[e.reason], "bad"] : null;
       case "win":
         return null;
+      case "twilight":
+        return [
+          `Le Crépuscule tombe sur Valdren : le seuil de victoire baisse de ${TWILIGHT_STEP_PERCENT} points par minute.`,
+          "info",
+        ];
       case "allianceRequested":
         if (e.to === me)
           return [`${this.nameOf(e.from)} vous propose une alliance (K pour accepter).`, "info"];
@@ -685,7 +718,7 @@ export class GameSession {
       const giftTroops = Math.floor(me.troops / 3);
       return {
         title: other.name,
-        subtitle: `${subtitle} · allié encore ${clock(left)}`,
+        subtitle: `${subtitle} · allié encore ${formatClock(left)}`,
         entries: [
           {
             label: "Donner de l'or",
@@ -926,7 +959,7 @@ export class GameSession {
       colorOf: (owner) => this.colorOf(owner),
       battle: this.battle,
       tick: this.tick,
-      crown: this.crownHolder(),
+      crown: this.crown || null,
       now: performance.now(),
     });
     this.frame = requestAnimationFrame(this.loop);

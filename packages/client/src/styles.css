@@ -280,6 +280,23 @@ body {
   padding: 2px 0;
 }
 
+/* Horloge de guerre et seuil de victoire, sous l'en-tête du classement. */
+.hud__clock {
+  margin: 0 0 var(--lw-space-2);
+  font-family: var(--lw-font-family-flavor);
+  font-style: italic;
+  color: var(--lw-text-secondary);
+}
+
+.hud__clock:empty {
+  display: none;
+}
+
+/* Crépuscule : le seuil baisse, l'horloge passe à l'accent. */
+.hud__clock--twilight {
+  color: var(--lw-text-accent);
+}
+
 /* Allié : filet vert à gauche. Parjure : nom rouge et écu brisé (✗). */
 .hud__board-row--ally {
   box-shadow: inset 3px 0 0 var(--lw-text-success);

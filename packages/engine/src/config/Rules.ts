@@ -164,12 +164,35 @@ export const RELATION_DECAY_TICKS = 25;
 
 // Victoire ------------------------------------------------------------------------------------
 export const WIN_PERCENT = 80;
+/**
+ * Crépuscule (GDD §14) : 20 min après la fin du déploiement, le seuil de victoire baisse de
+ * 3 points par minute écoulée (77 % à 21 min, 50 % à 30 min, 35 % à 35 min).
+ */
+export const TWILIGHT_START_TICKS = 12_000;
+export const TWILIGHT_STEP_TICKS = 600;
+export const TWILIGHT_STEP_PERCENT = 3;
+/** Fin de partie : à 35 min, le plus grand royaume l'emporte, quelle que soit sa part. */
+export const TIME_LIMIT_TICKS = 21_000;
 export const WIN_CHECK_INTERVAL = 10;
 export const HASH_INTERVAL = 10;
 /** Le hash couvre aussi l'état complet des tuiles à cet intervalle (≈ 2 ms sur 2 M de tuiles). */
 export const STATE_HASH_INTERVAL = 100;
 /** Sous ce nombre de tuiles, un joueur conquis est annexé en entier. */
 export const ANNEX_THRESHOLD = 50;
+
+/** Seuil de victoire (en % des terres) après `warTicks` ticks de guerre (Crépuscule compris). */
+export function winPercentAt(warTicks: number): number {
+  if (warTicks < TWILIGHT_START_TICKS + TWILIGHT_STEP_TICKS) return WIN_PERCENT;
+  const steps = Math.floor((warTicks - TWILIGHT_START_TICKS) / TWILIGHT_STEP_TICKS);
+  return Math.max(0, WIN_PERCENT - TWILIGHT_STEP_PERCENT * steps);
+}
+
+// Anti-boule de neige (GDD §6) ----------------------------------------------------------------
+/**
+ * Poids de la Couronne : qui porte la Couronne (CROWN_PERCENT % des terres, le plus grand) perd
+ * 50 % de troupes en plus quand il attaque un royaume (pas une tribu ni les terres libres).
+ */
+export const CROWN_LOSS_MULT = 1.5;
 
 // Bâtiments -----------------------------------------------------------------------------------
 export const STRUCTURE_MIN_DIST = 12;
@@ -298,6 +321,8 @@ export interface CombatInput {
   parjure: boolean;
   /** Tuiles terrestres de la carte (échelle du bonus « grand territoire »). */
   landTiles: number;
+  /** L'attaquant porte la Couronne (état figé au début du tick). */
+  crowned?: boolean;
 }
 
 export interface CombatResult {
@@ -309,7 +334,9 @@ export interface CombatResult {
 
 /**
  * Bonus « grand territoire » : 1 − depth / (1 + (mid / n)^2,5).
- * Proche de 1 pour un petit empire, décroît quand il devient immense.
+ * Proche de 1 pour un petit empire, décroît quand il devient immense. Seul le défenseur y est
+ * soumis : un empire immense se défend moins bien. Côté attaquant, la formule du genre réduisait
+ * ses pertes et accélérait ses conquêtes, un moteur de boule de neige retiré (GDD §6).
  */
 function largeTerritoryBonus(tiles: number, depth: number, landTiles: number): number {
   const mid = Math.max(1, landTiles * 0.45);
@@ -352,18 +379,18 @@ export function attackLogic(input: CombatInput): CombatResult {
     mag *= PARJURE_LOSS_MULT;
     tileCost *= PARJURE_COST_MULT;
   }
+  // Poids de la Couronne : le meneur paie ses conquêtes plus cher (pas contre les tribus).
+  if (input.crowned && defender.kind !== "bot") mag *= CROWN_LOSS_MULT;
 
-  const attackerBonus = largeTerritoryBonus(attacker.tiles, 0.7, input.landTiles);
   const defenderBonus = largeTerritoryBonus(defender.tiles, 0.3, input.landTiles);
-  const attackerSpeedBonus = largeTerritoryBonus(attacker.tiles, 0.73, input.landTiles);
 
   const defenderDensity = defender.troops / Math.max(1, defender.tiles);
   const ratio = defender.troops / Math.max(1, input.attackTroops);
   const attackerLoss =
-    mag * clamp(ratio, 0.6, 2) * (0.463 * attackerBonus * defenderBonus + 0.0039 * defenderDensity);
+    mag * clamp(ratio, 0.6, 2) * (0.463 * defenderBonus + 0.0039 * defenderDensity);
   const speedCost = (clamp(ratio, 0.82, 7.5) * clamp(ratio / 20, 1, 50)) / 8.55;
   const tickFraction =
-    (speedCost * tileCost * attackerSpeedBonus * defenderBonus) /
+    (speedCost * tileCost * defenderBonus) /
     Math.max(1, input.borderSize) /
     attacker.mods.conquestSpeedMult /
     CONQUEST_PACE;

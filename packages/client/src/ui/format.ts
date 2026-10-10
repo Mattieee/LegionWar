@@ -10,6 +10,12 @@ export function formatPercent(value: number): string {
   return `${value.toFixed(1).replace(".", ",")} %`;
 }
 
+/** Durée en ticks (10 par seconde) → « 2:05 ». */
+export function formatClock(ticks: number): string {
+  const seconds = Math.max(0, Math.ceil(ticks / 10));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")

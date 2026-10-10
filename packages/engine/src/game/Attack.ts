@@ -73,6 +73,7 @@ export class Attack {
         rampart: mark?.rampart ?? false,
         parjure: defender !== null && game.isParjure(defender),
         landTiles: map.numLandTiles,
+        crowned: this.attacker.id === game.crownId,
       });
       budget -= result.tickFraction;
       this.troops -= result.attackerLoss;

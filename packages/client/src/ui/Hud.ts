@@ -4,6 +4,9 @@ import {
   BuildingKind,
   RACES,
   Race,
+  TIME_LIMIT_TICKS,
+  TWILIGHT_START_TICKS,
+  TWILIGHT_STEP_PERCENT,
   costFor,
   modifiersOf,
   type AttackView,
@@ -12,7 +15,7 @@ import {
 } from "@legionwar/engine";
 import { ContextMenu } from "./ContextMenu";
 import { DealCards } from "./DealCards";
-import { escapeHtml, formatNumber, formatPercent } from "./format";
+import { escapeHtml, formatClock, formatNumber, formatPercent } from "./format";
 
 export interface HudCallbacks {
   onRatioChange(ratio: number): void;
@@ -36,12 +39,17 @@ export interface HudState {
   crown: number | null;
   /** Nom du niveau des prétendants (Écuyer…), pour l'infobulle du classement. */
   nationLevel: string;
+  /** Horloge de guerre (ticks depuis la fin du déploiement) et seuil de victoire courant. */
+  warTicks: number;
+  winPercent: number;
 }
 
 export type EventTone = "info" | "good" | "bad";
 
 const LOG_SIZE = 7;
 const ALERT_COOLDOWN_MS = 15_000;
+/** Le compte à rebours du Crépuscule s'affiche 2 min avant. */
+const TWILIGHT_WARNING_TICKS = 1200;
 
 /** Compteur de la mécanique propre à chaque peuple (GDD §7.3). */
 const RACE_STAT: Record<Race, { label: string; hint: string; value: (p: PlayerView) => string }> = {
@@ -113,6 +121,7 @@ export class Hud {
           <h2 class="lw-title-3">Classement</h2>
           <button class="lw-button lw-button--ghost lw-button--sm" id="hud-exit">Quitter</button>
         </div>
+        <p class="hud__clock lw-text-sm" id="hud-clock" aria-live="off"></p>
         <ol class="hud__board-list" id="hud-board"></ol>
       </section>
       <div class="lw-panel lw-panel--compact hud__banner" id="hud-banner" role="status"></div>
@@ -221,6 +230,28 @@ export class Hud {
       this.renderAttacks(state);
     }
     this.renderBoard(state);
+    this.renderClock(state);
+  }
+
+  /**
+   * Horloge de guerre et seuil de victoire : « 12:40 · Victoire à 80 % », puis le compte à
+   * rebours du Crépuscule, puis le seuil qui baisse et l'heure du sacre (GDD §14).
+   */
+  private renderClock(state: HudState): void {
+    const el = this.$("#hud-clock");
+    if (state.inSpawnPhase) {
+      el.textContent = "";
+      return;
+    }
+    const t = state.warTicks;
+    let text = `⌛ ${formatClock(t)} · Victoire à ${state.winPercent} %`;
+    if (t >= TWILIGHT_START_TICKS) {
+      text = `⌛ ${formatClock(t)} · Crépuscule : victoire à ${state.winPercent} % (−${TWILIGHT_STEP_PERCENT}/min) · sacre dans ${formatClock(TIME_LIMIT_TICKS - t)}`;
+    } else if (t >= TWILIGHT_START_TICKS - TWILIGHT_WARNING_TICKS) {
+      text += ` · Crépuscule dans ${formatClock(TWILIGHT_START_TICKS - t)}`;
+    }
+    el.textContent = text;
+    el.classList.toggle("hud__clock--twilight", t >= TWILIGHT_START_TICKS);
   }
 
   setHover(text: string): void {
@@ -318,6 +349,9 @@ export class Hud {
     const tip = [
       kind,
       ally ? "votre allié" : "",
+      p.id === state.crown
+        ? "porte la Couronne : ses conquêtes coûtent 50 % de troupes en plus"
+        : "",
       parjure ? "Parjure" : "",
       p.betrayals > 0 ? `${p.betrayals} trahison${p.betrayals > 1 ? "s" : ""}` : "",
     ]
