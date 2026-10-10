@@ -286,7 +286,8 @@ export interface CaravanRules {
  * Un Marché relie les Bourgs, Ports et Marchés à moins de 40 cases (routes par la terre, au plus
  * le coût de 60 pas droits) et envoie une caravane toutes les 10 s. Chaque Bourg ou Port traversé paie
  * 2 000 or chez soi ; 6 000 chez un autre et 8 000 chez un allié, versés aux deux maîtres.
- * Mesuré sur 400 parties (4 Ducs, carte moyenne) : caravanes 9 % de l'or, commerce total 31 %.
+ * Mesuré sur le moteur (400 parties, 4 Ducs, carte moyenne) : caravanes 8 % de l'or, commerce total
+ * 27 % (39 à 50 % avec 6 à 12 royaumes).
  */
 export const CARAVAN_RULES: CaravanRules = {
   range: 40,

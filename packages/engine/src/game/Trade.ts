@@ -301,15 +301,20 @@ export class Trade {
   private route(src: PortInfo, dst: PortInfo, ports: readonly PortInfo[]): Int32Array | null {
     const cached = this.routes.get(portPairKey(src.id, dst.id));
     if (cached) return cached;
-    // Un seul parcours depuis ce port donne d'un coup les routes vers tous les ports de sa mer.
-    const sea = this.seaOf(src.tile);
-    const targets = ports.filter((p) => p.id !== src.id && this.seaOf(p.tile) === sea);
+    // Parcours depuis le plus récent des deux ports, vers tous les ports de sa mer qu'il ne relie
+    // pas encore : un seul parcours de l'océan par port neuf, au lieu d'un par paire de ports.
+    const origin = src.id > dst.id ? src : dst;
+    const sea = this.seaOf(origin.tile);
+    const targets = ports.filter(
+      (p) =>
+        p.id !== origin.id &&
+        this.seaOf(p.tile) === sea &&
+        !this.routes.has(portPairKey(origin.id, p.id)),
+    );
     const scratch = (this.scratch ??= new SeaScratch(this.game.map.size));
-    for (const [id, path] of searchSea(this.game.map, src.tile, targets, scratch)) {
-      if (!this.routes.has(portPairKey(src.id, id))) {
-        this.routes.set(portPairKey(src.id, id), path);
-        this.routes.set(portPairKey(id, src.id), path.slice().reverse());
-      }
+    for (const [id, path] of searchSea(this.game.map, origin.tile, targets, scratch)) {
+      this.routes.set(portPairKey(origin.id, id), path);
+      this.routes.set(portPairKey(id, origin.id), path.slice().reverse());
     }
     return this.routes.get(portPairKey(src.id, dst.id)) ?? null;
   }
