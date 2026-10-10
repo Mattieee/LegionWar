@@ -13,6 +13,8 @@ import {
   TICK_MS,
   TOWER_RANGE,
   TWILIGHT_STEP_PERCENT,
+  CARAVAN_RULES,
+  PORT_SNAP_RADIUS,
   modifiersOf,
   type AttackView,
   type BoatRejection,
@@ -21,6 +23,10 @@ import {
   type BuildingView,
   type DiplomacyRejection,
   type DiplomacyView,
+  type CaravanView,
+  type EmbargoView,
+  type NefView,
+  type RouteView,
   type GameConfig,
   type GameEvent,
   type Intent,
@@ -38,7 +44,7 @@ import { SceneRenderer } from "./render/SceneRenderer";
 import { placeSeaOrnaments } from "./render/SeaDecor";
 import { TerritoryLayer } from "./render/TerritoryLayer";
 import { formatClock, formatNumber } from "./ui/format";
-import { Hud, type EventTone, type InfoModel } from "./ui/Hud";
+import { Hud, type EventTone, type InfoModel, ownedOf } from "./ui/Hud";
 import type { RadialAction, RadialModel } from "./ui/RadialMenu";
 import type { DealCard } from "./ui/DealCards";
 import type { MenuChoice } from "./ui/Menu";
@@ -56,6 +62,7 @@ const REJECTION_TEXT: Record<BuildRejection, string> = {
   terrain: "Ce terrain ne peut pas accueillir de bâtiment.",
   tooClose: "Trop près d'un autre bâtiment.",
   gold: "Or insuffisant.",
+  coast: "Un port se bâtit sur une de vos côtes de mer : cliquez près du rivage.",
 };
 
 const BOAT_REJECTION_TEXT: Record<BoatRejection, string> = {
@@ -96,6 +103,9 @@ function dispositionTone(relation: number): "hostile" | "wary" | "neutral" | "fr
   if (relation < 50) return "neutral";
   return "friendly";
 }
+
+/** Durée d'un « +X or » au-dessus d'un port (ms). */
+const GOLD_POP_MS = 2000;
 
 /** Cartes de diplomatie visibles en même temps, au plus. */
 const MAX_DEALS = 3;
@@ -143,6 +153,15 @@ export class GameSession {
   private boats: BoatView[] = [];
   /** Tuile précédente de chaque barge, pour interpoler son déplacement entre deux ticks. */
   private boatFrom = new Map<number, number>();
+  private nefs: NefView[] = [];
+  private nefFrom = new Map<number, number>();
+  private routes: RouteView[] = [];
+  private caravans: CaravanView[] = [];
+  private caravanFrom = new Map<number, number>();
+  private embargoes: EmbargoView[] = [];
+  /** « +X or » au-dessus de vos ports, et vos gains du commerce (minute glissante). */
+  private goldPops: { tile: number; amount: number; born: number }[] = [];
+  private tradeGains: { at: number; amount: number }[] = [];
   private lastTickTime = 0;
   private mines: number[] = [];
   private labels: Label[] = [];
@@ -301,6 +320,17 @@ export class GameSession {
     const previous = new Map(this.boats.map((b) => [b.id, b.tile]));
     this.boatFrom = new Map(result.boats.map((b) => [b.id, previous.get(b.id) ?? b.tile]));
     this.boats = result.boats;
+    const previousNefs = new Map(this.nefs.map((n) => [n.id, n.tile]));
+    this.nefFrom = new Map(result.nefs.map((n) => [n.id, previousNefs.get(n.id) ?? n.tile]));
+    this.nefs = result.nefs;
+    if (result.embargoes) this.embargoes = result.embargoes;
+    if (result.routes) this.routes = result.routes;
+    const previousCaravans = new Map(this.caravans.map((c) => [c.id, c.tile]));
+    this.caravanFrom = new Map(
+      result.caravans.map((c) => [c.id, previousCaravans.get(c.id) ?? c.tile]),
+    );
+    this.caravans = result.caravans;
+    this.recordTrade(result.events);
     this.lastTickTime = performance.now();
     this.inSpawnPhase = result.inSpawnPhase;
 
@@ -329,6 +359,11 @@ export class GameSession {
       tick: this.tick,
       crown: this.crown || null,
       nationLevel: this.nationLevel,
+      trade: {
+        nefs: this.nefs.filter((n) => n.owner === this.myId).length,
+        caravans: this.caravans.filter((c) => c.owner === this.myId).length,
+        perMinute: this.tradePerMinute(),
+      },
       warTicks: this.warTicks,
       winPercent: this.winPercent,
     });
@@ -589,6 +624,36 @@ export class GameSession {
       }
       case "diplomacyRejected":
         return e.player === me ? [DIPLOMACY_REJECTION_TEXT[e.reason], "bad"] : null;
+      case "tradeGold":
+        return null;
+      case "embargo":
+        if (e.auto) {
+          if (e.from === me)
+            return [`${this.nameOf(e.to)} vous attaque : vos ports lui sont fermés 3 min.`, "info"];
+          if (e.to === me)
+            return [
+              `Vous attaquez ${this.nameOf(e.from)} : ses ports vous sont fermés 3 min.`,
+              "info",
+            ];
+          return null;
+        }
+        if (e.from === me) {
+          return [
+            e.on
+              ? `Vos ports sont fermés à ${this.nameOf(e.to)}.`
+              : `Vos ports rouvrent à ${this.nameOf(e.to)}.`,
+            "info",
+          ];
+        }
+        if (e.to === me) {
+          return [
+            e.on
+              ? `${this.nameOf(e.from)} vous ferme ses ports.`
+              : `${this.nameOf(e.from)} rouvre ses ports.`,
+            e.on ? "bad" : "good",
+          ];
+        }
+        return null;
     }
   }
 
@@ -699,7 +764,7 @@ export class GameSession {
 
     if (owner === me.id) {
       const build = (kind: BuildingKind): RadialAction => {
-        const owned = kind === BuildingKind.Bourg ? me.bourgs : me.tours;
+        const owned = ownedOf(me, kind);
         const cost = costFor(kind, owned, mods);
         return {
           label: `Bâtir : ${BUILDINGS[kind].name}`,
@@ -712,7 +777,13 @@ export class GameSession {
       };
       return {
         center: { label: "Vos terres", icon: "⚔", tone: "neutral", disabled: true },
-        ring: [build(BuildingKind.Bourg), build(BuildingKind.Tour)],
+        ring: [
+          build(BuildingKind.Bourg),
+          build(BuildingKind.Tour),
+          // Le port seulement près d'une côte de mer (il se cale sur le rivage le plus proche).
+          ...(this.nearOcean(tile) ? [build(BuildingKind.Port)] : []),
+          build(BuildingKind.Marche),
+        ],
       };
     }
 
@@ -806,6 +877,7 @@ export class GameSession {
           disabled: iAsked,
           run: submit({ type: "allianceRequest", target: owner }),
         };
+    const other = this.players.get(owner);
     return {
       center: {
         label: `Attaquer ${this.nameOf(owner)}`,
@@ -815,7 +887,11 @@ export class GameSession {
         disabled: troops < 1,
         run: submit({ type: "attack", target: owner, troops, tile }),
       },
-      ring: [alliance, boat],
+      ring: [
+        alliance,
+        boat,
+        ...(other && other.kind !== "bot" ? [this.embargoAction(me, owner)] : []),
+      ],
     };
   }
 
@@ -836,6 +912,95 @@ export class GameSession {
         },
       ],
     });
+  }
+
+  /** Gains du commerce : « +X or » au-dessus de vos ports (cumulés 1 s) et minute glissante. */
+  private recordTrade(events: readonly GameEvent[]): void {
+    const now = performance.now();
+    for (const e of events) {
+      if (e.type !== "tradeGold" || e.player !== this.myId) continue;
+      this.tradeGains.push({ at: now, amount: e.amount });
+      const pop = this.goldPops.find((p) => p.tile === e.tile && now - p.born < 1000);
+      if (pop) pop.amount += e.amount;
+      else this.goldPops.push({ tile: e.tile, amount: e.amount, born: now });
+    }
+    this.tradeGains = this.tradeGains.filter((g) => now - g.at < 60_000);
+  }
+
+  private tradePerMinute(): number {
+    let sum = 0;
+    for (const g of this.tradeGains) sum += g.amount;
+    return sum;
+  }
+
+  /** Échéance de l'embargo de `from` envers `to` (-1 = durable), ou null. */
+  private embargoUntil(from: number, to: number): number | null {
+    const e = this.embargoes.find((x) => x.from === from && x.to === to);
+    return e ? e.until : null;
+  }
+
+  /** « Commerce : ouvert (2 ports) », « Vos ports lui sont fermés », « Suspendu 2:41 »… */
+  private tradeStatus(owner: number, player: PlayerView): string {
+    const me = this.myId ?? 0;
+    const mine = this.embargoUntil(me, owner);
+    const theirs = this.embargoUntil(owner, me);
+    if (mine === -1) return "⚓ Vos ports lui sont fermés";
+    if (theirs === -1) return "⚓ Il vous ferme ses ports";
+    const until = Math.max(mine ?? -1, theirs ?? -1);
+    if (until > 0) return `⚓ Commerce suspendu ${formatClock(until - this.tick)} (attaque)`;
+    return `⚓ Commerce ouvert (${player.ports} port${player.ports > 1 ? "s" : ""}, ${player.marches} marché${player.marches > 1 ? "s" : ""})`;
+  }
+
+  /** Bascule l'embargo durable de nos ports envers un royaume (touche E, fiche, menu radial). */
+  private toggleEmbargo(owner: number): void {
+    const me = this.me();
+    if (!me || !me.alive || this.inSpawnPhase || owner === me.id) return;
+    const closed = this.embargoUntil(me.id, owner) === -1;
+    this.server.submit({ type: "embargo", target: owner, on: !closed });
+  }
+
+  private embargoAtHover(): void {
+    const tile = this.hoverTile;
+    if (tile === null || !this.territory) return;
+    const owner = this.territory.owner(tile);
+    if (owner !== 0 && this.players.get(owner)?.kind !== "bot") this.toggleEmbargo(owner);
+  }
+
+  private embargoAction(me: PlayerView, owner: number): RadialAction {
+    const closed = this.embargoUntil(me.id, owner) === -1;
+    return {
+      label: closed ? "Rouvrir nos ports" : "Fermer nos ports",
+      hint: closed ? "rétablit le commerce · touche E" : "bloque le commerce entre vous · touche E",
+      icon: "⚓",
+      tone: closed ? "ally" : "danger",
+      run: () => this.toggleEmbargo(owner),
+    };
+  }
+
+  /** Pose d'un Marché : Bourgs, Ports et Marchés achevés à portée de la case survolée. */
+  private marketStops(): number[] {
+    const tile = this.hoverTile;
+    const map = this.map;
+    if (this.buildMode !== BuildingKind.Marche || tile === null || !map) return [];
+    const r2 = CARAVAN_RULES.range * CARAVAN_RULES.range;
+    return this.buildings
+      .filter((b) => b.done && b.kind !== BuildingKind.Tour && map.euclidSq(b.tile, tile) <= r2)
+      .map((b) => b.tile);
+  }
+
+  /** Vrai si une côte de mer est assez proche pour y caler un port. */
+  private nearOcean(tile: number): boolean {
+    const map = this.map;
+    if (!map) return false;
+    const r = PORT_SNAP_RADIUS;
+    const cx = map.x(tile);
+    const cy = map.y(tile);
+    for (let y = Math.max(0, cy - r); y <= Math.min(map.height - 1, cy + r); y += 2) {
+      for (let x = Math.max(0, cx - r); x <= Math.min(map.width - 1, cx + r); x += 2) {
+        if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r && map.isOcean(map.ref(x, y))) return true;
+      }
+    }
+    return false;
   }
 
   /** Un cran de ratio d'attaque (T / Y, Maj + molette) : 10 points, entre 1 % et 100 %. */
@@ -905,11 +1070,20 @@ export class GameSession {
         });
       else actions.push({ label: "Alliance", key: "K", run: () => this.allianceWith(owner) });
       actions.push({ label: "Barge", key: "B", run: () => this.launchBoatAtHover() });
+      if (player.kind !== "bot") {
+        const closed = this.embargoUntil(this.myId ?? 0, owner) !== null;
+        actions.push({
+          label: closed ? "Rouvrir nos ports" : "Fermer nos ports",
+          key: "E",
+          run: () => this.toggleEmbargo(owner),
+        });
+      }
     }
     return {
       kind: "player",
       player,
       committed,
+      trade: self || player.kind === "bot" ? null : this.tradeStatus(owner, player),
       typeLabel:
         player.kind === "human"
           ? self
@@ -939,6 +1113,15 @@ export class GameSession {
         break;
       case "2":
         this.buildMode = BuildingKind.Tour;
+        break;
+      case "3":
+        this.buildMode = BuildingKind.Port;
+        break;
+      case "4":
+        this.buildMode = BuildingKind.Marche;
+        break;
+      case "e":
+        this.embargoAtHover();
         break;
       case "escape":
         this.buildMode = null;
@@ -1006,10 +1189,46 @@ export class GameSession {
         y: fy + (Math.floor(b.tile / width) - fy) * progress + 0.5,
       };
     });
+    const now = performance.now();
+    const nefs = this.nefs.map((n) => {
+      const from = this.nefFrom.get(n.id) ?? n.tile;
+      const fx = from % width;
+      const fy = Math.floor(from / width);
+      const tx = n.tile % width;
+      return {
+        owner: n.owner,
+        x: fx + (tx - fx) * progress + 0.5,
+        y: fy + (Math.floor(n.tile / width) - fy) * progress + 0.5,
+        heading: tx < fx ? -1 : 1,
+      };
+    });
+    const caravans = this.caravans.map((c) => {
+      const from = this.caravanFrom.get(c.id) ?? c.tile;
+      const fx = from % width;
+      const fy = Math.floor(from / width);
+      return {
+        owner: c.owner,
+        x: fx + ((c.tile % width) - fx) * progress + 0.5,
+        y: fy + (Math.floor(c.tile / width) - fy) * progress + 0.5,
+      };
+    });
+    this.goldPops = this.goldPops.filter((p) => now - p.born < GOLD_POP_MS);
+    const goldPops = this.goldPops.map((p) => ({
+      x: (p.tile % width) + 0.5,
+      y: Math.floor(p.tile / width) + 0.5,
+      amount: p.amount,
+      age: (now - p.born) / GOLD_POP_MS,
+    }));
     this.scene.draw({
       players: this.players,
       buildings: this.buildings,
       boats,
+      nefs,
+      goldPops,
+      routes: this.routes,
+      caravans,
+      marketRange: CARAVAN_RULES.range,
+      marketStops: this.marketStops(),
       mines: this.mines,
       labels: this.labels,
       myId: this.myId,

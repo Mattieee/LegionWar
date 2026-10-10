@@ -43,6 +43,8 @@ export interface HudState {
   /** Horloge de guerre (ticks depuis la fin du déploiement) et seuil de victoire courant. */
   warTicks: number;
   winPercent: number;
+  /** Commerce : vos nefs en mer, vos caravanes en route et l'or gagné pendant la dernière minute. */
+  trade: { nefs: number; caravans: number; perMinute: number };
 }
 
 /** Fiche du royaume survolé, affichée en haut de l'écran (comme OpenFront). */
@@ -53,6 +55,8 @@ export type InfoModel =
       /** Troupes engagées dans ses attaques et barges en cours. */
       committed: number;
       typeLabel: string;
+      /** État du commerce avec vous (ports, embargo), null pour vous-même ou une tribu. */
+      trade: string | null;
       /** Disposition d'un prétendant envers vous. */
       disposition: { label: string; tone: "hostile" | "wary" | "neutral" | "friendly" } | null;
       self: boolean;
@@ -106,12 +110,37 @@ const RACE_STAT: Record<Race, { label: string; hint: string; value: (p: PlayerVi
 const BUILD_KEYS: Record<BuildingKind, string> = {
   [BuildingKind.Bourg]: "1",
   [BuildingKind.Tour]: "2",
+  [BuildingKind.Port]: "3",
+  [BuildingKind.Marche]: "4",
 };
 
 const BUILD_HELP: Record<BuildingKind, string> = {
   [BuildingKind.Bourg]: "Augmente le plafond de troupes de 250 k.",
   [BuildingKind.Tour]: "Ralentit et saigne les assaillants à portée.",
+  [BuildingKind.Port]:
+    "Sur une côte de mer. Arme une nef marchande toutes les 15 s : 40 or par lieue de mer, jusqu'à 20 000, pour chacun des deux ports.",
+  [BuildingKind.Marche]:
+    "Envoie une caravane toutes les 10 s vers vos Bourgs et Ports et ceux des voisins à 40 cases : 2 000 or par étape chez vous, 6 000 chez un voisin (à vous deux), 8 000 chez un allié.",
 };
+
+/** « 1 port », « 3 ports ». */
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n > 1 ? "s" : ""}`;
+}
+
+/** Bâtiments possédés d'un type (chantiers compris). */
+export function ownedOf(p: PlayerView, kind: BuildingKind): number {
+  switch (kind) {
+    case BuildingKind.Bourg:
+      return p.bourgs;
+    case BuildingKind.Tour:
+      return p.tours;
+    case BuildingKind.Port:
+      return p.ports;
+    case BuildingKind.Marche:
+      return p.marches;
+  }
+}
 
 /**
  * Interface en jeu (DOM superposé au canvas), construite avec les composants du design system
@@ -170,6 +199,7 @@ export class Hud {
             <input class="lw-range hud__ratio-range" type="range" min="1" max="100" id="hud-ratio-input" aria-label="Ratio d'attaque" />
             <span class="hud__pill hud__pill--race lw-numeric" id="hud-race-stat" hidden></span>
           </div>
+          <p class="hud__trade lw-numeric" id="hud-trade" hidden></p>
           <div class="hud__hotbar" role="toolbar" aria-label="Construction">
             ${(Object.values(BuildingKind) as BuildingKind[])
               .map(
@@ -285,9 +315,20 @@ export class Hud {
       statPill.dataset.tooltip = stat.hint;
     }
 
+    const trade = this.$("#hud-trade");
+    trade.hidden = me.ports === 0 && me.marches === 0;
+    const parts: string[] = [];
+    if (me.ports > 0)
+      parts.push(`⚓ ${plural(me.ports, "port")} · ${plural(state.trade.nefs, "nef")} en mer`);
+    if (me.marches > 0) {
+      parts.push(`⚖ ${plural(me.marches, "marché")} · ${plural(state.trade.caravans, "caravane")}`);
+    }
+    parts.push(`+${formatNumber(state.trade.perMinute)} or/min`);
+    trade.textContent = parts.join(" · ");
+
     const mods = modifiersOf(me.race);
     for (const kind of Object.values(BuildingKind) as BuildingKind[]) {
-      const owned = kind === BuildingKind.Bourg ? me.bourgs : me.tours;
+      const owned = ownedOf(me, kind);
       const cost = costFor(kind, owned, mods);
       const button = this.$<HTMLButtonElement>(`.hud__slot[data-kind="${kind}"]`);
       this.$(`[data-count="${kind}"]`).textContent = String(owned);
@@ -407,6 +448,7 @@ export class Hud {
         `${p.betrayals} trahison${p.betrayals > 1 ? "s" : ""}`,
       ]);
     }
+    if (model.trade) statuses.push(["hud__status--trade", model.trade]);
     if (statuses.length > 0) {
       const row = node("div", "hud__info-status");
       for (const [cls, label] of statuses) row.append(node("span", `hud__status ${cls}`, label));
@@ -416,7 +458,15 @@ export class Hud {
       node(
         "span",
         "hud__info-detail",
-        [`Bourgs ${p.bourgs}`, `Tours ${p.tours}`, model.detail].filter(Boolean).join(" · "),
+        [
+          `Bourgs ${p.bourgs}`,
+          `Tours ${p.tours}`,
+          `Ports ${p.ports}`,
+          `Marchés ${p.marches}`,
+          model.detail,
+        ]
+          .filter(Boolean)
+          .join(" · "),
       ),
     );
     el.append(stats, id);

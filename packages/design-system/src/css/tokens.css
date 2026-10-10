@@ -226,6 +226,8 @@
   --lw-map-ally: var(--lw-color-verdigris-500);
   --lw-map-parjure: var(--lw-heraldry-gules);
   --lw-map-crown: var(--lw-heraldry-or);
+  --lw-map-trade: var(--lw-color-sienna-600);
+  --lw-map-road: var(--lw-color-ink-700);
   --lw-map-marks-rampart-ink: var(--lw-color-ink-900);
   --lw-map-marks-rampart-stone: #a59c8b;
   --lw-map-marks-grove: #4d7340;

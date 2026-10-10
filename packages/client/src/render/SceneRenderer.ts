@@ -6,6 +6,7 @@ import {
   TOWER_RANGE,
   type BuildingView,
   type PlayerView,
+  type RouteView,
 } from "@legionwar/engine";
 import type { BattleFx } from "./BattleFx";
 import type { Camera } from "./Camera";
@@ -25,10 +26,42 @@ export interface BoatSprite {
   y: number;
 }
 
+/** Nef marchande prête à dessiner, position interpolée (tuiles) et cap horizontal. */
+export interface NefSprite {
+  owner: number;
+  x: number;
+  y: number;
+  /** −1 vers l'ouest, 1 vers l'est : la gravure est retournée selon le cap. */
+  heading: number;
+}
+
+/** Caravane prête à dessiner, position interpolée (tuiles). */
+export interface CaravanSprite {
+  owner: number;
+  x: number;
+  y: number;
+}
+
+/** « +X or » au-dessus d'un de vos ports, qui monte et s'efface (âge de 0 à 1). */
+export interface GoldPop {
+  x: number;
+  y: number;
+  amount: number;
+  age: number;
+}
+
 export interface SceneState {
   players: ReadonlyMap<number, PlayerView>;
   buildings: readonly BuildingView[];
   boats: readonly BoatSprite[];
+  nefs: readonly NefSprite[];
+  goldPops: readonly GoldPop[];
+  /** Routes des caravanes (la même liste tant qu'elles ne changent pas) et caravanes en route. */
+  routes: readonly RouteView[];
+  caravans: readonly CaravanSprite[];
+  /** Pose d'un Marché : sa portée et les étapes qu'il relierait (tuiles). */
+  marketRange: number;
+  marketStops: readonly number[];
   mines: readonly number[];
   labels: readonly Label[];
   myId: number | null;
@@ -62,6 +95,9 @@ const PALETTE = {
   vignette: tokenRgb("map.vignette"),
   sheetShadow: rgbCss(tokenRgb("map.vignette"), 0.6),
   battleCapture: rgbCss(tokenRgb("map.battle.capture")),
+  trade: rgbCss(tokenRgb("map.trade")),
+  road: rgbCss(tokenRgb("map.road"), 0.5),
+  roadPreview: rgbCss(tokenRgb("map.road"), 0.85),
   parjure: rgbCss(tokenRgb("map.parjure")),
   crown: rgbCss(tokenRgb("map.crown")),
   battleIncoming: rgbCss(tokenRgb("map.battle.incoming")),
@@ -74,6 +110,13 @@ const FONT_FLAVOR = tokens.font.family.flavor;
 /** Taille des noms sur la carte, en pixels CSS : discrets comme sur un atlas. */
 const LABEL_MAX_PX = 17;
 const LABEL_MIN_PX = 9;
+/** Nefs marchandes : 3 tuiles de large, jamais moins de 14 px à l'écran. */
+const NEF_TILES = 3;
+const NEF_MIN_PX = 14;
+/** Caravanes : 2 tuiles de large, jamais moins de 9 px ; sous ce zoom, routes et chariots s'effacent. */
+const CARAVAN_TILES = 2;
+const CARAVAN_MIN_PX = 9;
+const ROAD_MIN_ZOOM = 0.9;
 /** Zoom (px par tuile) à partir duquel on voit aussi les fronts des autres seigneurs. */
 const OTHER_FRONTS_MIN_ZOOM = 2.5;
 /** Les seigneurs signent dans la police de leur peuple, dès que la taille la rend lisible. */
@@ -91,6 +134,8 @@ export class SceneRenderer {
   private readonly ctx: CanvasRenderingContext2D;
   private dpr = 1;
   private vignette: CanvasGradient | null = null;
+  /** Tracé des routes, refait seulement quand la liste des routes change. */
+  private roads: { source: readonly RouteView[]; path: Path2D } | null = null;
 
   constructor(
     readonly canvas: HTMLCanvasElement,
@@ -150,6 +195,7 @@ export class SceneRenderer {
     ctx.imageSmoothingEnabled = true;
     this.drawOrnaments();
     this.drawCaptures(state);
+    this.drawRoads(state, width);
 
     for (const mine of state.mines) {
       this.drawMine((mine % width) + 0.5, Math.floor(mine / width) + 0.5);
@@ -158,12 +204,15 @@ export class SceneRenderer {
     for (const boat of state.boats) {
       if (boat.owner === state.myId) this.drawRoute(boat, width);
     }
+    for (const nef of state.nefs) this.drawNef(nef, state.colorOf(nef.owner));
+    for (const c of state.caravans) this.drawCaravan(c, state.colorOf(c.owner));
     for (const boat of state.boats) this.drawBoat(boat, state.colorOf(boat.owner));
     if (state.hoverTile !== null) this.drawHover(state, width);
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawLabels(state);
     this.drawFronts(state);
+    this.drawGoldPops(state);
     this.drawBoatTroops(state);
 
     if (this.vignette) {
@@ -380,6 +429,107 @@ export class SceneRenderer {
     ctx.restore();
   }
 
+  /** Nef marchande gravée (la cog), retournée selon son cap, marquée de l'écu de son maître. */
+  private drawNef(nef: NefSprite, color: RGB): void {
+    const art = sprite("sea/cog");
+    if (!art.ready) return;
+    const ctx = this.ctx;
+    const w = Math.max(NEF_TILES, NEF_MIN_PX / this.camera.zoom);
+    const h = w * art.aspect;
+    ctx.save();
+    ctx.translate(nef.x, nef.y);
+    if (nef.heading < 0) ctx.scale(-1, 1);
+    this.drawEngraving(art, -w / 2, -h * 0.7, w, h);
+    ctx.restore();
+    this.drawOwnerShield(nef.x + w * 0.3, nef.y + h * 0.15, w * 0.28, color);
+  }
+
+  /** Routes des caravanes : trait fin continu à l'encre, sous les bâtiments. */
+  private drawRoads(state: SceneState, width: number): void {
+    if (state.routes.length === 0 || this.camera.zoom < ROAD_MIN_ZOOM) return;
+    if (this.roads?.source !== state.routes) {
+      this.roads = { source: state.routes, path: roadPath(state.routes, width) };
+    }
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.lineWidth = Math.max(0.18, 1.1 / this.camera.zoom);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.strokeStyle = PALETTE.road;
+    ctx.stroke(this.roads.path);
+    ctx.restore();
+  }
+
+  /** Chariot bâché gravé : caisse et roues à l'encre, bâche aux couleurs de son maître. */
+  private drawCaravan(c: CaravanSprite, color: RGB): void {
+    const ctx = this.ctx;
+    const zoom = this.camera.zoom;
+    if (zoom < ROAD_MIN_ZOOM) {
+      ctx.fillStyle = rgbCss(color);
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, 1.5 / zoom, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    const w = Math.max(CARAVAN_TILES, CARAVAN_MIN_PX / zoom);
+    const h = w * 0.5;
+    const x = c.x - w / 2;
+    const top = c.y - h * 0.6;
+    ctx.save();
+    ctx.lineWidth = Math.max(0.12, w / 14);
+    ctx.strokeStyle = PALETTE.ink;
+    // Bâche en demi-tonneau.
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.1, top + h * 0.45);
+    ctx.bezierCurveTo(
+      x + w * 0.1,
+      top - h * 0.35,
+      x + w * 0.9,
+      top - h * 0.35,
+      x + w * 0.9,
+      top + h * 0.45,
+    );
+    ctx.closePath();
+    ctx.fillStyle = rgbCss(color);
+    ctx.fill();
+    ctx.stroke();
+    // Caisse.
+    ctx.fillStyle = PALETTE.paper;
+    ctx.fillRect(x, top + h * 0.45, w, h * 0.35);
+    ctx.strokeRect(x, top + h * 0.45, w, h * 0.35);
+    // Roues.
+    for (const wx of [x + w * 0.25, x + w * 0.75]) {
+      ctx.beginPath();
+      ctx.arc(wx, top + h * 0.85, h * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /** « +X or » qui monte au-dessus de vos ports (coordonnées écran). */
+  private drawGoldPops(state: SceneState): void {
+    if (state.goldPops.length === 0) return;
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `600 13px ${tokens.font.family.body}`;
+    ctx.lineWidth = 3;
+    ctx.lineJoin = "round";
+    for (const pop of state.goldPops) {
+      const [sx, sy] = this.camera.worldToScreen(pop.x, pop.y);
+      const y = sy - 18 - pop.age * 18;
+      const text = `+${formatNumber(pop.amount)} or`;
+      ctx.globalAlpha = 1 - pop.age;
+      ctx.strokeStyle = PALETTE.labelHalo;
+      ctx.strokeText(text, sx, y);
+      ctx.fillStyle = PALETTE.trade;
+      ctx.fillText(text, sx, y);
+    }
+    ctx.restore();
+  }
+
   private drawEngraving(art: Sprite, x: number, y: number, w: number, h: number): void {
     const level = art.pick(w * this.camera.zoom * this.dpr);
     if (level) this.ctx.drawImage(level, x, y, w, h);
@@ -475,6 +625,21 @@ export class SceneRenderer {
       ctx.beginPath();
       ctx.arc(x + 0.5, y + 0.5, STRUCTURE_MIN_DIST, 0, Math.PI * 2);
       ctx.stroke();
+      if (state.buildMode === BuildingKind.Marche) {
+        // Portée du Marché et étapes qu'il relierait.
+        ctx.strokeStyle = PALETTE.roadPreview;
+        ctx.setLineDash([2, 0.8]);
+        ctx.beginPath();
+        ctx.arc(x + 0.5, y + 0.5, state.marketRange, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        for (const stop of state.marketStops) {
+          ctx.moveTo(x + 0.5, y + 0.5);
+          ctx.lineTo((stop % width) + 0.5, Math.floor(stop / width) + 0.5);
+        }
+        ctx.stroke();
+      }
       if (state.buildMode === BuildingKind.Tour) {
         ctx.strokeStyle = PALETTE.towerRange;
         ctx.setLineDash([2, 0.8, 0.3, 0.8]);
@@ -625,4 +790,34 @@ export class SceneRenderer {
       ctx.fillText(troops, sx, sy + fontPx * 0.45);
     }
   }
+}
+
+/**
+ * Tracé de toutes les routes, lissé : un point sur deux, puis une passe de Chaikin (les routes
+ * suivent des pas de case, en escalier).
+ */
+function roadPath(routes: readonly RouteView[], width: number): Path2D {
+  const path = new Path2D();
+  for (const route of routes) {
+    const pts: [number, number][] = [];
+    const n = route.tiles.length;
+    for (let i = 0; i < n; i += 2) pts.push(tileCenter(route.tiles[i] as number, width));
+    if ((n - 1) % 2 !== 0) pts.push(tileCenter(route.tiles[n - 1] as number, width));
+    if (pts.length < 2) continue;
+    const [fx, fy] = pts[0] as [number, number];
+    path.moveTo(fx, fy);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, ay] = pts[i] as [number, number];
+      const [bx, by] = pts[i + 1] as [number, number];
+      path.lineTo(ax * 0.75 + bx * 0.25, ay * 0.75 + by * 0.25);
+      path.lineTo(ax * 0.25 + bx * 0.75, ay * 0.25 + by * 0.75);
+    }
+    const [lx, ly] = pts[pts.length - 1] as [number, number];
+    path.lineTo(lx, ly);
+  }
+  return path;
+}
+
+function tileCenter(tile: number, width: number): [number, number] {
+  return [(tile % width) + 0.5, Math.floor(tile / width) + 0.5];
 }

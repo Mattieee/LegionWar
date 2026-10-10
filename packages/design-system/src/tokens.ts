@@ -295,6 +295,10 @@ export const tokens = {
     ally: "{color.verdigris.500}",
     parjure: "{heraldry.gules}",
     crown: "{heraldry.or}",
+    /** « +X or » au-dessus de vos ports à chaque nef arrivée. */
+    trade: "{color.sienna.600}",
+    /** Routes des caravanes : trait fin continu à l'encre, en retrait (opacité réduite au rendu). */
+    road: "{color.ink.700}",
     /** Marques des mécaniques de race sur la carte (GDD §7.3). */
     marks: {
       /** Remparts d'Aldoria : créneaux à l'encre alternés avec la pierre. */

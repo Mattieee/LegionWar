@@ -98,6 +98,8 @@ export function isValidIntent(value: unknown): value is Intent {
     case "allianceRenew":
     case "allianceBreak":
       return isPlayerId(value.ally);
+    case "embargo":
+      return isPlayerId(value.target) && typeof value.on === "boolean";
     case "donate":
       return (
         isPlayerId(value.target) &&

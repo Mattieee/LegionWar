@@ -48,9 +48,10 @@ const JOBS = [
     threshold: 0.3,
   },
   // Bâtiments
+  // L'original « comptoir » sert au Marché (BuildingKind.Marche).
   ...["bourg", "tour", "port", "comptoir", "bastion", "sanctuaire"].map((id) => ({
     src: `building-${id}`,
-    out: [join(ART, "buildings"), `${id}.webp`],
+    out: [join(ART, "buildings"), `${id === "comptoir" ? "marche" : id}.webp`],
     width: 256,
     mode: "ink",
   })),

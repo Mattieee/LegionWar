@@ -161,6 +161,8 @@ export const CROWN_PERCENT = 35;
 /** Relations des prétendants : bornes, retour vers 0 d'un point tous les 25 ticks. */
 export const RELATION_MAX = 100;
 export const RELATION_DECAY_TICKS = 25;
+/** Fermer ses ports à un prétendant lui coûte cette relation (une fois). */
+export const RELATION_EMBARGOED = -20;
 
 // Victoire ------------------------------------------------------------------------------------
 export const WIN_PERCENT = 80;
@@ -242,6 +244,61 @@ export interface BuildingInfo {
   baseCost: (owned: number) => number;
 }
 
+// Commerce maritime (GDD §9) -----------------------------------------------------------------
+/** Un port arme une nef toutes les 15 s ; la nef avance d'une case d'eau par tick. */
+export const TRADE_INTERVAL = 150;
+export const NEF_TILES_PER_TICK = 1;
+/** Or d'une traversée, pour chacun des deux ports : 40 par case de mer, de 4 000 à 20 000. */
+export const TRADE_GOLD_PER_TILE = 40;
+export const TRADE_GOLD_MIN = 4000;
+export const TRADE_GOLD_MAX = 20_000;
+/** Plafond de sécurité des nefs en mer, toutes parties confondues. */
+export const MAX_NEFS = 400;
+/** Après une attaque, la victime ferme ses ports à l'agresseur pendant 3 min. */
+export const EMBARGO_TICKS = 1800;
+/** Un clic à cette distance (tuiles) d'une côte place le port sur la côte la plus proche. */
+export const PORT_SNAP_RADIUS = 20;
+
+// Commerce terrestre (GDD §9.3) ---------------------------------------------------------------
+export interface CaravanRules {
+  /** Portée d'un Marché : il rattache les étapes à moins de tant de cases (vol d'oiseau). */
+  range: number;
+  /**
+   * Longueur maximale d'une route, en pas droits : la recherche est bornée au coût de ce nombre
+   * de pas droits (une diagonale coûte 1,5 pas : 40 diagonales au plus, montagnes plus chères).
+   */
+  routeMaxSteps: number;
+  /** Pas de nouvelle route vers une étape déjà joignable en ce nombre d'étapes ou moins. */
+  maxHops: number;
+  /** Ticks entre deux caravanes d'un même Marché. */
+  interval: number;
+  /** Pas parcourus par tick. */
+  stepsPerTick: number;
+  /** Or par Bourg ou Port traversé : chez soi ; chez un autre et chez un allié (aux deux maîtres). */
+  gold: { self: number; other: number; ally: number };
+  /** Étapes payantes au plus par caravane. */
+  maxPaidStops: number;
+  /** Plafond de sécurité des caravanes en route, toutes parties confondues. */
+  maxCaravans: number;
+}
+
+/**
+ * Un Marché relie les Bourgs, Ports et Marchés à moins de 40 cases (routes par la terre, au plus
+ * le coût de 60 pas droits) et envoie une caravane toutes les 10 s. Chaque Bourg ou Port traversé paie
+ * 2 000 or chez soi ; 6 000 chez un autre et 8 000 chez un allié, versés aux deux maîtres.
+ * Mesuré sur 400 parties (4 Ducs, carte moyenne) : caravanes 9 % de l'or, commerce total 31 %.
+ */
+export const CARAVAN_RULES: CaravanRules = {
+  range: 40,
+  routeMaxSteps: 60,
+  maxHops: 3,
+  interval: 100,
+  stepsPerTick: 1,
+  gold: { self: 2000, other: 6000, ally: 8000 },
+  maxPaidStops: 5,
+  maxCaravans: 400,
+};
+
 export const BUILDINGS: Record<BuildingKind, BuildingInfo> = {
   [BuildingKind.Bourg]: {
     name: "Bourg",
@@ -254,6 +311,18 @@ export const BUILDINGS: Record<BuildingKind, BuildingInfo> = {
     constructionTicks: 50,
     // 50 k, 100 k, … plafonné à 250 k
     baseCost: (owned) => Math.min(250_000, (owned + 1) * 50_000),
+  },
+  [BuildingKind.Port]: {
+    name: "Port",
+    constructionTicks: 50,
+    // 125 k → 250 k → 500 k → 1 M (plafond), compteur propre aux ports
+    baseCost: (owned) => 125_000 * (1 << Math.min(owned, 3)),
+  },
+  [BuildingKind.Marche]: {
+    name: "Marché",
+    constructionTicks: 20,
+    // 125 k → 250 k → 500 k → 1 M (plafond), compteur propre aux Marchés
+    baseCost: (owned) => 125_000 * (1 << Math.min(owned, 3)),
   },
 };
 

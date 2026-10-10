@@ -22,13 +22,13 @@
 
 ## Monorepo (npm workspaces)
 
-| Package                    | Dépend de                           | Contenu                                                                                                                                                                         |
-| -------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@legionwar/engine`        | rien                                | `core/` (PRNG, maths déterministes, tas, hash), `map/` (encodage des tuiles, `GameMap`, générateur), `config/` (règles, races), `game/` (`Game`, `Player`, `Attack`, IA, types) |
-| `@legionwar/shared`        | engine                              | Messages client ↔ serveur, `parseClientMessage`, `sanitizeName`                                                                                                                 |
-| `@legionwar/server`        | engine, shared, ws                  | `GameRoom` (logique testable sans réseau), `index.ts` (HTTP `/health` et WebSocket)                                                                                             |
-| `@legionwar/design-system` | rien (polices @fontsource)          | Tokens (source unique), CSS généré `--lw-*`, composants `.lw-*`, utilitaires couleur et contraste — voir [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)                                   |
-| `@legionwar/client`        | engine, shared, design-system, vite | Menu, session de jeu, worker de simulation, rendu, HUD, entrées                                                                                                                 |
+| Package                    | Dépend de                           | Contenu                                                                                                                                                                                                                                                                                    |
+| -------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@legionwar/engine`        | rien                                | `core/` (PRNG, maths déterministes, tas, hash), `map/` (encodage des tuiles, `GameMap`, générateur), `config/` (règles, races), `game/` (`Game`, `Player`, `Attack`, `Diplomacy`, commerce : `Trade` pour les ports et nefs, `Caravans` pour les Marchés, routes et caravanes ; IA, types) |
+| `@legionwar/shared`        | engine                              | Messages client ↔ serveur, `parseClientMessage`, `sanitizeName`                                                                                                                                                                                                                            |
+| `@legionwar/server`        | engine, shared, ws                  | `GameRoom` (logique testable sans réseau), `index.ts` (HTTP `/health` et WebSocket)                                                                                                                                                                                                        |
+| `@legionwar/design-system` | rien (polices @fontsource)          | Tokens (source unique), CSS généré `--lw-*`, composants `.lw-*`, utilitaires couleur et contraste — voir [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)                                                                                                                                              |
+| `@legionwar/client`        | engine, shared, design-system, vite | Menu, session de jeu, worker de simulation, rendu, HUD, entrées                                                                                                                                                                                                                            |
 
 - **Pas de compilation intermédiaire :** les packages exportent directement leur source TypeScript (`exports: "./src/index.ts"`). Vite, Vitest et tsx les consomment tels quels.
 - **Contrôle des types :** `tsc --noEmit` par package. Le moteur est compilé **sans** les libs DOM et Node : il ne peut pas en dépendre par erreur.
@@ -55,13 +55,14 @@ En lockstep, chaque client rejoue la même suite de tours. Le serveur n'envoie q
 1. Appliquer les intents du tour, dans l'ordre reçu.
 2. `tick()` :
    - **pendant le déploiement :** attendre (fin de phase au premier spawn en solo, à 200 ticks en multijoueur) ;
-   - **ensuite :** économie (régénération, or, mines), chantiers, charniers, remparts, bosquets, diplomatie (expirations des demandes et alliances, fenêtres de renouvellement, retour des relations vers 0), IA dans l'ordre des identifiants (prétendants puis tribus), barges, attaques, puis vérification de victoire tous les 10 ticks.
+   - **ensuite :** économie (régénération, or, mines), chantiers, commerce (nefs, puis réseau des Marchés et caravanes), charniers, remparts, bosquets, diplomatie (expirations des demandes et alliances, fenêtres de renouvellement, retour des relations vers 0), IA dans l'ordre des identifiants (prétendants puis tribus), barges, attaques, puis vérification de victoire tous les 10 ticks.
 3. `collect()` renvoie un `TickResult` :
    - les tuiles modifiées, en paires `[tuile, état]` dans un `Uint32Array` transférable ;
    - la vue des joueurs ;
    - les bâtiments, seulement s'ils ont changé ;
    - les attaques en cours ;
    - l'état diplomatique (demandes, alliances), seulement s'il a changé ;
+   - les nefs et les caravanes en route ; les embargos et les routes commerciales, seulement s'ils ont changé ;
    - les événements ;
    - le hash, tous les 10 ticks ;
    - le vainqueur.

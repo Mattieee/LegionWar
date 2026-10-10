@@ -1,4 +1,4 @@
-import { NATION_WEAKEST_EDGE, buildingCost, maxTroops } from "../config/Rules";
+import { NATION_WEAKEST_EDGE, STRUCTURE_MIN_DIST, buildingCost, maxTroops } from "../config/Rules";
 import { PseudoRandom } from "../core/PseudoRandom";
 import type { Game } from "./Game";
 import type { Player } from "./Player";
@@ -14,6 +14,35 @@ const EARLY_GAME_TICKS = 1800;
 const BUILD_SAMPLES = 25;
 const BUILD_DEPTH = 8;
 const TOWER_DEPTH = 5;
+/** Ports d'un prétendant (au plus) et tuiles côtières examinées pour en placer un. */
+const MAX_NATION_PORTS = 3;
+const PORT_SAMPLES = 40;
+/** Marchés : un pour deux Bourgs achevés, 2 au plus, là où il relie au moins 2 points d'étapes. */
+const MAX_NATION_MARKETS = 2;
+const BOURGS_PER_MARKET = 2;
+const MARKET_MIN_SCORE = 2;
+/**
+ * Sites de Marché essayés autour de ses Bourgs et Ports : 8 directions à 14, 22 et 30 cases
+ * (diagonales à ×0,7 près : 10, 15, 21).
+ */
+const MARKET_OFFSETS: readonly (readonly [number, number])[] = (
+  [
+    [14, 10],
+    [22, 15],
+    [30, 21],
+  ] as const
+).flatMap(([r, d]) => {
+  return [
+    [r, 0],
+    [-r, 0],
+    [0, r],
+    [0, -r],
+    [d, d],
+    [d, -d],
+    [-d, d],
+    [-d, -d],
+  ] as const;
+});
 /** Part des troupes engagées contre lui au-delà de laquelle il bâtit une tour. */
 const TOWER_THRESHOLD = 0.35;
 
@@ -54,6 +83,7 @@ export class NationBrain {
     if (!me.alive || ticks % this.interval !== this.offset) return;
     this.neighbors = this.game.neighborOwners(me);
     this.answerRequests();
+    this.embargoes();
     const betrayed = this.scheduledBetrayal();
     // Pas de demande le cycle d'une trahison : il se re-proposerait à sa victime.
     if (betrayed === null) this.proposeAlliance();
@@ -226,12 +256,127 @@ export class NationBrain {
         }
       }
     }
-    // Bourg : dès que l'or le permet (avec une marge pour les petits niveaux), au cœur du royaume.
     const margin = level.prudence > 0 ? 1 : 1.5;
+    // Port : s'il est côtier, au plus min(3, 1 + Bourgs/2) ports (GDD §9).
+    const portCap = Math.min(MAX_NATION_PORTS, 1 + Math.floor(me.completedBourgs / 2));
+    if (
+      me.buildingCounts[BuildingKind.Port] < portCap &&
+      me.gold >= buildingCost(BuildingKind.Port, me) * margin
+    ) {
+      const tile = this.portSite();
+      if (tile !== null && game.build(me, BuildingKind.Port, tile)) return;
+    }
+    // Marché : un pour deux Bourgs achevés (2 au plus), là où il relie le plus d'étapes.
+    const marketCap = Math.min(
+      MAX_NATION_MARKETS,
+      Math.floor(me.completedBourgs / BOURGS_PER_MARKET),
+    );
+    if (
+      me.buildingCounts[BuildingKind.Marche] < marketCap &&
+      me.gold >= buildingCost(BuildingKind.Marche, me) * margin
+    ) {
+      const tile = this.marketSite();
+      if (tile !== null && game.build(me, BuildingKind.Marche, tile)) return;
+    }
+    // Bourg : dès que l'or le permet (avec une marge pour les petits niveaux), au cœur du royaume.
     if (me.gold >= buildingCost(BuildingKind.Bourg, me) * margin) {
       for (const tile of this.innerTiles()) {
         if (game.build(me, BuildingKind.Bourg, tile)) return;
       }
+    }
+  }
+
+  /**
+   * Côte de mer sûre pour un port : tuile frontière au bord de l'océan dont tous les voisins de
+   * terre sont à lui, la plus éloignée de ses autres ports (échantillon de tuiles côtières).
+   */
+  private portSite(): number | null {
+    const map = this.game.map;
+    const me = this.player;
+    const coast = [...me.border].filter(
+      (t) =>
+        map.neighbors(t).some((n) => map.isOcean(n)) &&
+        map.neighbors(t).every((n) => map.isWater(n) || map.owner(n) === me.id),
+    );
+    if (coast.length === 0) return null;
+    const ports = this.game
+      .buildingViews()
+      .filter((b) => b.owner === me.id && b.kind === BuildingKind.Port)
+      .map((b) => b.tile);
+    const step = Math.max(1, Math.floor(coast.length / PORT_SAMPLES));
+    let best: number | null = null;
+    let bestScore = -1;
+    for (let i = 0; i < coast.length; i += step) {
+      const t = coast[i] as number;
+      let score = Number.MAX_SAFE_INTEGER;
+      for (const q of ports) score = Math.min(score, map.euclidSq(q, t));
+      if (score > bestScore) {
+        bestScore = score;
+        best = t;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Site de Marché : tuile intérieure autour de ses Bourgs et Ports, libre de tout bâtiment, qui
+   * a le plus d'étapes à portée (Bourg ou Port à lui : 1 ; d'un royaume sans embargo : 2).
+   */
+  private marketSite(): number | null {
+    const game = this.game;
+    const map = game.map;
+    const me = this.player;
+    const buildings = game.buildingViews();
+    const anchors = buildings
+      .filter((b) => b.owner === me.id && b.done && b.kind !== BuildingKind.Tour)
+      .filter((b) => b.kind !== BuildingKind.Marche)
+      .map((b) => b.tile);
+    const minSq = STRUCTURE_MIN_DIST * STRUCTURE_MIN_DIST;
+    let best: number | null = null;
+    let bestScore = MARKET_MIN_SCORE - 1;
+    for (const anchor of anchors) {
+      const ax = map.x(anchor);
+      const ay = map.y(anchor);
+      for (const [dx, dy] of MARKET_OFFSETS) {
+        const x = ax + dx;
+        const y = ay + dy;
+        if (x < 0 || y < 0 || x >= map.width || y >= map.height) continue;
+        const t = map.ref(x, y);
+        if (map.owner(t) !== me.id || !map.isPassableLand(t)) continue;
+        if (!map.neighbors(t).every((n) => map.owner(n) === me.id)) continue;
+        if (buildings.some((b) => map.euclidSq(b.tile, t) < minSq)) continue;
+        let score = 0;
+        for (const s of game.caravans.stopsInRange(t)) {
+          if (s.kind === "marche") continue;
+          if (s.owner === me.id) score += 1;
+          else if (this.isTrader(s.owner) && !game.trade.blocked(me.id, s.owner)) score += 2;
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          best = t;
+        }
+      }
+    }
+    return best;
+  }
+
+  private isTrader(id: number): boolean {
+    const p = this.game.player(id);
+    return p !== null && p.alive && p.kind !== "bot";
+  }
+
+  /** Ferme ses ports aux royaumes Hostiles, les rouvre dès que la relation redevient neutre. */
+  private embargoes(): void {
+    const game = this.game;
+    const me = this.player;
+    for (let id = 1; ; id++) {
+      const other = game.player(id);
+      if (other === null) break;
+      if (other === me || !other.alive || other.kind === "bot") continue;
+      const relation = game.relation(me.id, id);
+      const closed = game.trade.embargo(me.id, id) === -1;
+      if (relation < -50 && !closed) game.setEmbargo(me, other, true);
+      else if (relation >= 0 && closed) game.setEmbargo(me, other, false);
     }
   }
 

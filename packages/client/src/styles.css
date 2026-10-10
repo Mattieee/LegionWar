@@ -557,6 +557,17 @@ body {
     transform var(--lw-duration-base) var(--lw-easing-standard);
 }
 
+/* Ligne du commerce : ports, nefs en mer, or de la dernière minute. */
+.hud__trade {
+  margin: 0;
+  font-size: var(--lw-font-size-xs);
+  color: var(--lw-text-secondary);
+}
+
+.hud__status--trade {
+  color: var(--lw-text-secondary);
+}
+
 /* Rangée de bâtiments : touche, gravure, nombre possédé ; infobulle avec le coût. */
 .hud__hotbar {
   display: flex;

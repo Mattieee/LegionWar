@@ -18,6 +18,8 @@ import {
   MAX_NATIONS,
   MIN_SPAWN_DISTANCE,
   MULTIPLAYER_SPAWN_PHASE_TICKS,
+  PORT_SNAP_RADIUS,
+  RELATION_EMBARGOED,
   NATION_SPAWN_DISTANCE,
   NATION_SPAWN_DISTANCE_RELAXED,
   RAMPART_INTERVAL,
@@ -50,6 +52,8 @@ import { Attack } from "./Attack";
 import { BotBrain } from "./BotAI";
 import { Diplomacy } from "./Diplomacy";
 import { NationBrain } from "./NationAI";
+import { Caravans, type StopInfo } from "./Caravans";
+import { type PortInfo, Trade } from "./Trade";
 import { type Boat, SeaScratch, findSeaRoute, landingCandidates } from "./Naval";
 import { nationName, tribeName } from "./Names";
 import { Player } from "./Player";
@@ -127,6 +131,9 @@ export class Game {
   private readonly byClient = new Map<string, Player>();
   private readonly brains: Brain[] = [];
   readonly diplomacy: Diplomacy;
+  /** Commerce maritime : nefs, routes, embargos (GDD §9). */
+  readonly trade: Trade;
+  readonly caravans: Caravans;
   /** Relations de chaque prétendant envers chaque joueur (−100 à +100). */
   private readonly relations = new Map<number, Int8Array>();
   private attacks: Attack[] = [];
@@ -251,6 +258,21 @@ export class Game {
         : ALLIANCE_TICKS,
       config.donations ?? true,
     );
+    this.trade = new Trade(this, seed);
+    this.caravans = new Caravans(
+      {
+        now: () => this.ticks,
+        map: this.map,
+        trader: (id) => {
+          const p = this.player(id);
+          return p !== null && p.alive && p.kind !== "bot";
+        },
+        allied: (a, b) => this.diplomacy.allied(a, b),
+        blocked: (a, b) => this.trade.blocked(a, b),
+        pay: (owner, gold, tile) => this.payCaravan(owner, gold, tile),
+      },
+      seed,
+    );
     this.groveOwners = this.players.filter((p): p is Player => p !== null && p.mods.grove);
     // Calculé une fois ici : à la volée, il provoquait un pic de ~20 ms en cours de partie.
     this.forestDist = this.groveOwners.length > 0 ? this.computeForestDist() : null;
@@ -327,6 +349,16 @@ export class Game {
       case "allianceBreak":
         this.diplomacyResult(p, this.diplomacy.breakAlliance(p, intent.ally));
         break;
+      case "embargo": {
+        const target = this.player(intent.target);
+        const invalid = !target || !target.alive || target.kind === "bot" || target === p;
+        if (invalid || !p.alive || this.inSpawnPhase) {
+          this.diplomacyResult(p, "invalidTarget");
+        } else {
+          this.setEmbargo(p, target, intent.on === true);
+        }
+        break;
+      }
       case "donate":
         if (intent.resource === "gold" || intent.resource === "troops") {
           this.diplomacyResult(
@@ -354,6 +386,8 @@ export class Game {
       this.crownId = this.crownHolder()?.id ?? 0;
       this.updateEconomy();
       this.updateConstructions();
+      this.trade.tick(this.portInfos());
+      this.caravans.tick(this.tradeStops());
       this.updateCharniers();
       this.updateRamparts();
       this.updateGroves();
@@ -821,6 +855,20 @@ export class Game {
     if (targetId === 0) return;
     this.diplomacy.cancelRequest(attacker.id, targetId);
     const target = this.player(targetId);
+    // La victime ferme ses ports à l'agresseur pour 3 min (pas entre tribus, qui ne commercent pas).
+    if (target && target.kind !== "bot" && attacker.kind !== "bot") {
+      if (this.trade.closeAfterAttack(targetId, attacker.id)) {
+        if (target.kind === "human" || attacker.kind === "human") {
+          this.events.push({
+            type: "embargo",
+            from: targetId,
+            to: attacker.id,
+            on: true,
+            auto: true,
+          });
+        }
+      }
+    }
     if (target?.kind === "nation") {
       this.adjustRelation(targetId, attacker.id, target.level.attackedRelation);
     }
@@ -839,6 +887,7 @@ export class Game {
     }
     this.adjustRelation(a, b, RELATION_MAX);
     this.adjustRelation(b, a, RELATION_MAX);
+    this.trade.liftTemporary(a, b);
   }
 
   onRequestRefused(requester: number, responder: number): void {
@@ -928,6 +977,11 @@ export class Game {
       return false;
     };
     if (this.inSpawnPhase) return reject("spawnPhase");
+    if (kind === BuildingKind.Port) {
+      const coast = this.nearestCoast(p, tile);
+      if (coast === null) return reject("coast");
+      tile = coast;
+    }
     if (!p.alive || this.map.owner(tile) !== p.id) return reject("notOwned");
     if (!this.map.isPassableLand(tile)) return reject("terrain");
     const minDistSq = STRUCTURE_MIN_DIST * STRUCTURE_MIN_DIST;
@@ -950,6 +1004,89 @@ export class Game {
     this.buildingAt.set(tile, building.id);
     this.buildingsDirty = true;
     return true;
+  }
+
+  /**
+   * Côte de mer la plus proche (à soi, au bord de l'océan) à moins de PORT_SNAP_RADIUS tuiles :
+   * un clic près du rivage suffit à poser un port. Les lacs ne comptent pas.
+   */
+  private nearestCoast(p: Player, tile: number): number | null {
+    const map = this.map;
+    const isCoast = (t: number): boolean =>
+      map.owner(t) === p.id &&
+      map.isPassableLand(t) &&
+      map.neighbors(t).some((n) => map.isOcean(n));
+    if (isCoast(tile)) return tile;
+    const cx = map.x(tile);
+    const cy = map.y(tile);
+    const r = PORT_SNAP_RADIUS;
+    let best: number | null = null;
+    let bestSq = r * r + 1;
+    for (let y = Math.max(0, cy - r); y <= Math.min(map.height - 1, cy + r); y++) {
+      for (let x = Math.max(0, cx - r); x <= Math.min(map.width - 1, cx + r); x++) {
+        const d = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+        if (d >= bestSq) continue;
+        const t = map.ref(x, y);
+        if (isCoast(t)) {
+          best = t;
+          bestSq = d;
+        }
+      }
+    }
+    return best;
+  }
+
+  /** Ports achevés, dans l'ordre de création (pour le commerce). */
+  private portInfos(): PortInfo[] {
+    const out: PortInfo[] = [];
+    for (const b of this.buildings.values()) {
+      if (b.kind === BuildingKind.Port && b.remaining === 0) {
+        out.push({ id: b.id, owner: b.owner, tile: b.tile });
+      }
+    }
+    return out;
+  }
+
+  /** Bourgs, Ports et Marchés achevés, dans l'ordre de création : les étapes des caravanes. */
+  private tradeStops(): StopInfo[] {
+    const out: StopInfo[] = [];
+    for (const b of this.buildings.values()) {
+      if (b.remaining !== 0) continue;
+      if (b.kind === BuildingKind.Bourg)
+        out.push({ id: b.id, kind: "bourg", owner: b.owner, tile: b.tile });
+      else if (b.kind === BuildingKind.Port)
+        out.push({ id: b.id, kind: "port", owner: b.owner, tile: b.tile });
+      else if (b.kind === BuildingKind.Marche) {
+        out.push({ id: b.id, kind: "marche", owner: b.owner, tile: b.tile });
+      }
+    }
+    return out;
+  }
+
+  /** Or d'une étape de caravane (le « +or » s'affiche sur l'étape). */
+  private payCaravan(owner: number, gold: number, tile: number): void {
+    const p = this.player(owner);
+    if (!p) return;
+    p.addGold(gold);
+    p.caravanGold += gold;
+    this.events.push({ type: "tradeGold", player: owner, tile, amount: gold, source: "caravane" });
+  }
+
+  /** Or d'une traversée, versé au maître d'un port. */
+  payTrade(owner: number, gold: number): void {
+    const p = this.player(owner);
+    if (!p) return;
+    p.addGold(gold);
+    p.tradeGold += gold;
+  }
+
+  /** Fermer (ou rouvrir) durablement ses ports à un royaume ; un prétendant s'en souvient. */
+  setEmbargo(from: Player, to: Player, on: boolean): void {
+    if (!this.trade.setPermanent(from.id, to.id, on)) return;
+    if (on) this.adjustRelation(to.id, from.id, RELATION_EMBARGOED);
+    if (from.kind === "human" || to.kind === "human") {
+      this.events.push({ type: "embargo", from: from.id, to: to.id, on, auto: false });
+    }
   }
 
   private updateConstructions(): void {
@@ -976,9 +1113,11 @@ export class Game {
       if (b.kind === BuildingKind.Bourg && b.remaining === 0) from.completedBourgs--;
     }
     const to = this.players[newOwner];
-    if (b.kind === BuildingKind.Tour || newOwner === 0 || !to) {
+    const lost = b.kind === BuildingKind.Port && to?.kind === "bot";
+    if (b.kind === BuildingKind.Tour || newOwner === 0 || !to || lost) {
       this.buildings.delete(id);
       this.buildingAt.delete(tile);
+      if (b.kind === BuildingKind.Port) this.trade.forgetPort(id);
     } else {
       to.buildingCounts[b.kind]++;
       if (b.kind === BuildingKind.Bourg && b.remaining === 0) to.completedBourgs++;
@@ -1066,8 +1205,12 @@ export class Game {
       h = mixHash(h, p.raised);
       h = mixHash(h, p.parjureUntil);
       h = mixHash(h, p.betrayals);
+      h = mixHash(h, p.tradeGold);
+      h = mixHash(h, p.caravanGold);
     }
     h = this.diplomacy.hash(h);
+    h = this.trade.hash(h);
+    h = this.caravans.hash(h);
     // L'horloge de guerre commande le Crépuscule et la limite de temps.
     h = mixHash(h, this.inSpawnPhase ? -1 : this.warStartTick);
     for (const [id, rel] of this.relations) {
@@ -1118,6 +1261,10 @@ export class Game {
         allies: this.diplomacy.alliesOf(p.id),
         parjureUntil: p.parjureUntil,
         betrayals: p.betrayals,
+        ports: p.buildingCounts[BuildingKind.Port],
+        tradeGold: p.tradeGold,
+        marches: p.buildingCounts[BuildingKind.Marche],
+        caravanGold: p.caravanGold,
         regard:
           p.kind === "nation"
             ? Array.from({ length: this.config.humans.length + 1 }, (_, id) =>
@@ -1261,6 +1408,10 @@ export class Game {
       attacks,
       boats,
       diplomacy: this.diplomacy.dirty ? this.diplomacy.view() : null,
+      nefs: this.trade.nefViews(),
+      embargoes: this.trade.dirty ? this.trade.embargoViews() : null,
+      routes: this.caravans.routesDirty ? this.caravans.routeViews() : null,
+      caravans: this.caravans.caravanViews(),
       events: this.events,
       hash: this.ticks % HASH_INTERVAL === 0 ? this.hash() : null,
       winner: this.winner,
@@ -1272,6 +1423,8 @@ export class Game {
     this.events = [];
     this.buildingsDirty = false;
     this.diplomacy.dirty = false;
+    this.trade.dirty = false;
+    this.caravans.routesDirty = false;
     return result;
   }
 }

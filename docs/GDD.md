@@ -35,7 +35,7 @@ L'Empire d'Ostre unifiait Valdren depuis mille ans. Il s'est effondré en une nu
 1. **Déploiement** [Proto] : on clique une terre libre et on reçoit un disque de rayon 4, soit environ 50 tuiles. En solo, la phase se termine dès ce choix ; en multijoueur, elle dure 20 s.
 2. **Expansion** [Proto] : on attaque les terres libres avec un pourcentage de ses troupes (curseur, 20 % par défaut).
 3. **Croissance** [Proto] : les troupes remontent vers un plafond qui dépend du territoire et des Bourgs. L'or tombe en continu.
-4. **Construction** [Proto partiel] : Bourgs (population) et Tours de garde (défense) aujourd'hui ; ports, comptoirs et sanctuaires sont prévus.
+4. **Construction** [Proto partiel] : Bourgs (population), Tours de garde (défense), Ports et Marchés (commerce) aujourd'hui ; bastions et sanctuaires sont prévus.
 5. **Guerre** [Proto] : attaques terrestres contre les voisins ; annexion des petits royaumes.
 6. **Magie, mer et diplomatie** [Prévu] : sorts, flottes, alliances et trahisons.
 7. **Victoire** [Proto] : contrôler **plus de 80 %** des terres conquérables (seuil qui baisse au Crépuscule, §14), ou être le dernier seigneur debout, ou le plus grand royaume à 35 min.
@@ -202,22 +202,51 @@ Chaque peuple a une mécanique visible sur la carte. Constantes dans `Rules.ts` 
 
 ### 8.2 Liste
 
-| Rôle               | Nom générique     | Coût                                               | Construction | Effet                                                                    | Statut  |
-| ------------------ | ----------------- | -------------------------------------------------- | ------------ | ------------------------------------------------------------------------ | ------- |
-| Population         | **Bourg**         | 125 k → 250 k → 500 k → 1 M (plafond)              | 2 s          | +250 000 troupes max                                                     | [Proto] |
-| Défense            | **Tour de garde** | 50 k, +50 k par tour (plafond 250 k)               | 5 s          | Rayon 20 : pertes de l'attaquant ×4, conquête 2,5× plus lente            | [Proto] |
-| Commerce maritime  | Port              | comme le Bourg (compteur partagé avec le Comptoir) | 5 s          | Nefs marchandes, chantier naval                                          | [Prévu] |
-| Commerce terrestre | Comptoir          | comme le Port                                      | 2 s          | Crée des caravanes et des routes vers les Bourgs et Ports à ≤ 110 tuiles | [Prévu] |
-| Contre-magie       | Bastion runique   | 1,5 M, puis 3 M                                    | 30 s         | Intercepte les sorts dans son rayon (70 + bonus de niveau)               | [Prévu] |
-| Magie              | Sanctuaire        | 1 M                                                | 10 s         | Lance les sorts ; le niveau donne le nombre de sorts simultanés          | [Prévu] |
+| Rôle               | Nom générique     | Coût                                          | Construction | Effet                                                                   | Statut  |
+| ------------------ | ----------------- | --------------------------------------------- | ------------ | ----------------------------------------------------------------------- | ------- |
+| Population         | **Bourg**         | 125 k → 250 k → 500 k → 1 M (plafond)         | 2 s          | +250 000 troupes max                                                    | [Proto] |
+| Défense            | **Tour de garde** | 50 k, +50 k par tour (plafond 250 k)          | 5 s          | Rayon 20 : pertes de l'attaquant ×4, conquête 2,5× plus lente           | [Proto] |
+| Commerce maritime  | **Port**          | 125 k → 250 k → 500 k → 1 M (compteur propre) | 5 s          | Sur une côte de mer ; arme une nef marchande toutes les 15 s (§9)       | [Proto] |
+| Commerce terrestre | **Marché**        | 125 k → 250 k → 500 k → 1 M (compteur propre) | 2 s          | Routes vers les étapes à 40 cases ; une caravane toutes les 10 s (§9.3) | [Proto] |
+| Contre-magie       | Bastion runique   | 1,5 M, puis 3 M                               | 30 s         | Intercepte les sorts dans son rayon (70 + bonus de niveau)              | [Prévu] |
+| Magie              | Sanctuaire        | 1 M                                           | 10 s         | Lance les sorts ; le niveau donne le nombre de sorts simultanés         | [Prévu] |
 
-- **Amélioration** [Prévu] : Bourg, Port, Comptoir, Bastion et Sanctuaire pourront monter de niveau, au même coût qu'une nouvelle construction.
+- **Amélioration** [Prévu] : Bourg, Port, Marché, Bastion et Sanctuaire pourront monter de niveau, au même coût qu'une nouvelle construction.
 
-## 9. Commerce [Prévu]
+## 9. Commerce
 
-- **Nefs marchandes :** chaque port lance des nefs vers les ports d'autres seigneurs, sauf en cas d'embargo. Les **deux** ports encaissent le gain : `75 000 / (1 + e^(−0,03 × (d − 300))) + 50 × d`, où `d` est la distance parcourue.
-- **Caravanes :** elles circulent sur des routes entre Comptoirs, Bourgs et Ports. Gain par étape : 10 k (chez soi), 25 k (autre seigneur), 35 k (allié), dégressif après la 9ᵉ étape.
-- **Piraterie :** un navire de guerre capture les nefs ennemies et empoche leur cargaison.
+Spécification du game designer (2026-10-10), validée par le porteur de projet : comme OpenFront, adapté à nos cartes. Constantes dans `Rules.ts` (`TRADE_*`, `NEF_TILES_PER_TICK`, `MAX_NEFS`, `EMBARGO_TICKS`, `PORT_SNAP_RADIUS`, `CARAVAN_RULES`).
+
+### 9.1 Port et nefs marchandes [Proto]
+
+- **Port** (Aldoria : Port, Kharag : Quai de guerre, Morvane : Débarcadère maudit, Sylvanor : Havre) : sur **une tuile à soi qui touche l'océan** (les lacs ne comptent pas) ; un clic à 20 tuiles ou moins d'une côte de mer se cale sur la côte la plus proche. Coût 125 k → 250 k → 500 k → 1 M selon le nombre de ports possédés (×0,85 pour Aldoria), 5 s de construction, écart de 12 tuiles avec les autres bâtiments. Capturé comme un Bourg ; détruit s'il tombe aux mains d'une tribu (qui ne commerce pas).
+- **Nefs :** chaque port achevé arme une nef **toutes les 15 s** (premier départ décalé selon son identifiant) vers le port d'un **autre seigneur ou prétendant** de la **même mer**, sans embargo entre eux, jamais une tribu. Poids de tirage : 1, +1 pour le tiers le plus proche, +1 si son maître est allié. La nef avance d'**une case d'eau par tick** (comme la barge). Route : la plus courte sur l'océan, calculée à la première traversée de chaque paire de ports puis gardée.
+- **Gain :** à l'arrivée, **les maîtres actuels des deux ports** touchent chacun `clamp(40 × cases de mer, 4 000, 20 000)` or, sans bonus d'or de peuple. « Une nef rapporte 40 or par lieue de mer, jusqu'à 20 000, au port de départ comme au port d'arrivée. »
+- **Perte :** la nef disparaît sans or si un des deux ports est détruit ou passe au même maître que l'autre, si un maître est éliminé, ou si un embargo tombe entre eux. Plafond de sécurité : 400 nefs en mer.
+- **IA :** un prétendant bâtit un Port (après la Tour, avant le Bourg) s'il est côtier et a moins de min(3, 1 + ⌊Bourgs / 2⌋) ports, sur une côte dont tous les voisins de terre sont à lui, la plus éloignée de ses autres ports. Les tribus ne commercent pas.
+- **Mesures** (game designer, banc de commerce, 4 prétendants Duc + 60 tribus, 400 parties) : le commerce pèse **23 % de l'or** (21 à 25 % selon le peuple), la partie s'allonge d'environ 0,3 min ; le revenu étant par port et non par tuile, il pèse plus chez les petits royaumes. Appliquer le bonus d'or du peuple portait Aldoria à 37 % : écarté. La formule d'OpenFront (`75 000 / (1 + e^(−0,03 (d − 300))) + 50 d`) verserait plus de 70 % de l'or à nos distances : remplacée.
+
+### 9.2 Embargo [Proto]
+
+- **Durable :** fermer ses ports à un seigneur ou un prétendant (touche <kbd>E</kbd>, menu radial, fiche du haut) bloque le commerce dans les deux sens, nefs et caravanes ; on les rouvre de la même façon (ce qui lève aussi l'embargo de 3 min posé après une attaque). Fermer ses ports à un prétendant lui coûte −20 de relation (§12.1).
+- **Après une attaque :** quand un seigneur ou un prétendant attaque (ou lance une barge contre) un autre, la victime lui ferme ses ports **3 min** (5 min sur OpenFront : ici, le temps d'une guerre) ; une nouvelle attaque relance le délai. Entre royaumes en guerre, l'embargo bloque environ la moitié des départs.
+- **Alliance :** conclure une alliance lève les embargos temporaires entre les deux royaumes (pas les embargos durables).
+- **IA :** un prétendant ferme ses ports à tout royaume Hostile (relation < −50) et les rouvre quand la relation redevient neutre (≥ 0).
+
+### 9.3 Marché et caravanes [Proto]
+
+Comme l'usine d'OpenFront et ses trains (spécification du game designer, 2026-10-10, validée par le porteur de projet).
+
+- **Marché** (Aldoria : Guilde marchande, Kharag : Comptoir de troc, Morvane : Crypte des tributs, Sylvanor : Marché des lunes) : sur une tuile à soi, n'importe où. Coût 125 k → 250 k → 500 k → 1 M selon le nombre de Marchés possédés (compteur propre, ×0,85 pour Aldoria), 2 s de construction, écart de 12 tuiles. Capturé comme un Bourg ; une tribu qui le prend n'en tire rien.
+- **Étapes et routes :** un Marché achevé rattache les **Bourgs, Ports et Marchés achevés à 40 cases ou moins** (vol d'oiseau), **quel que soit leur maître** ; un Bourg ou un Port achevé plus tard s'y rattache s'il a un Marché à portée. Chaque nouvelle étape trace une **route par la terre** (au plus le coût de 60 pas droits, une diagonale comptant 1,5 pas ; montagnes contournées si possible ; tracée dans les ticks qui suivent, deux étapes par tick) vers les étapes à portée, les plus proches d'abord, sauf celles déjà joignables en 3 étapes ou moins. Les routes traversent les frontières et survivent aux captures et à la guerre ; seule la destruction d'une étape efface ses routes.
+- **Caravanes :** chaque Marché d'un seigneur ou d'un prétendant envoie une caravane **toutes les 10 s** vers un Bourg ou un Port de son réseau tiré au sort (les siens, ou ceux d'un royaume sans embargo), par le plus court chemin en étapes qui évite les royaumes sous embargo. Elle avance d'une case par tick.
+- **Gain, à chaque Bourg ou Port traversé** (5 étapes payantes au plus) : **2 000 or** chez soi ; **6 000** chez un autre seigneur ou prétendant, versés à son maître **et** au maître de la caravane ; **8 000** chez un allié, aux deux. Sans bonus d'or de peuple. Les étapes d'une tribu se traversent sans payer.
+- **Perte :** la caravane disparaît si son maître est éliminé, si sa route disparaît, ou si elle arrive chez un royaume sous embargo. Plafond de sécurité : 400 caravanes en route.
+- **IA :** un prétendant bâtit un Marché (après le Port, avant le Bourg) s'il en a moins de min(2, ⌊Bourgs / 2⌋), sur une tuile intérieure à 14, 22 ou 30 cases de ses Bourgs et Ports, là où il a le plus d'étapes à portée (1 point pour une étape à lui, 2 pour celle d'un royaume sans embargo ; 2 points au moins). Le premier arrive vers 3 min de jeu.
+- **Mesures** (game designer, 4 prétendants Duc + 60 tribus, carte moyenne, 400 parties) : les caravanes pèsent **9 % de l'or**, le commerce total (nefs et caravanes) **31 %** ; durée et équilibre entre peuples inchangés au bruit près, part des caravanes identique d'un peuple à l'autre. Pas d'effet boule de neige : le commerce pèse 29 % de l'or du vainqueur, 34 % chez les survivants. Un Marché rapporte environ 25 k or/min : le premier est amorti en 5 min, le deuxième en 10 (le prix qui double limite l'empilement). 65 % de l'or des caravanes vient d'étapes à soi : le Marché est surtout un revenu passif ; pour pousser davantage aux échanges, le réglage 1 500 / 6 000 / 9 000 est prêt.
+- **Écarté :** compteur de prix partagé avec le Port (Marchés trop rares), gains 3 / 7,5 / 10 k (commerce à 34 % de l'or), pas de gain chez soi (le Marché ne rapporterait rien à un royaume isolé). La portée de 110 cases et les gains de 10 / 25 / 35 k d'OpenFront, pensés pour ses cartes, sont remplacés.
+- **v2** [Prévu] : amélioration du Marché, pillage des caravanes.
+- **Piraterie** [Prévu, v2] : un navire de guerre capture les nefs ennemies (le Drakkar de Kharag en ferait son crochet de peuple).
 
 ## 10. Guerre navale
 
@@ -243,6 +272,7 @@ C'est l'équivalent des armes nucléaires d'OpenFront.
 - **Terres maudites :** elles ralentissent la conquête, ne comptent pas pour la victoire et sont purifiées quand on les reconquiert.
 - **Bastion runique :** intercepte de façon déterministe les sorts qui passent à portée près de leur point de départ ou d'arrivée.
 - **Diplomatie :** lancer un sort majeur sur les terres d'un allié rompt l'alliance et fait du lanceur un traître.
+  | Fermer ses ports au prétendant (embargo durable) | −20 |
 
 ## 12. Diplomatie [Proto]
 
@@ -286,9 +316,9 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 - L'or est borné par l'or du donneur, les troupes par la marge du destinataire (plafond moins troupes actuelles). Option de partie `donations` (activés par défaut).
 - Les prétendants reçoivent des dons (leur relation s'améliore) mais n'en font pas en v1.
 
-### 12.5 Embargo, commerce, communication [Prévu]
+### 12.5 Embargo, commerce, communication
 
-- L'embargo (permanent, ou de 5 min après une attaque) n'agira que sur les nefs et caravanes : reporté avec le commerce (§9), comme le bonus des caravanes entre alliés. La v1 ne crée aucun état d'embargo.
+- **Embargo** [Proto] : durable, ou de 3 min après une attaque ; il bloque les nefs et les caravanes (§9.2). Une caravane qui passe chez un allié rapporte 8 000 or au lieu de 6 000 (§9.3).
 - Emojis et **messages prédéfinis** (pas de chat libre, pour la modération) : reportés.
 
 ## 13. Joueurs et IA
@@ -305,7 +335,7 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 | Or par tick                  | 100 × peuple                     | 50                                      | 100 × peuple                                      |
 | Pertes ×0,7 contre une tribu | oui                              | —                                       | oui                                               |
 | Or cédé quand il est annexé  | 50 % (0 s'il n'a jamais attaqué) | 100 %                                   | 50 % (même règle que le seigneur)                 |
-| Construit                    | oui                              | non                                     | Bourg, Tour de garde                              |
+| Construit                    | oui                              | non                                     | Bourg, Tour de garde, Port, Marché                |
 | Diplomatie                   | complète                         | accepte presque tout, ne demande jamais | complète (§13.4)                                  |
 | Peut gagner                  | oui                              | **non**                                 | oui (en solo, sa victoire est une défaite)        |
 
@@ -336,9 +366,9 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 | Trahison quand il est enfermé (allié voisin le plus faible)                 | jamais      | 2:1                  | 1,5:1   | 1,2:1         |
 | Relation quand il est attaqué                                               | −60         | −70                  | −80     | −100          |
 
-- **Cycle :** 1. répondre aux demandes et renouvellements ; 2. trahison programmée éventuelle ; 3. au plus une demande d'alliance sortante ; 4. construction ; 5. attaque. Reportés : emojis, embargo, navires de guerre, sorts.
+- **Cycle :** 1. répondre aux demandes et renouvellements ; 2. trahison programmée éventuelle ; 3. au plus une demande d'alliance sortante ; 4. construction ; 5. attaque. Reportés : emojis, navires de guerre, sorts.
 - **Attaque :** déclenchement à 45–54 % du plafond ; réserve = max(25–34 % du plafond, prudence × troupes du plus fort voisin non allié). Priorité absolue aux terres libres (40 % des troupes au-delà de 15 % du plafond), en barge si aucune n'est adjacente (dès Chevalier). Puis, dans l'ordre : **riposte** ; **Couronne** (Duc, Empereur : le royaume qui tient au moins 35 % des terres, voisin ou en barge) ; **aide à un allié** ; **Parjure voisin** ; tribu voisine la moins dense ; voisin le plus haï (relation < −50) ; voisin le moins dense si nos troupes valent au moins **1,25 fois** les siennes (`NATION_WEAKEST_EDGE` ; l'ancien seuil, 0,8 × troupes engageables, exigeait un voisin 5 fois plus faible entre Ducs égaux et figeait 44 % des parties) ; **île** : sans aucun voisin à attaquer, une barge vers le royaume non allié le plus faible, au même rapport (dès Chevalier). Une barge offensive ne sert qu'en riposte, contre la Couronne ou vers une île.
-- **Construction :** Bourg dès que l'or le couvre (×1,5 pour Écuyer et Chevalier), au cœur du royaume ; Tour quand les attaques entrantes engagent plus de 35 % de ses troupes, quelques tuiles derrière la frontière la plus menacée.
+- **Construction :** Port (§9.1) puis Marché (§9.3) s'il y a lieu ; Bourg dès que l'or le couvre (×1,5 pour Écuyer et Chevalier), au cœur du royaume ; Tour quand les attaques entrantes engagent plus de 35 % de ses troupes, quelques tuiles derrière la frontière la plus menacée.
 - **Pas de nuance de peuple** : le caractère d'un prétendant ne dépend que de son niveau. Mesurées, les nuances portaient Kharag à 38–41 % des parties menées et laissaient Morvane à 13–16 % ; la stratégie « charognard » de Morvane est retirée, et tous bâtissent une Tour à 35 % d'attaque entrante.
 
 ### 13.4 Arbre d'alliance des prétendants [Proto]
@@ -391,20 +421,21 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 
 ## 17. Contrôles [Proto]
 
-| Action                     | Souris / clavier                                                                                                                                                                                                           |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Choisir sa terre de départ | Clic sur une terre libre                                                                                                                                                                                                   |
-| Attaquer                   | Clic gauche sur la cible                                                                                                                                                                                                   |
-| Ratio d'attaque            | Curseur du panneau du bas, <kbd>T</kbd> / <kbd>Y</kbd> ou <kbd>Maj</kbd> + molette (pas de 10 %)                                                                                                                           |
-| Construire                 | <kbd>1</kbd> Bourg, <kbd>2</kbd> Tour, puis clic                                                                                                                                                                           |
-| Annuler                    | <kbd>Échap</kbd>, clic droit                                                                                                                                                                                               |
-| Caméra                     | Glisser, molette, <kbd>+</kbd> / <kbd>−</kbd>, <kbd>C</kbd> pour centrer                                                                                                                                                   |
-| Débarquer                  | Clic sur une terre au-delà de la mer, ou <kbd>B</kbd> sur la terre visée                                                                                                                                                   |
-| Alliance                   | <kbd>K</kbd> sur un royaume : proposer, accepter sa demande, ou renouveler (fenêtre des 30 dernières secondes)                                                                                                             |
-| Rompre une alliance        | <kbd>L</kbd> deux fois en moins de 2 s sur un allié (vous devenez Parjure 60 s)                                                                                                                                            |
-| Menu radial                | Clic droit (comme OpenFront) : au centre, l'action principale (attaquer, s'étendre, donner des troupes à un allié) ; autour : alliance, barge, renouveler, rompre (avec confirmation), don d'or ; sur ses terres : bâtir   |
-| Fiche du royaume           | Survol : en haut de l'écran, or, troupes (à la maison et engagées), peuple, disposition d'un prétendant, alliance et temps restant, Parjure, Couronne, bâtiments, terrain ; raccourcis Alliance [K], Rompre [L], Barge [B] |
-| Panneau du bas             | Régénération (+X/s), troupes à la maison et engagées sur le plafond, or (+X lors d'un gain ponctuel), ratio, compteur du peuple, bâtiments [1] [2] avec coût en infobulle ; masqué pendant le déploiement                  |
+| Action                     | Souris / clavier                                                                                                                                                                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Choisir sa terre de départ | Clic sur une terre libre                                                                                                                                                                                                                                                        |
+| Attaquer                   | Clic gauche sur la cible                                                                                                                                                                                                                                                        |
+| Ratio d'attaque            | Curseur du panneau du bas, <kbd>T</kbd> / <kbd>Y</kbd> ou <kbd>Maj</kbd> + molette (pas de 10 %)                                                                                                                                                                                |
+| Construire                 | <kbd>1</kbd> Bourg, <kbd>2</kbd> Tour, puis clic                                                                                                                                                                                                                                |
+| Annuler                    | <kbd>Échap</kbd>, clic droit                                                                                                                                                                                                                                                    |
+| Caméra                     | Glisser, molette, <kbd>+</kbd> / <kbd>−</kbd>, <kbd>C</kbd> pour centrer                                                                                                                                                                                                        |
+| Commerce                   | <kbd>3</kbd> Port (sur une côte de mer), <kbd>4</kbd> Marché (aperçu de sa portée et des étapes reliées) ; <kbd>E</kbd> sur un royaume : fermer ou rouvrir nos ports                                                                                                            |
+| Débarquer                  | Clic sur une terre au-delà de la mer, ou <kbd>B</kbd> sur la terre visée                                                                                                                                                                                                        |
+| Alliance                   | <kbd>K</kbd> sur un royaume : proposer, accepter sa demande, ou renouveler (fenêtre des 30 dernières secondes)                                                                                                                                                                  |
+| Rompre une alliance        | <kbd>L</kbd> deux fois en moins de 2 s sur un allié (vous devenez Parjure 60 s)                                                                                                                                                                                                 |
+| Menu radial                | Clic droit (comme OpenFront) : au centre, l'action principale (attaquer, s'étendre, donner des troupes à un allié) ; autour : alliance, barge, renouveler, rompre (avec confirmation), don d'or ; sur ses terres : bâtir                                                        |
+| Fiche du royaume           | Survol : en haut de l'écran, or, troupes (à la maison et engagées), peuple, disposition d'un prétendant, alliance et temps restant, Parjure, Couronne, bâtiments, terrain ; raccourcis Alliance [K], Rompre [L], Barge [B]                                                      |
+| Panneau du bas             | Régénération (+X/s), troupes à la maison et engagées sur le plafond, or (+X lors d'un gain ponctuel), ratio, compteur du peuple, bâtiments [1] à [4] avec coût en infobulle, ligne du commerce (ports, nefs, marchés, caravanes, or par minute) ; masqué pendant le déploiement |
 
 Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, un glissement déplace la caméra.
 
@@ -415,7 +446,7 @@ Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, 
 | City                       | Bourg (Kraal, Ossuaire, Sylve-demeure)              |
 | Defense Post               | Tour de garde (Palissade, Ziggourat, Arbre gardien) |
 | Port / Trade Ship          | Port / Nef marchande                                |
-| Factory / Train / Railroad | Comptoir / Caravane / Route commerciale             |
+| Factory / Train / Railroad | Marché / Caravane / Route commerciale               |
 | SAM Launcher               | Bastion runique                                     |
 | Missile Silo               | Sanctuaire                                          |
 | Atom / Hydrogen Bomb       | Sort mineur / Sort majeur                           |

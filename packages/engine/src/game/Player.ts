@@ -15,6 +15,8 @@ export class Player {
   readonly buildingCounts: Record<BuildingKind, number> = {
     [BuildingKind.Bourg]: 0,
     [BuildingKind.Tour]: 0,
+    [BuildingKind.Port]: 0,
+    [BuildingKind.Marche]: 0,
   };
   /** Tuiles possédées ayant au moins un voisin d'un autre propriétaire (ordre d'insertion déterministe). */
   readonly border = new Set<number>();
@@ -31,6 +33,10 @@ export class Player {
   parjureUntil = 0;
   /** Trahisons commises (compteur permanent, visible au classement). */
   betrayals = 0;
+  /** Or gagné par le commerce depuis le début de la partie. */
+  tradeGold = 0;
+  /** Or gagné par les caravanes depuis le début de la partie. */
+  caravanGold = 0;
 
   constructor(
     readonly id: number,

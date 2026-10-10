@@ -20,6 +20,10 @@ export enum BuildingKind {
   Bourg = "bourg",
   /** Défense : ralentit et saigne les attaquants à proximité. */
   Tour = "tour",
+  /** Commerce maritime : arme une nef marchande toutes les 15 s (GDD §9). */
+  Port = "port",
+  /** Commerce terrestre : routes vers les étapes voisines, une caravane toutes les 10 s (GDD §9.3). */
+  Marche = "marche",
 }
 
 export interface HumanSlot {
@@ -64,7 +68,9 @@ export type Intent =
   | { type: "allianceRenew"; ally: number }
   /** Rompt une alliance : le traître devient Parjure. */
   | { type: "allianceBreak"; ally: number }
-  | { type: "donate"; target: number; resource: DonationResource; amount: number };
+  | { type: "donate"; target: number; resource: DonationResource; amount: number }
+  /** Ferme (on) ou rouvre durablement ses ports à un royaume. */
+  | { type: "embargo"; target: number; on: boolean };
 
 export type DonationResource = "gold" | "troops";
 
@@ -106,6 +112,12 @@ export interface PlayerView {
   parjureUntil: number;
   /** Trahisons commises depuis le début de la partie. */
   betrayals: number;
+  /** Ports possédés (chantiers compris) et or gagné par le commerce depuis le début. */
+  ports: number;
+  tradeGold: number;
+  /** Marchés possédés (chantiers compris) et or gagné par les caravanes depuis le début. */
+  marches: number;
+  caravanGold: number;
   /** Prétendant : sa relation envers chaque seigneur humain (index = identifiant), sinon vide. */
   regard: number[];
 }
@@ -116,6 +128,35 @@ export interface DiplomacyView {
   requests: { from: number; to: number; expires: number }[];
   /** Alliances en cours ; `renew` = alliés ayant demandé le renouvellement. */
   alliances: { a: number; b: number; expires: number; renew: number[] }[];
+}
+
+/** Nef marchande en mer. */
+export interface NefView {
+  id: number;
+  owner: number;
+  /** Tuile d'eau où elle se trouve. */
+  tile: number;
+}
+
+/** Route commerciale entre deux étapes (cases de terre, extrémités comprises). */
+export interface RouteView {
+  id: number;
+  tiles: Int32Array;
+}
+
+/** Caravane en route. */
+export interface CaravanView {
+  id: number;
+  owner: number;
+  /** Case de terre où elle se trouve. */
+  tile: number;
+}
+
+/** `from` ferme ses ports à `to` jusqu'au tick `until` (-1 = jusqu'à nouvel ordre). */
+export interface EmbargoView {
+  from: number;
+  to: number;
+  until: number;
 }
 
 export interface BuildingView {
@@ -180,7 +221,17 @@ export type GameEvent =
       resource: DonationResource;
       amount: number;
     }
-  | { type: "diplomacyRejected"; player: number; reason: DiplomacyRejection };
+  | { type: "diplomacyRejected"; player: number; reason: DiplomacyRejection }
+  /** Or du commerce touché à un port (nefs, cumulé par port) ou à une étape (caravanes). */
+  | {
+      type: "tradeGold";
+      player: number;
+      tile: number;
+      amount: number;
+      source: "nef" | "caravane";
+    }
+  /** `from` ferme ses ports à `to` (auto : après une attaque, pour 3 min) ou les rouvre. */
+  | { type: "embargo"; from: number; to: number; on: boolean; auto: boolean };
 
 /** Raisons de refus d'une action diplomatique ou d'une attaque contre un allié. */
 export type DiplomacyRejection =
@@ -200,7 +251,7 @@ export type DiplomacyRejection =
  */
 export type WinReason = "dominion" | "twilight" | "lastStanding" | "timeLimit";
 
-export type BuildRejection = "spawnPhase" | "notOwned" | "terrain" | "tooClose" | "gold";
+export type BuildRejection = "spawnPhase" | "notOwned" | "terrain" | "tooClose" | "gold" | "coast";
 
 export interface TickResult {
   tick: number;
@@ -214,6 +265,14 @@ export interface TickResult {
   boats: BoatView[];
   /** État diplomatique, seulement s'il a changé (sinon null). */
   diplomacy: DiplomacyView | null;
+  /** Nefs marchandes en mer. */
+  nefs: NefView[];
+  /** Embargos en cours, seulement s'ils ont changé (sinon null). */
+  embargoes: EmbargoView[] | null;
+  /** Routes commerciales, seulement si elles ont changé (sinon null). */
+  routes: RouteView[] | null;
+  /** Caravanes en route. */
+  caravans: CaravanView[];
   events: GameEvent[];
   /** Hash d'état (tous les 10 ticks) pour détecter les désynchronisations, sinon null. */
   hash: number | null;
