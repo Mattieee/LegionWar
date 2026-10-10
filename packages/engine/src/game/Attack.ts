@@ -71,6 +71,7 @@ export class Attack {
         borderSize,
         towerCover: defender !== null && game.hasTowerCover(defender, tile),
         rampart: mark?.rampart ?? false,
+        parjure: defender !== null && game.isParjure(defender),
         landTiles: map.numLandTiles,
       });
       budget -= result.tickFraction;

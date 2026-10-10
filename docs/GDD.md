@@ -81,7 +81,7 @@ Une grande carte de Valdren, puis des cartes régionales : le Bassin d'Aldoria, 
 
 ```
 Plafond      = 2 × (tuiles^0,6 × 1000 + 50 000) + Bourgs achevés × 250 000   (× bonus de race)
-Régénération = (10 + troupes^0,73 / 4) × (1 − troupes / plafond)             (par tick, × bonus de race)
+Régénération = (10 + troupes^0,73 / 4) × (1 − troupes / plafond) × 0,5       (par tick, × bonus de race ; 0,5 = REGEN_PACE, §6)
 ```
 
 - **Au-dessus du plafond**, par exemple après une perte de territoire, les troupes décroissent.
@@ -102,14 +102,20 @@ le défenseur perd sa densité moyenne (troupes / tuiles) par tuile prise
 
 - **Modificateurs :**
 
-| Situation                                | Effet                                  |
-| ---------------------------------------- | -------------------------------------- |
-| Tour de garde du défenseur à ≤ 20 tuiles | Pertes ×4, progression 2,5× plus lente |
-| Seigneur qui attaque une tribu           | Pertes ×0,7                            |
-| Défense en forêt d'un elfe               | Pertes ×1,5                            |
+| Situation                                    | Effet                                  |
+| -------------------------------------------- | -------------------------------------- |
+| Tour de garde du défenseur à ≤ 20 tuiles     | Pertes ×4, progression 2,5× plus lente |
+| Seigneur ou prétendant qui attaque une tribu | Pertes ×0,7                            |
+| Défenseur Parjure (§12.3)                    | Pertes ×0,5, progression ×1,25         |
+| Défense en forêt d'un elfe                   | Pertes ×1,5                            |
 
 - **Bonus « grand territoire » :** un empire immense attaque et défend un peu moins bien, ce qui freine l'effet boule de neige.
 - **Annexion :** un royaume réduit à **moins de 50 tuiles** est absorbé en entier par l'attaquant.
+- **Rythme** (`Rules.ts`, 2026-10-10) : nos cartes ont 9 à 15 fois moins de terres qu'une carte du monde d'OpenFront. À formules égales, l'ouverture y est 3 fois plus rapide et chaque vague 2,4 fois plus décisive : une vague décidait d'une guerre en 7 s, une tribu disparaissait en 0,5 s. Trois facteurs ralentissent la partie :
+  - `CONQUEST_PACE = 0,25` : contre un royaume, la progression (`tickFraction`) est divisée par 0,25, soit des batailles **4× plus lentes** ;
+  - `EXPANSION_PACE = 0,5` : sur les terres libres, **2× plus lente** (l'ouverture reste plus vive que la guerre) ;
+  - `REGEN_PACE = 0,5` : régénération des troupes **2× plus lente**. Sans elle, ralentir les batailles raccourcissait les guerres, car les troupes engagées ne comptent pas dans le stock et le reste se régénère plus vite.
+  - Mesures (game designer, carte moyenne, 60 tribus ; médianes) : fin des terres libres 27 s → **52 s** ; une tribu voisine absorbée 0,5 s → **3 à 6 s** ; une vague entre deux seigneurs 7 s → **20 s** ; guerre jusqu'à l'élimination 175 s → **243 s** ; victoire en solo 2,6 → **5,2 min**, à 4 seigneurs 6 → **10 min**.
 
 ## 7. Les quatre peuples
 
@@ -129,6 +135,8 @@ le défenseur perd sa densité moyenne (troupes / tuiles) par tuile prise
 | Progression en forêt | ×1                  | ×1        | ×1                                    | **×0,7** (plus rapide) |
 | Moisson des morts    | —                   | —         | **25 %** des pertes ennemies relevées | —                      |
 | Mécanique propre     | Remparts            | Pillage   | Levée des charniers (15 %)            | Bosquets               |
+
+Avec le rythme du 2026-10-10 (§6), le ralentissement des remparts passe de 1,5 à **1,2** (sinon Aldoria monte à 33 %) ; mesuré sur 200 parties : **27,5 / 22,5 / 23 / 27 %**. Il faut au moins 200 parties pour mesurer l'équilibre : entre deux moitiés de 100 parties, l'écart atteint ±8 points.
 
 Rééquilibrage du 2026-10-09, mesuré par le game designer sur 300 parties simulées (4 seigneurs scriptés, un par race, sièges tournants, 60 tribus, carte moyenne) : avant, Aldoria 30,7 %, **Kharag 40 %**, Morvane 15,3 %, Sylvanor 14 % des parties menées ; après, **21,7 / 26,7 / 27,3 / 24,3 %** (écart d'une simulation à l'autre : environ ±5 points).
 
@@ -171,7 +179,7 @@ Rééquilibrage du 2026-10-09, mesuré par le game designer sur 300 parties simu
 Chaque peuple a une mécanique visible sur la carte. Constantes dans `Rules.ts` (`RAMPART_*`, `GROVE_*`, `CHARNIER_TICKS`, `PILLAGE_TRIBE_RATIO`) et `Races.ts` (`rampart`, `grove`, `pillageGold`, `charnierRaise`).
 
 - **Charniers (commun) :** toute tuile prise de force entre deux royaumes (tribus comprises) devient un **charnier pendant 60 s**. Ses morts (pertes de l'attaquant et du défenseur sur cette tuile) y gisent ; une nouvelle bataille ravive le charnier et remplace ses morts. La conquête de terres libres, l'annexion et le débarquement sur la plage n'en créent pas.
-- **⚜ Remparts (Aldoria) :** toutes les 10 s, une tuile frontière déjà en lisière à la ronde précédente devient un **rempart** : l'assaillant y subit des **pertes ×1,5** et avance **1,5× plus lentement**. Pas de cumul avec une tour (la tour l'emporte). Le rempart disparaît quand la tuile est prise ou n'est plus en lisière : une brèche ouvre sur un intérieur sans défense. Les côtes comptent comme frontière et protègent des débarquements.
+- **⚜ Remparts (Aldoria) :** toutes les 10 s, une tuile frontière déjà en lisière à la ronde précédente devient un **rempart** : l'assaillant y subit des **pertes ×1,5** et avance **1,2× plus lentement** (1,5× avant le rythme du §6). Pas de cumul avec une tour (la tour l'emporte). Le rempart disparaît quand la tuile est prise ou n'est plus en lisière : une brèche ouvre sur un intérieur sans défense. Les côtes comptent comme frontière et protègent des débarquements.
 - **⚒ Pillage (Kharag) :** chaque tuile prise à un royaume rapporte **15 or** (7 sur une tribu), sauf si c'est un charnier (terre déjà ravagée). Kharag finance environ la moitié de sa guerre par la guerre.
 - **☠ Levée des charniers (Morvane) :** prendre un charnier relève **15 % de ses morts**, en plus de la moisson. Morvane devient un charognard qui suit les guerres des autres. La Peste noire (corruption durable, bit 13) reste distincte.
 - **❦ Bosquets (Sylvanor) :** sur ses terres, les **plaines à 8 tuiles ou moins d'une forêt se boisent** en 20 s au plus (balayage dispersé de la carte) ; un bosquet compte comme une **forêt au combat** tant qu'il reste sylvain. Environ 10 % des terres sylvaines deviennent bosquets.
@@ -211,7 +219,7 @@ Chaque peuple a une mécanique visible sur la carte. Constantes dans `Rules.ts` 
 - **Barge de transport** [Proto] :
   - **Lancement :** un clic sur une terre sans frontière terrestre commune envoie automatiquement une barge ; <kbd>B</kbd> force le débarquement sur la terre survolée. Les troupes engagées suivent le ratio d'attaque.
   - **Route :** la plus courte en tuiles d'eau, depuis une côte du joueur jusqu'à la plage la plus proche de la terre visée (8 plages candidates au plus). Il faut une côte sur la même mer.
-  - **Vitesse et limite :** 3 tuiles par tick ; **3 barges** en mer au plus par seigneur (et 3 tentatives de lancement par tick).
+  - **Vitesse et limite :** **1 tuile par tick** (10 tuiles/s, comme OpenFront ; 3 avant le rythme du §6), soit environ 10 s pour une traversée moyenne ; **3 barges** en mer au plus par seigneur (et 3 tentatives de lancement par tick).
   - **Débarquement :** la plage est prise, puis l'assaut continue depuis cette tête de pont contre le propriétaire de la plage. Si la plage est déjà à soi à l'arrivée, les troupes rentrent sans perte.
   - [Prévu] Annulation en mer (25 % de pertes), barges coulées par les navires de guerre.
 - **Navire de guerre :** 1 000 PV ; tire sur les barges en priorité ; se répare au port ; trois niveaux de vétérance.
@@ -231,27 +239,126 @@ C'est l'équivalent des armes nucléaires d'OpenFront.
 - **Bastion runique :** intercepte de façon déterministe les sorts qui passent à portée près de leur point de départ ou d'arrivée.
 - **Diplomatie :** lancer un sort majeur sur les terres d'un allié rompt l'alliance et fait du lanceur un traître.
 
-## 12. Diplomatie [Prévu]
+## 12. Diplomatie [Proto]
 
-- **Alliances :** 5 min, renouvelables par accord mutuel ; demande valable 20 s, cooldown de 30 s.
-- **Trahison :** rompre une alliance donne le statut **Parjure** pendant 30 s : les ennemis subissent −50 % de pertes contre lui et avancent 20 % plus vite.
-- **Embargo :** coupe nefs et caravanes entre deux seigneurs ; un embargo temporaire de 5 min s'applique automatiquement après une attaque.
-- **Dons :** or et troupes entre alliés, cooldown de 10 s.
-- **Communication :** une grille d'emojis et des **messages prédéfinis** (pas de chat libre, pour la modération).
+Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Constantes dans `Rules.ts` (`ALLIANCE_*`, `PARJURE_*`, `DONATION_COOLDOWN`, `CROWN_PERCENT`, `RELATION_*`). Spécification du game designer, validée le 2026-10-10.
 
-## 13. Neutres et IA
+### 12.1 Relations [Proto]
 
-- **Tribus sauvages** [Proto] : 0 à 200 par partie (60 par défaut). Ce sont des IA passives.
-  - _Rythme :_ elles agissent toutes les 4 à 8 s.
-  - _Expansion :_ elles s'étendent tant qu'il reste des terres libres, en engageant 35 à 44 % de leurs troupes quand elles dépassent 20 % de leur plafond.
-  - _Attaque :_ elles attaquent ensuite le voisin le moins dense quand elles atteignent 50 à 60 % de leur plafond, en gardant une réserve de 30 à 40 %. Elles évitent les seigneurs une fois sur deux.
-  - _Limites :_ elles ne construisent pas et ne font pas de diplomatie.
-- **Seigneurs IA** [Prévu] : des nations liées à une région de la carte, avec 4 niveaux (Écuyer, Chevalier, Seigneur, Empereur). Elles construisent, s'allient, trahissent et lancent des sorts.
+- Seuls les prétendants tiennent des relations : un entier de **−100 à +100** envers chaque joueur, qui revient vers 0 d'un point toutes les 2,5 s (une rancune de −100 s'efface en environ 4 min, la durée d'une guerre).
+- États : Hostile < −50 ≤ Méfiant < 0 ≤ Neutre < 50 ≤ Amical.
+
+| Événement                                            | Variation                                   |
+| ---------------------------------------------------- | ------------------------------------------- |
+| Lancer une attaque ou une barge contre le prétendant | −60 / −70 / −80 / −100 selon son niveau     |
+| Attaquer un allié du prétendant                      | −30                                         |
+| Trahir le prétendant                                 | fixée à −100                                |
+| Trahir quelqu'un en étant voisin du prétendant       | −40                                         |
+| Refuser une demande du prétendant                    | −10                                         |
+| Alliance conclue ou renouvelée                       | +100 dans les deux sens                     |
+| Don d'or / de troupes                                | +5 par 25 k d'or / par 10 k troupes (≤ +50) |
+
+### 12.2 Alliances [Proto]
+
+- **Demande :** valable **20 s** ; après un refus ou une expiration, **30 s** avant de redemander à la même cible. Une demande vers quelqu'un qui nous en a envoyé une vaut acceptation. Attaquer la cible annule sa propre demande en attente.
+- **Durée :** **5 min** par défaut (option de partie `allianceTicks`, 0 = alliances désactivées).
+- **Renouvellement :** fenêtre dans les **30 dernières secondes** ; les deux alliés doivent renouveler, et la durée repart au complet.
+- **Plafond :** **5 alliances simultanées** par joueur, tribus comprises (mesure : 7 tribus voisines en médiane à 1–2 min ; sans plafond, on supprimerait toute pression dès la première minute).
+- **Effets :** impossible d'attaquer un allié ou de débarquer chez lui ; à la conclusion, les attaques en cours entre les deux se retirent **sans perte** ; une barge qui touche une plage devenue alliée rentre sans perte ; pillage et levée sont de fait impossibles contre un allié ; **les remparts ne se forment pas sur une frontière commune avec un allié** (ceux déjà posés restent) ; les dons deviennent possibles.
+- **Fin :** à l'expiration ; par rupture (Parjure, §12.3) ; quand un allié est éliminé.
+- **Victoire :** un seul vainqueur. Quand tous les seigneurs et prétendants encore en vie sont alliés entre eux, **les alliances ne se renouvellent plus** : « La Couronne ne se partage pas ».
+
+### 12.3 Trahison : le Parjure [Proto]
+
+- Rompre une alliance rend **Parjure pendant 60 s** (environ 3 vagues au rythme du §6), y compris avec une tribu. Rompre avec un Parjure ne coûte rien.
+- Quiconque attaque un Parjure subit des **pertes ×0,5** et avance **25 % plus vite** (`tickFraction ×0,8`).
+- Compteur de trahisons permanent. Les prétendants rejettent un Parjure dans 90 % des cas, et un joueur qui a trahi au moins deux fois dans 50 % des cas.
+- Côté victime : cadre d'alerte et entrée au journal. Pour tous : écu brisé à côté du nom [Prévu, interface].
+
+### 12.4 Dons [Proto]
+
+- Vers un **allié vivant** uniquement ; **un don toutes les 10 s** par destinataire, or et troupes confondus ; montant par défaut : un tiers (côté client).
+- L'or est borné par l'or du donneur, les troupes par la marge du destinataire (plafond moins troupes actuelles). Option de partie `donations` (activés par défaut).
+- Les prétendants reçoivent des dons (leur relation s'améliore) mais n'en font pas en v1.
+
+### 12.5 Embargo, commerce, communication [Prévu]
+
+- L'embargo (permanent, ou de 5 min après une attaque) n'agira que sur les nefs et caravanes : reporté avec le commerce (§9), comme le bonus des caravanes entre alliés. La v1 ne crée aucun état d'embargo.
+- Emojis et **messages prédéfinis** (pas de chat libre, pour la modération) : reportés.
+
+## 13. Joueurs et IA
+
+### 13.1 Types de joueurs [Proto]
+
+|                              | Seigneur (humain)                | Tribu sauvage                           | **Prétendant** (IA)                               |
+| ---------------------------- | -------------------------------- | --------------------------------------- | ------------------------------------------------- |
+| Rôle                         | Joueur                           | Remplissage passif et faible            | Rival qui joue comme un humain                    |
+| Nombre (menu)                | 1 en solo, 2 à 16 en multi       | 0 à 200 (60 par défaut)                 | 0 à 12 (3 / 5 / 8 selon la carte)                 |
+| Peuple                       | Choisi                           | Aucun                                   | Un des 4, chaque peuple au plus ⌈N/4⌉ fois        |
+| Troupes de départ            | 25 000                           | 10 000                                  | 12 500 / 18 750 / 25 000 / 31 250 selon le niveau |
+| Plafond / régénération       | Formule × peuple                 | Formule ÷ 3 / × 0,5                     | Formule × peuple × niveau                         |
+| Or par tick                  | 100 × peuple                     | 50                                      | 100 × peuple                                      |
+| Pertes ×0,7 contre une tribu | oui                              | —                                       | oui                                               |
+| Or cédé quand il est annexé  | 50 % (0 s'il n'a jamais attaqué) | 100 %                                   | 50 % (même règle que le seigneur)                 |
+| Construit                    | oui                              | non                                     | Bourg, Tour de garde                              |
+| Diplomatie                   | complète                         | accepte presque tout, ne demande jamais | complète (§13.4)                                  |
+| Peut gagner                  | oui                              | **non**                                 | oui (en solo, sa victoire est une défaite)        |
+
+- **« Prétendant » :** depuis que la Couronne d'Astre s'est brisée, chaque maison prétend la reforger. Niveaux : **Écuyer, Chevalier** (par défaut), **Duc, Empereur**.
+- **Noms** propres à chaque peuple : maisons d'Aldoria (« Comté de Valgarde », « Duché d'Aubeval »…), clans de Kharag (Clan des Crocs de Cendre, Clan Fend-l'Os…), cours de Morvane (Cour des Linceuls, Ost de Morne-Glas…), cercles de Sylvanor (Sylve d'Ambreciel, Conclave des Saules…). Aucun calque de Warcraft.
+- **Déploiement :** les prétendants se déploient à la création de la partie, avant les tribus, à au moins 60 tuiles les uns des autres (puis 30, puis sans contrainte si la place manque) : le joueur les voit avant de choisir sa terre. Identifiants : humains, puis prétendants, puis tribus.
+- **Victoire :** les tribus sont exclues ; « dernier debout » désigne le dernier seigneur ou prétendant en vie, s'il y en a eu au moins deux.
+
+### 13.2 Tribus sauvages [Proto]
+
+- **Rythme :** elles agissent toutes les 4 à 8 s ; elles se déclenchent à 50–59 % du plafond et gardent une réserve de 30–39 % ; sur les terres libres, au-delà de 20 % du plafond, elles engagent 35 à 44 % de leurs troupes.
+- **Cibles, dans l'ordre :** 1. terres libres adjacentes ; 2. **riposte** contre le royaume non allié qui l'attaque avec le plus de troupes ; 3. **Parjure voisin** (s'il est allié, elle rompt une fois sur 3, sans devenir Parjure) ; 4. **voisin non allié au hasard**, un seigneur ou un prétendant tiré étant écarté une fois sur deux.
+- **Diplomatie :** elle répond à son prochain cycle et accepte toute demande, **sauf** celle d'un royaume qui l'attaque à ce moment-là (sinon on récupérerait son attaque sans perte) ; elle ne demande jamais ; elle ne renouvelle que si l'allié l'a demandé ; elle ne construit pas.
+
+### 13.3 Prétendants : version 1 [Proto]
+
+| Levier                                                                      | Écuyer      | Chevalier     | Duc     | Empereur      |
+| --------------------------------------------------------------------------- | ----------- | ------------- | ------- | ------------- |
+| Plafond / régénération                                                      | ×0,5 / ×0,9 | ×0,75 / ×0,95 | ×1 / ×1 | ×1,25 / ×1,05 |
+| Intervalle d'action (ticks)                                                 | 65–99       | 55–69         | 45–59   | 30–49         |
+| Renonce à une cible humaine                                                 | 75 %        | 25 %          | 0       | 0             |
+| Prudence (part des troupes du plus fort voisin non allié gardée en réserve) | 0           | 0             | 75 %    | 90 %          |
+| Barges                                                                      | non         | terres libres | toutes  | toutes        |
+| Tours de garde                                                              | jamais      | oui           | oui     | oui           |
+| Ligue contre la Couronne                                                    | non         | non           | oui     | oui           |
+| Réponse d'alliance inversée (« confusion »)                                 | 1/10        | 1/20          | 1/40    | jamais        |
+| Trahison programmée (rapport de troupes requis)                             | 10:1        | 10:1          | 3:1     | 2:1           |
+| Relation quand il est attaqué                                               | −60         | −70           | −80     | −100          |
+
+- **Cycle :** 1. répondre aux demandes et renouvellements ; 2. trahison programmée éventuelle ; 3. au plus une demande d'alliance sortante ; 4. construction ; 5. attaque. Reportés : emojis, embargo, navires de guerre, sorts.
+- **Attaque :** déclenchement à 45–54 % du plafond ; réserve = max(25–34 % du plafond, prudence × troupes du plus fort voisin non allié). Priorité absolue aux terres libres (40 % des troupes au-delà de 15 % du plafond), en barge si aucune n'est adjacente (dès Chevalier). Puis, dans l'ordre : **riposte** ; **Couronne** (Duc, Empereur : le royaume qui tient au moins 35 % des terres, voisin ou en barge) ; **aide à un allié** ; **Parjure voisin** ; tribu voisine la moins dense ; voisin le plus haï (relation < −50) ; voisin le plus faible s'il vaut moins de 0,8 fois les troupes engageables. Une barge offensive ne sert qu'en riposte ou contre la Couronne.
+- **Construction :** Bourg dès que l'or le couvre (×1,5 pour Écuyer et Chevalier), au cœur du royaume ; Tour quand les attaques entrantes engagent plus de 35 % de ses troupes, quelques tuiles derrière la frontière la plus menacée.
+- **Nuances de peuple** (légères) : Kharag déclenche 10 points plus tôt, prudence ×0,8, Tour seulement au-delà de 50 % d'attaque entrante ; Aldoria bâtit une Tour dès 25 % ; Morvane, charognard, vise un voisin déjà attaqué par un tiers ; Sylvanor déclenche 10 points plus tard, prudence +0,1.
+
+### 13.4 Arbre d'alliance des prétendants [Proto]
+
+1. Confusion : selon le niveau, une chance sur 10, 20 ou 40 d'inverser la réponse finale.
+2. Demandeur Parjure : rejet dans 90 % des cas ; ayant trahi au moins deux fois : rejet dans 50 % des cas.
+3. Demandeur qui a déjà au moins 3 alliances hors tribus : rejet.
+4. Demandeur qui porte la Couronne : rejet.
+5. Demandeur menaçant (voisin dont les troupes valent au moins 1,5 fois les siennes) : **acceptation**.
+6. Relation < 0 : rejet. 7. Relation ≥ 50 : acceptation.
+7. Le prétendant a déjà au moins 2 alliances hors tribus : rejet.
+8. Moins de 3 minutes de jeu : acceptation.
+9. Forces comparables (rapport des troupes entre 0,5 et 2) : acceptation ; sinon rejet.
+
+- **Renouvellement :** si la relation est ≥ 0, que l'allié ne porte pas la Couronne et qu'aucune trahison n'est prévue contre lui.
+- **Demandes sortantes :** à un voisin Amical ; ou, s'il est menacé, à un voisin de la menace dont la relation est ≥ 0 ; jamais vers un Parjure ni vers la Couronne.
+- **Trahison programmée :** il rompt avec un allié voisin si le rapport de troupes atteint le seuil de son niveau, qu'aucune attaque ne le vise et que l'alliance dure depuis au moins 60 s ; le même cycle, il attaque cet ancien allié.
+
+### 13.5 Plus tard
+
 - **Camps de créatures** [Idée] : des repaires neutres très défendus (dragon, troll ancestral) qui donnent un bonus durable quand on les prend. C'est un clin d'œil aux « creeps » de Warcraft III.
+- Prétendants : victimes déjà attaquées, cibles « juteuses », têtes de pont, emojis, sorts.
 
 ## 14. Fin de partie [Proto et Prévu]
 
-- **Victoire** [Proto] : plus de 80 % des terres conquérables, ou dernier seigneur debout.
+- **Victoire** [Proto] : plus de 80 % des terres conquérables, ou dernier seigneur ou prétendant debout. Les tribus ne gagnent jamais et ne comptent pas pour « dernier debout » ; des alliés ne gagnent pas ensemble.
 - **Crépuscule** [Prévu] : après 30 min, le seuil de victoire baisse de 2 points par minute.
 - **Horloge du Jugement** [Prévu, option] : une part de territoire minimale qui monte par vagues ; ceux qui restent en dessous dépérissent.
 - **Limite dure** [Prévu] : 170 min ; le plus grand royaume l'emporte.
@@ -275,15 +382,18 @@ C'est l'équivalent des armes nucléaires d'OpenFront.
 
 ## 17. Contrôles [Proto]
 
-| Action                     | Souris / clavier                                                         |
-| -------------------------- | ------------------------------------------------------------------------ |
-| Choisir sa terre de départ | Clic sur une terre libre                                                 |
-| Attaquer                   | Clic gauche sur la cible                                                 |
-| Ratio d'attaque            | Curseur, <kbd>T</kbd> / <kbd>Y</kbd> (pas de 10 %)                       |
-| Construire                 | <kbd>1</kbd> Bourg, <kbd>2</kbd> Tour, puis clic                         |
-| Annuler                    | <kbd>Échap</kbd>, clic droit                                             |
-| Caméra                     | Glisser, molette, <kbd>+</kbd> / <kbd>−</kbd>, <kbd>C</kbd> pour centrer |
-| Débarquer                  | Clic sur une terre au-delà de la mer, ou <kbd>B</kbd> sur la terre visée |
+| Action                     | Souris / clavier                                                                                               |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Choisir sa terre de départ | Clic sur une terre libre                                                                                       |
+| Attaquer                   | Clic gauche sur la cible                                                                                       |
+| Ratio d'attaque            | Curseur, <kbd>T</kbd> / <kbd>Y</kbd> (pas de 10 %)                                                             |
+| Construire                 | <kbd>1</kbd> Bourg, <kbd>2</kbd> Tour, puis clic                                                               |
+| Annuler                    | <kbd>Échap</kbd>, clic droit                                                                                   |
+| Caméra                     | Glisser, molette, <kbd>+</kbd> / <kbd>−</kbd>, <kbd>C</kbd> pour centrer                                       |
+| Débarquer                  | Clic sur une terre au-delà de la mer, ou <kbd>B</kbd> sur la terre visée                                       |
+| Alliance                   | <kbd>K</kbd> sur un royaume : proposer, accepter sa demande, ou renouveler (fenêtre des 30 dernières secondes) |
+| Rompre une alliance        | <kbd>L</kbd> deux fois en moins de 2 s sur un allié (vous devenez Parjure 60 s)                                |
+| Menu diplomatique          | Clic droit sur un royaume, cartes de demande, marqueurs sur la carte [Prévu, étape interface]                  |
 
 Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, un glissement déplace la caméra.
 
@@ -308,7 +418,10 @@ Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, 
 ## 19. Équilibrage : points à surveiller
 
 - La part de victoires par race doit rester **entre 20 et 30 %** à niveau égal.
-- Le délai avant que les terres libres soient épuisées est mesuré à **20 s environ** sur une carte moyenne avec 60 tribus ; viser 20 à 40 s.
+- Le délai avant que les terres libres soient épuisées est mesuré à **50 s environ** sur une carte moyenne avec 60 tribus ; viser **40 à 60 s**. Si l'ouverture semble molle, c'est le premier réglage à revoir (`EXPANSION_PACE`, `REGEN_PACE`).
+- Cibles de rythme : une vague entre deux seigneurs **15 à 30 s**, une barge **10 à 20 s** pour une traversée moyenne, une guerre entre royaumes comparables **2 à 4 min**.
+- Durée de partie : les 15 à 25 min visées ne s'obtiennent pas par le rythme seul (le meneur fait boule de neige sur les tribus) ; ce sera le rôle des seigneurs IA et de l'anti-boule de neige. Cibles d'ici là : solo contre les tribus **≥ 5 min**, partie à 4 seigneurs **≈ 10 min**.
+- Les charniers relèvent deux fois moins de morts au nouveau rythme (vagues plus espacées) ; si Morvane passe sous 20 % en vraie partie, allonger `CHARNIER_TICKS` de 600 à 900.
 - Le premier Bourg arrive vers 2 min de jeu (125 k d'or à environ 1 000 à 1 200 or/s) : vérifier que ce n'est pas trop lent.
 - La moisson de Morvane (25 %) et la levée des charniers (15 %) peuvent faire boule de neige pendant les guerres longues : si c'est le cas, interdire la levée sur les charniers créés par Morvane lui-même.
 - Le banc d'essai des mécaniques propres fait beaucoup de va-et-vient (environ 55 % des prises tombent sur un charnier) : avec de vrais joueurs, Morvane pourrait être plus faible et Kharag piller davantage. Suivre l'or pillé et les morts relevés.

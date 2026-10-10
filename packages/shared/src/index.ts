@@ -1,6 +1,7 @@
 import {
   ALL_RACES,
   BuildingKind,
+  MAX_PLAYER_ID,
   type GameConfig,
   type Intent,
   type Race,
@@ -56,6 +57,11 @@ function isNonNegativeInt(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
+/** Identifiant de joueur (1 à MAX_PLAYER_ID ; 0 désigne les terres libres). */
+function isPlayerId(value: unknown): value is number {
+  return isNonNegativeInt(value) && value >= 1 && value <= MAX_PLAYER_ID;
+}
+
 /** Nettoie un pseudo : caractères de contrôle retirés, espaces normalisés, longueur bornée. */
 export function sanitizeName(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
@@ -84,6 +90,19 @@ export function isValidIntent(value: unknown): value is Intent {
         isNonNegativeInt(value.tile) &&
         typeof value.building === "string" &&
         BUILDING_KINDS.has(value.building)
+      );
+    case "allianceRequest":
+      return isPlayerId(value.target);
+    case "allianceReply":
+      return isPlayerId(value.requester) && typeof value.accept === "boolean";
+    case "allianceRenew":
+    case "allianceBreak":
+      return isPlayerId(value.ally);
+    case "donate":
+      return (
+        isPlayerId(value.target) &&
+        (value.resource === "gold" || value.resource === "troops") &&
+        isValidTroops(value.amount)
       );
     default:
       return false;

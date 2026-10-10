@@ -77,6 +77,12 @@ describe("accessibilité (WCAG 2.1 AA)", () => {
     }
   });
 
+  it("les chiffres des fronts (vert, rouge) sont lisibles sur leur halo de papier", () => {
+    for (const path of ["map.battle.outgoing", "map.battle.incoming", "map.parjure"]) {
+      expect(contrastRatio(color(path), color("map.labelHalo")), path).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it.each([
     "text.primary",
     "text.secondary",

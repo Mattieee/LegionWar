@@ -6,6 +6,7 @@ const WASH_INTERIOR = tokens.map.washInterior;
 const WASH_EDGE = tokens.map.washEdge;
 const BORDER_INK = tokens.map.borderInk;
 const INK = tokenRgb("map.ink");
+const ALLY = tokenRgb("map.ally");
 
 /** Marques des mécaniques de race (remparts, bosquets, charniers, terres mortes). */
 const MARKS = {
@@ -55,6 +56,8 @@ export class TerritoryLayer {
     readonly state: Uint16Array,
     private readonly colorOf: (owner: number) => RGB,
     private readonly raceOf: (owner: number) => Race | null,
+    /** Vrai si a et b sont alliés et que l'un des deux est le joueur local (liseré allié). */
+    private readonly alliedWithMe: (a: number, b: number) => boolean,
   ) {
     this.canvas = document.createElement("canvas");
     this.canvas.width = width;
@@ -98,6 +101,37 @@ export class TerritoryLayer {
         }
       }
     }
+  }
+
+  /**
+   * Repeint toutes les tuiles des royaumes donnés (alliance conclue ou rompue : leurs
+   * frontières changent d'allure). Rare, donc un parcours complet suffit.
+   */
+  repaintOwners(owners: ReadonlySet<number>): void {
+    if (owners.size === 0) return;
+    for (let t = 0; t < this.width * this.height; t++) {
+      if (owners.has(this.owner(t))) this.paint(t);
+    }
+    this.minX = 0;
+    this.minY = 0;
+    this.maxX = this.width - 1;
+    this.maxY = this.height - 1;
+  }
+
+  /** Vrai si un voisin direct appartient à un allié (du joueur local) du propriétaire. */
+  private allyAcross(t: number, owner: number): boolean {
+    const w = this.width;
+    const x = t % w;
+    const check = (n: number): boolean => {
+      const other = this.owner(n);
+      return other !== owner && other !== 0 && this.alliedWithMe(owner, other);
+    };
+    return (
+      (t >= w && check(t - w)) ||
+      (t + w < w * this.height && check(t + w)) ||
+      (x > 0 && check(t - 1)) ||
+      (x < w - 1 && check(t + 1))
+    );
   }
 
   flush(): void {
@@ -173,7 +207,12 @@ export class TerritoryLayer {
         if (speckle(t) < 24) [r, g, bl] = mixRgb([r, g, bl], MARKS.groveTree, 0.55);
       }
       if (this.differsWithin(t, owner, 1)) {
-        if (marked && race === Race.Aldoria) {
+        if (this.allyAcross(t, owner)) {
+          // Frontière alliée : liseré vert en pointillé, alterné avec l'encre du royaume.
+          const x = t % this.width;
+          const y = (t - x) / this.width;
+          out = (x + y) % 2 === 0 ? ALLY : mixRgb(c, INK, BORDER_INK);
+        } else if (marked && race === Race.Aldoria) {
           // Rempart : créneaux, encre et pierre en alternance, la pierre teintée du blason.
           const x = t % this.width;
           const y = (t - x) / this.width;

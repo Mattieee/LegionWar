@@ -7,6 +7,7 @@ import {
   type BuildingView,
   type PlayerView,
 } from "@legionwar/engine";
+import type { BattleFx } from "./BattleFx";
 import type { Camera } from "./Camera";
 import { TABLE, type RGB, rgbCss } from "./colors";
 import type { Label } from "./Labels";
@@ -36,6 +37,12 @@ export interface SceneState {
   /** Portée effective des tours du joueur local (bonus de race inclus). */
   towerRange: number;
   colorOf: (owner: number) => RGB;
+  /** Tick courant (statut de Parjure) et porteur de la Couronne (≥ 35 % des terres). */
+  tick: number;
+  crown: number | null;
+  /** Effets de bataille (étincelles, fronts) et instant de l'image, en ms. */
+  battle: BattleFx;
+  now: number;
 }
 
 /** Couleurs Canvas issues des tokens `map.*` et `heraldry.*` du design system. */
@@ -54,6 +61,11 @@ const PALETTE = {
   labelHalo: rgbCss(tokenRgb("map.labelHalo"), 0.9),
   vignette: tokenRgb("map.vignette"),
   sheetShadow: rgbCss(tokenRgb("map.vignette"), 0.6),
+  battleCapture: rgbCss(tokenRgb("map.battle.capture")),
+  parjure: rgbCss(tokenRgb("map.parjure")),
+  crown: rgbCss(tokenRgb("map.crown")),
+  battleIncoming: rgbCss(tokenRgb("map.battle.incoming")),
+  battleOutgoing: rgbCss(tokenRgb("map.battle.outgoing")),
   sable: rgbCss(tokenRgb("heraldry.sable")),
   argent: rgbCss(tokenRgb("heraldry.argent")),
 };
@@ -62,6 +74,8 @@ const FONT_FLAVOR = tokens.font.family.flavor;
 /** Taille des noms sur la carte, en pixels CSS : discrets comme sur un atlas. */
 const LABEL_MAX_PX = 17;
 const LABEL_MIN_PX = 9;
+/** Zoom (px par tuile) à partir duquel on voit aussi les fronts des autres seigneurs. */
+const OTHER_FRONTS_MIN_ZOOM = 2.5;
 /** Les seigneurs signent dans la police de leur peuple, dès que la taille la rend lisible. */
 const RACE_LABEL_MIN_PX = 13;
 /** Largeur des bâtiments gravés : 4,2 tuiles, et jamais moins de 16 px à l'écran. */
@@ -135,6 +149,7 @@ export class SceneRenderer {
     ctx.strokeRect(0, 0, width, this.territory.height);
     ctx.imageSmoothingEnabled = true;
     this.drawOrnaments();
+    this.drawCaptures(state);
 
     for (const mine of state.mines) {
       this.drawMine((mine % width) + 0.5, Math.floor(mine / width) + 0.5);
@@ -148,6 +163,7 @@ export class SceneRenderer {
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawLabels(state);
+    this.drawFronts(state);
     this.drawBoatTroops(state);
 
     if (this.vignette) {
@@ -155,6 +171,76 @@ export class SceneRenderer {
       ctx.fillStyle = this.vignette;
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
+  }
+
+  /**
+   * Tuiles prises de force : la ligne de front. Sur vos fronts elle dit qui gagne (vert, rouge) ;
+   * ailleurs, une ombre d'encre brève.
+   */
+  private drawCaptures(state: SceneState): void {
+    const ctx = this.ctx;
+    const width = this.territory.width;
+    const me = state.myId;
+    // Un léger débord garde la ligne visible quand la carte est dézoomée.
+    const pad = Math.max(0, 1.2 / this.camera.zoom - 0.5);
+    ctx.save();
+    state.battle.forEachSpark(state.now, (tile, age, winner, loser) => {
+      const x = tile % width;
+      const y = (tile - x) / width;
+      if (winner === me || loser === me) {
+        // Vos fronts : vert là où vous gagnez du terrain, rouge là où vous en perdez.
+        ctx.fillStyle = winner === me ? PALETTE.battleOutgoing : PALETTE.battleIncoming;
+        ctx.globalAlpha = (1 - age) * 0.85;
+        ctx.fillRect(x - pad, y - pad, 1 + 2 * pad, 1 + 2 * pad);
+      } else {
+        ctx.fillStyle = PALETTE.battleCapture;
+        ctx.globalAlpha = (1 - age) * 0.3;
+        ctx.fillRect(x, y, 1, 1);
+      }
+    });
+    ctx.restore();
+  }
+
+  /**
+   * Chiffre de chaque front (coordonnées écran) : ⚔ et troupes engagées, vert pour vos attaques,
+   * rouge quand on vous attaque, encre pour les autres, qui n'apparaissent qu'en zoomant.
+   */
+  private drawFronts(state: SceneState): void {
+    const ctx = this.ctx;
+    const fronts = state.battle.activeFronts(state.now);
+    if (fronts.length === 0) return;
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `600 13px ${tokens.font.family.body}`;
+    for (const f of fronts) {
+      const mine = f.attacker === state.myId;
+      const incoming = f.target === state.myId;
+      if (!mine && !incoming && this.camera.zoom < OTHER_FRONTS_MIN_ZOOM) continue;
+      const [sx, sy] = this.camera.worldToScreen(f.x, f.y);
+      if (
+        sx < -60 ||
+        sy < -30 ||
+        sx > this.camera.viewWidth + 60 ||
+        sy > this.camera.viewHeight + 30
+      ) {
+        continue;
+      }
+      // Sans cadre : l'icône de guerre et le chiffre, juste au-dessus du front, sur un halo de papier.
+      const text = `⚔ ${formatNumber(f.troops)}`;
+      const y = sy - 10;
+      ctx.lineWidth = 3;
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = PALETTE.labelHalo;
+      ctx.strokeText(text, sx, y);
+      ctx.fillStyle = incoming
+        ? PALETTE.battleIncoming
+        : mine
+          ? PALETTE.battleOutgoing
+          : PALETTE.ink;
+      ctx.fillText(text, sx, y);
+    }
+    ctx.restore();
   }
 
   /** Rose des vents, monstres et navires gravés au large. */
@@ -403,6 +489,23 @@ export class SceneRenderer {
     ctx.strokeRect(x, y, 1, 1);
   }
 
+  /** Écu brisé du Parjure : une fêlure d'encre en travers de l'écu. */
+  private drawShieldCrack(cx: number, cy: number, size: number): void {
+    const ctx = this.ctx;
+    const w = size * 0.84;
+    ctx.beginPath();
+    ctx.moveTo(cx + w * 0.45, cy - size * 0.5);
+    ctx.lineTo(cx + w * 0.05, cy - size * 0.1);
+    ctx.lineTo(cx + w * 0.15, cy + size * 0.05);
+    ctx.lineTo(cx - w * 0.35, cy + size * 0.4);
+    ctx.lineWidth = Math.max(1.5, size / 8);
+    ctx.strokeStyle = PALETTE.labelHalo;
+    ctx.stroke();
+    ctx.lineWidth = Math.max(1, size / 14);
+    ctx.strokeStyle = PALETTE.parjure;
+    ctx.stroke();
+  }
+
   /** Écu héraldique dessiné en coordonnées écran. */
   private drawShield(cx: number, cy: number, size: number, fill: string, glyph: string): void {
     const ctx = this.ctx;
@@ -485,11 +588,12 @@ export class SceneRenderer {
       placed.push([sx - half, top, sx + half, bottom]);
 
       const mine = player.id === state.myId;
+      const parjure = player.parjureUntil > state.tick;
       const nameX = sx + shieldWidth / 2;
       const nameY = sy - fontPx * 0.4;
       ctx.lineWidth = Math.max(2, fontPx / 5);
       ctx.strokeStyle = PALETTE.labelHalo;
-      ctx.fillStyle = mine ? PALETTE.labelSelf : PALETTE.label;
+      ctx.fillStyle = parjure ? PALETTE.parjure : mine ? PALETTE.labelSelf : PALETTE.label;
       ctx.strokeText(player.name, nameX, nameY);
       ctx.fillText(player.name, nameX, nameY);
       if (withShield && player.race) {
@@ -500,6 +604,17 @@ export class SceneRenderer {
           raceColor(player.race),
           RACES[player.race].emblem,
         );
+        if (parjure)
+          this.drawShieldCrack(nameX - nameWidth / 2 - fontPx * 0.65, nameY, fontPx * 1.05);
+      }
+      if (player.id === state.crown) {
+        // La Couronne d'Astre au-dessus du nom du meneur.
+        ctx.font = `${fontPx * 0.95}px serif`;
+        ctx.lineWidth = Math.max(2, fontPx / 5);
+        ctx.strokeStyle = PALETTE.labelHalo;
+        ctx.strokeText("♛", nameX, nameY - fontPx * 0.95);
+        ctx.fillStyle = PALETTE.crown;
+        ctx.fillText("♛", nameX, nameY - fontPx * 0.95);
       }
       const troopsPx = fontPx * 0.72;
       ctx.font = `italic ${troopsPx}px ${FONT_FLAVOR}`;

@@ -10,6 +10,8 @@ import {
   type BoatView,
   type PlayerView,
 } from "@legionwar/engine";
+import { ContextMenu } from "./ContextMenu";
+import { DealCards } from "./DealCards";
 import { escapeHtml, formatNumber, formatPercent } from "./format";
 
 export interface HudCallbacks {
@@ -28,11 +30,18 @@ export interface HudState {
   buildMode: BuildingKind | null;
   landTiles: number;
   goldPerSecond: number;
+  /** Tick courant (statut de Parjure). */
+  tick: number;
+  /** Porteur de la Couronne (≥ 35 % des terres), ou null. */
+  crown: number | null;
+  /** Nom du niveau des prétendants (Écuyer…), pour l'infobulle du classement. */
+  nationLevel: string;
 }
 
 export type EventTone = "info" | "good" | "bad";
 
 const LOG_SIZE = 7;
+const ALERT_COOLDOWN_MS = 15_000;
 
 /** Compteur de la mécanique propre à chaque peuple (GDD §7.3). */
 const RACE_STAT: Record<Race, { label: string; hint: string; value: (p: PlayerView) => string }> = {
@@ -68,7 +77,11 @@ export class Hud {
   private readonly $: <T extends HTMLElement>(sel: string) => T;
   private readonly log: { text: string; tone: EventTone }[] = [];
   private ended = false;
+  private lastAlert = -Infinity;
   private skin: Race | null = null;
+  /** Menu contextuel (clic droit sur la carte) et cartes de diplomatie. */
+  readonly menu: ContextMenu;
+  readonly deals: DealCards;
 
   constructor(root: HTMLElement, callbacks: HudCallbacks) {
     this.el = document.createElement("div");
@@ -118,7 +131,9 @@ export class Hud {
           .join("")}
       </nav>
       <div class="hud__hover lw-text-sm" id="hud-hover"></div>
+      <div class="hud__deals" id="hud-deals" aria-live="polite"></div>
       </div>
+      <div class="hud__alert" id="hud-alert" aria-hidden="true"></div>
       <div class="lw-modal" id="hud-modal" hidden>
         <div class="lw-panel lw-modal__dialog hud__end" role="dialog" aria-modal="true" aria-labelledby="hud-modal-title">
           <div class="hud__end-cartouche" id="hud-modal-cartouche">
@@ -132,6 +147,8 @@ export class Hud {
       </div>`;
     root.append(this.el);
     this.$ = <T extends HTMLElement>(sel: string): T => this.el.querySelector(sel) as T;
+    this.menu = new ContextMenu(this.$("#hud-skin"));
+    this.deals = new DealCards(this.$("#hud-deals"));
 
     const ratioInput = this.$<HTMLInputElement>("#hud-ratio-input");
     ratioInput.addEventListener("input", () =>
@@ -220,6 +237,18 @@ export class Hud {
 
   /** Fin de partie : titre dans le cartouche de victoire (trompettes et lauriers) ou, en cas
    * de défaite, dans le cartouche sobre du titre. */
+  /** Cadre d'alerte sur les bords de l'écran quand on vous attaque (au plus une fois par 15 s). */
+  alert(): void {
+    const now = performance.now();
+    if (now - this.lastAlert < ALERT_COOLDOWN_MS) return;
+    this.lastAlert = now;
+    const frame = this.$("#hud-alert");
+    frame.classList.remove("hud__alert--on");
+    // Relance l'animation CSS : la lecture de la mise en page force le redémarrage.
+    void frame.offsetWidth;
+    frame.classList.add("hud__alert--on");
+  }
+
   showEnd(title: string, text: string, victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
@@ -273,9 +302,31 @@ export class Hud {
   private boardRow(p: PlayerView, index: number, state: HudState): string {
     const mine = p.id === state.me?.id;
     const share = formatPercent((p.tiles / Math.max(1, state.landTiles)) * 100);
-    return `<li class="hud__board-row${mine ? " hud__board-row--me" : ""}">
+    const ally = state.me?.allies.includes(p.id) ?? false;
+    const parjure = p.parjureUntil > state.tick;
+    const classes = ["hud__board-row"];
+    if (mine) classes.push("hud__board-row--me");
+    if (ally) classes.push("hud__board-row--ally");
+    if (parjure) classes.push("hud__board-row--parjure");
+    // Infobulle : type de joueur, alliance, trahisons.
+    const kind =
+      p.kind === "human"
+        ? "Seigneur"
+        : p.kind === "nation"
+          ? `Prétendant (${state.nationLevel})`
+          : "Tribu";
+    const tip = [
+      kind,
+      ally ? "votre allié" : "",
+      parjure ? "Parjure" : "",
+      p.betrayals > 0 ? `${p.betrayals} trahison${p.betrayals > 1 ? "s" : ""}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const marks = `${p.id === state.crown ? "♛ " : ""}${parjure ? "✗ " : ""}`;
+    return `<li class="${classes.join(" ")}" data-tooltip="${escapeHtml(tip)}">
       <span class="hud__board-rank">${index + 1}</span>
-      <span class="hud__board-name">${p.race ? RACES[p.race].emblem + " " : ""}${escapeHtml(p.name)}</span>
+      <span class="hud__board-name">${marks}${p.race ? RACES[p.race].emblem + " " : ""}${escapeHtml(p.name)}</span>
       <span class="lw-numeric">${share}</span>
       <span class="hud__board-troops lw-numeric">${formatNumber(p.troops)}</span></li>`;
   }

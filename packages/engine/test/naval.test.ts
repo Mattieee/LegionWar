@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOAT_TILES_PER_TICK,
   Game,
   MAX_BOATS,
   Race,
@@ -140,10 +141,21 @@ describe("Barges de débarquement", () => {
       return false;
     };
     let landed = false;
+    // La barge avance au plus de BOAT_TILES_PER_TICK tuiles d'eau par tick (rythme, GDD §10).
+    let previous = launch.boats[0]?.tile;
+    let fullSteps = 0;
     for (let i = 0; i < 1500 && !ownsIslandTile(); i++) {
       const r = step(s.game, turn++);
       if (r.events.some((e) => e.type === "boatLanded")) landed = true;
+      const tile = r.boats[0]?.tile;
+      if (previous !== undefined && tile !== undefined) {
+        const moved = s.game.map.manhattan(previous, tile);
+        expect(moved).toBeLessThanOrEqual(BOAT_TILES_PER_TICK);
+        if (moved === BOAT_TILES_PER_TICK) fullSteps++;
+      }
+      previous = tile;
     }
+    expect(fullSteps).toBeGreaterThan(0);
     expect(landed).toBe(true);
     expect(ownsIslandTile()).toBe(true);
   });

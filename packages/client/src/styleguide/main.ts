@@ -239,6 +239,20 @@ ${section(
     </div>
   </div>
 
+  <h3 class="lw-title-3">Menu contextuel</h3>
+  <div class="sg-row">
+    <div class="lw-menu" role="menu" aria-label="Exemple de menu contextuel" style="position: static">
+      <div class="lw-menu__header"><span class="lw-menu__title">Clan Fend-l'Os</span><span class="lw-menu__subtitle">Prétendant (Chevalier) · Clans de Kharag · Méfiant</span></div>
+      <button class="lw-menu__item" role="menuitem">Attaquer <span class="lw-menu__hint">20 % · 12,4 k</span></button>
+      <button class="lw-menu__item" role="menuitem">Débarquer <span class="lw-menu__hint">B</span></button>
+      <hr class="lw-menu__separator" />
+      <button class="lw-menu__item" role="menuitem">Proposer une alliance <span class="lw-menu__hint">K</span></button>
+      <button class="lw-menu__item" role="menuitem" disabled>Proposition envoyée</button>
+      <button class="lw-menu__item lw-menu__item--danger" role="menuitem">Rompre l'alliance… <span class="lw-menu__hint">L L</span></button>
+    </div>
+  </div>
+  <pre class="sg-code"><code>&lt;div class="lw-menu" role="menu"&gt;…&lt;button class="lw-menu__item" role="menuitem"&gt;…&lt;/button&gt;&lt;/div&gt;</code></pre>
+
   <h3 class="lw-title-3">Cartes sélectionnables</h3>
   <div class="sg-grid">${ALL_RACES.slice(0, 2)
     .map(

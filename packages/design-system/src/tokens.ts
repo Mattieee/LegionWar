@@ -282,6 +282,19 @@ export const tokens = {
     labelSelf: "{color.garance.700}",
     labelHalo: "{color.paper.50}",
     vignette: "{color.ink.900}",
+    /** Batailles : ligne de front sur les tuiles qui changent de main, chiffre des fronts. */
+    battle: {
+      /** Ombre d'encre brève sur une tuile prise de force. */
+      capture: "{color.ink.800}",
+      /** Chiffre d'une attaque qui vous vise. */
+      incoming: "{heraldry.gules}",
+      /** Chiffre de vos propres attaques. */
+      outgoing: "{color.verdigris.700}",
+    },
+    /** Diplomatie : liseré des frontières alliées, nom du Parjure, Couronne du meneur. */
+    ally: "{color.verdigris.500}",
+    parjure: "{heraldry.gules}",
+    crown: "{heraldry.or}",
     /** Marques des mécaniques de race sur la carte (GDD §7.3). */
     marks: {
       /** Remparts d'Aldoria : créneaux à l'encre alternés avec la pierre. */

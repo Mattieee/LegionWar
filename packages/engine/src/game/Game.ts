@@ -1,6 +1,9 @@
 import {
+  ALLIANCE_TICKS,
   BOAT_TILES_PER_TICK,
   BUILDINGS,
+  CROWN_PERCENT,
+  DIFFICULTIES,
   CHARNIER_TICKS,
   GOLD_PER_MINE_PER_TICK,
   GROVE_REACH,
@@ -9,9 +12,14 @@ import {
   LANDING_CANDIDATES,
   LANDING_SEARCH_LIMIT,
   MAX_BOATS,
+  MAX_NATIONS,
   MIN_SPAWN_DISTANCE,
   MULTIPLAYER_SPAWN_PHASE_TICKS,
+  NATION_SPAWN_DISTANCE,
+  NATION_SPAWN_DISTANCE_RELAXED,
   RAMPART_INTERVAL,
+  RELATION_DECAY_TICKS,
+  RELATION_MAX,
   SPAWN_ATTEMPTS,
   SPAWN_ATTEMPTS_STRICT,
   SPAWN_RADIUS,
@@ -30,14 +38,20 @@ import { arrayHash, mixHash } from "../core/hash";
 import { PseudoRandom } from "../core/PseudoRandom";
 import type { GameMap } from "../map/GameMap";
 import { generateMap } from "../map/MapGenerator";
+import { ALL_RACES, type Race } from "../config/Races";
 import { MAX_PLAYER_ID, TerrainKind } from "../map/Terrain";
 import { Attack } from "./Attack";
 import { BotBrain } from "./BotAI";
+import { Diplomacy } from "./Diplomacy";
+import { NationBrain } from "./NationAI";
 import { type Boat, SeaScratch, findSeaRoute, landingCandidates } from "./Naval";
-import { tribeName } from "./Names";
+import { nationName, tribeName } from "./Names";
 import { Player } from "./Player";
 import {
   BuildingKind,
+  Difficulty,
+  type DiplomacyRejection,
+  type DonationResource,
   type AttackView,
   type BoatRejection,
   type BoatView,
@@ -71,6 +85,21 @@ interface Charnier {
 /** Valeur de `forestDist` pour une tuile hors de portée d'une forêt. */
 const FAR_FROM_FOREST = 255;
 
+/** Cerveau d'IA (tribu ou prétendant), exécuté une fois par tick dans l'ordre des identifiants. */
+interface Brain {
+  tick(ticks: number): void;
+}
+
+/** Variation de relation d'un prétendant quand on attaque un de ses alliés. */
+const RELATION_ALLY_ATTACKED = -30;
+/** … quand un voisin trahit quelqu'un, quand on refuse sa demande, quand on le trahit. */
+const RELATION_NEIGHBOR_BETRAYAL = -40;
+const RELATION_REFUSED = -10;
+const RELATION_BETRAYED = -100;
+/** Dons : +5 par tranche (25 k d'or ou 10 k troupes), au plus +50 par don. */
+const RELATION_GIFT_STEP = { gold: 25_000, troops: 10_000 } as const;
+const RELATION_GIFT_MAX = 50;
+
 /**
  * État complet d'une partie et boucle de simulation.
  * Déterministe : mêmes config + même suite de tours ⇒ même état, au bit près, sur tout client.
@@ -85,7 +114,10 @@ export class Game {
 
   private readonly players: (Player | null)[] = [null];
   private readonly byClient = new Map<string, Player>();
-  private readonly brains: BotBrain[] = [];
+  private readonly brains: Brain[] = [];
+  readonly diplomacy: Diplomacy;
+  /** Relations de chaque prétendant envers chaque joueur (−100 à +100). */
+  private readonly relations = new Map<number, Int8Array>();
   private attacks: Attack[] = [];
   private boats: Boat[] = [];
   private nextBoatId = 1;
@@ -121,7 +153,8 @@ export class Game {
 
   constructor(readonly config: GameConfig) {
     const seed = config.seed >>> 0;
-    if (config.humans.length + config.bots > MAX_PLAYER_ID) {
+    const nations = Math.max(0, Math.min(MAX_NATIONS, Math.floor(config.nations ?? 0)));
+    if (config.humans.length + nations + config.bots > MAX_PLAYER_ID) {
       throw new Error(`Trop de joueurs (maximum ${MAX_PLAYER_ID})`);
     }
     const generated = generateMap(seed, config.mapSize);
@@ -144,6 +177,44 @@ export class Game {
 
     const usedNames = new Set(config.humans.map((h) => h.name));
     const nameRng = new PseudoRandom(seed ^ 0x2545f491);
+
+    // Prétendants : déployés avant les tribus, éloignés les uns des autres, peuples équilibrés
+    // (chaque peuple au plus ⌈N/4⌉ fois).
+    // Configuration venue du réseau : une valeur inconnue retombe sur le niveau par défaut.
+    const level =
+      DIFFICULTIES[config.difficulty ?? Difficulty.Knight] ?? DIFFICULTIES[Difficulty.Knight];
+    const raceRng = new PseudoRandom(seed ^ 0x68e31da4);
+    const races: Race[] = [...ALL_RACES];
+    for (let i = races.length - 1; i > 0; i--) {
+      const j = raceRng.nextInt(0, i + 1);
+      [races[i], races[j]] = [races[j] as Race, races[i] as Race];
+    }
+    for (let i = 0; i < nations; i++) {
+      const id = this.players.length;
+      const race = races[i % races.length] as Race;
+      const nation = new Player(
+        id,
+        nationName(race, nameRng, usedNames),
+        "nation",
+        race,
+        null,
+        level.startTroops,
+        level,
+      );
+      this.players.push(nation);
+      const spawned = this.spawnRandom(nation, [
+        [NATION_SPAWN_DISTANCE, 500],
+        [NATION_SPAWN_DISTANCE_RELAXED, 300],
+        [0, 200],
+      ]);
+      if (spawned) {
+        this.relations.set(id, new Int8Array(1 + config.humans.length + nations + config.bots));
+        this.brains.push(new NationBrain(this, nation, (seed + id * 7919) ^ 0x3c6ef372));
+      } else {
+        nation.alive = false;
+      }
+    }
+
     for (let i = 0; i < config.bots; i++) {
       const id = this.players.length;
       const bot = new Player(
@@ -162,6 +233,13 @@ export class Game {
       }
     }
 
+    this.diplomacy = new Diplomacy(
+      this,
+      Number.isFinite(config.allianceTicks)
+        ? Math.max(0, Math.floor(config.allianceTicks as number))
+        : ALLIANCE_TICKS,
+      config.donations ?? true,
+    );
     this.groveOwners = this.players.filter((p): p is Player => p !== null && p.mods.grove);
     // Calculé une fois ici : à la volée, il provoquait un pic de ~20 ms en cours de partie.
     this.forestDist = this.groveOwners.length > 0 ? this.computeForestDist() : null;
@@ -224,6 +302,35 @@ export class Game {
           this.build(p, intent.building, intent.tile);
         }
         break;
+      case "allianceRequest": {
+        const target = this.player(intent.target);
+        this.diplomacyResult(p, target ? this.diplomacy.request(p, target) : "invalidTarget");
+        break;
+      }
+      case "allianceReply":
+        this.diplomacyResult(p, this.diplomacy.reply(p, intent.requester, intent.accept === true));
+        break;
+      case "allianceRenew":
+        this.diplomacyResult(p, this.diplomacy.renew(p, intent.ally));
+        break;
+      case "allianceBreak":
+        this.diplomacyResult(p, this.diplomacy.breakAlliance(p, intent.ally));
+        break;
+      case "donate":
+        if (intent.resource === "gold" || intent.resource === "troops") {
+          this.diplomacyResult(
+            p,
+            this.diplomacy.donate(p, intent.target, intent.resource, intent.amount),
+          );
+        }
+        break;
+    }
+  }
+
+  /** Signale un refus diplomatique au seul joueur humain concerné. */
+  private diplomacyResult(p: Player, reason: DiplomacyRejection | null): void {
+    if (reason !== null && p.kind === "human") {
+      this.events.push({ type: "diplomacyRejected", player: p.id, reason });
     }
   }
 
@@ -238,6 +345,7 @@ export class Game {
       this.updateCharniers();
       this.updateRamparts();
       this.updateGroves();
+      this.updateDiplomacy();
       for (const brain of this.brains) brain.tick(this.ticks);
       this.updateBoats();
       for (const attack of this.attacks) attack.tick();
@@ -288,18 +396,30 @@ export class Game {
     this.spawnCenters.push(center);
   }
 
-  private spawnRandom(p: Player): boolean {
-    for (let attempt = 0; attempt < SPAWN_ATTEMPTS; attempt++) {
-      const t = this.rng.nextInt(0, this.map.size);
-      if (!this.map.isPassableLand(t) || this.map.owner(t) !== 0) continue;
-      if (
-        attempt < SPAWN_ATTEMPTS_STRICT &&
-        this.spawnCenters.some((c) => this.map.manhattan(c, t) < MIN_SPAWN_DISTANCE)
-      ) {
-        continue;
+  /**
+   * Déploiement aléatoire par étapes [distance minimale aux autres départs, tentatives] :
+   * la contrainte se relâche quand la place manque.
+   */
+  private spawnRandom(
+    p: Player,
+    stages: readonly (readonly [number, number])[] = [
+      [MIN_SPAWN_DISTANCE, SPAWN_ATTEMPTS_STRICT],
+      [0, SPAWN_ATTEMPTS - SPAWN_ATTEMPTS_STRICT],
+    ],
+  ): boolean {
+    for (const [minDistance, attempts] of stages) {
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        const t = this.rng.nextInt(0, this.map.size);
+        if (!this.map.isPassableLand(t) || this.map.owner(t) !== 0) continue;
+        if (
+          minDistance > 0 &&
+          this.spawnCenters.some((c) => this.map.manhattan(c, t) < minDistance)
+        ) {
+          continue;
+        }
+        this.claimSpawn(p, t);
+        return true;
       }
-      this.claimSpawn(p, t);
-      return true;
     }
     return false;
   }
@@ -341,6 +461,10 @@ export class Game {
     if (targetId === attacker.id) return;
     const target = targetId === 0 ? null : this.player(targetId);
     if (targetId !== 0 && (target === null || !target.alive)) return;
+    if (targetId !== 0 && this.diplomacy.allied(attacker.id, targetId)) {
+      this.diplomacyResult(attacker, "ally");
+      return;
+    }
 
     const troops = attacker.removeTroops(requested);
     if (troops < 1) return;
@@ -387,6 +511,7 @@ export class Game {
     if (!attack.init()) return remaining;
     this.attacks.push(attack);
     attacker.everAttacked = true;
+    this.onAttackLaunched(attacker, targetId);
     if (attacker.kind === "human" || target?.kind === "human") {
       this.events.push({
         type: "attackStarted",
@@ -428,6 +553,7 @@ export class Game {
     const route = findSeaRoute(this.map, attacker.id, candidates, this.seaScratch);
     if (route === null) return reject("noRoute");
     const target = this.map.owner(route.landing);
+    if (target !== 0 && this.diplomacy.allied(attacker.id, target)) return reject("ally");
     this.boats.push({
       id: this.nextBoatId++,
       owner: attacker,
@@ -439,6 +565,7 @@ export class Game {
       done: false,
     });
     attacker.everAttacked = true;
+    this.onAttackLaunched(attacker, target);
     if (attacker.kind === "human" || this.player(target)?.kind === "human") {
       this.events.push({ type: "boatLaunched", attacker: attacker.id, target, troops });
     }
@@ -464,7 +591,9 @@ export class Game {
   private landBoat(boat: Boat): void {
     const attacker = boat.owner;
     const owner = this.map.owner(boat.landing);
-    if (owner === attacker.id || !this.map.isPassableLand(boat.landing)) {
+    // Une plage devenue alliée pendant la traversée : la barge rentre sans perte.
+    const allied = owner !== 0 && this.diplomacy.allied(attacker.id, owner);
+    if (owner === attacker.id || allied || !this.map.isPassableLand(boat.landing)) {
       attacker.addTroops(boat.troops);
       return;
     }
@@ -481,7 +610,9 @@ export class Game {
       if (this.map.owner(t) === defeated.id) this.conquer(t, victor.id);
     }
     let gold = defeated.gold;
-    if (defeated.kind === "human") gold = defeated.everAttacked ? Math.floor(defeated.gold / 2) : 0;
+    if (defeated.kind !== "bot") {
+      gold = defeated.everAttacked ? Math.floor(defeated.gold / 2) : 0;
+    }
     victor.addGold(gold);
     defeated.gold = 0;
     defeated.troops = 0;
@@ -491,6 +622,7 @@ export class Game {
   private eliminate(p: Player, by: number, gold: number): void {
     if (!p.alive) return;
     p.alive = false;
+    this.diplomacy.onEliminated(p.id);
     this.events.push({ type: "eliminated", player: p.id, by, gold });
   }
 
@@ -542,8 +674,15 @@ export class Game {
     for (const p of this.players) {
       if (!p || !p.alive || !p.mods.rampart) continue;
       const next = new Set<number>();
+      const allies = this.diplomacy.alliesOf(p.id);
       for (const t of p.border) {
         if (this.map.hasMark(t)) continue;
+        if (
+          allies.length > 0 &&
+          this.map.neighbors(t).some((n) => allies.includes(this.map.owner(n)))
+        ) {
+          continue;
+        }
         if (p.rampartCandidates.has(t)) {
           this.map.setMark(t, true);
           p.marks++;
@@ -598,6 +737,116 @@ export class Game {
       frontier = next;
     }
     return dist;
+  }
+
+  // Diplomatie ----------------------------------------------------------------------------------
+
+  emit(event: GameEvent): void {
+    this.events.push(event);
+  }
+
+  isParjure(p: Player): boolean {
+    return p.parjureUntil > this.ticks;
+  }
+
+  /** Seigneur ou prétendant qui tient au moins CROWN_PERCENT % des terres (le plus grand). */
+  crownHolder(): Player | null {
+    let holder: Player | null = null;
+    for (const p of this.players) {
+      if (!p || !p.alive || p.kind === "bot") continue;
+      if (p.tiles * 100 < this.map.numLandTiles * CROWN_PERCENT) continue;
+      if (holder === null || p.tiles > holder.tiles) holder = p;
+    }
+    return holder;
+  }
+
+  /** Vrai si tous les seigneurs et prétendants encore en vie (au moins deux) sont alliés. */
+  onlyAlliesRemain(): boolean {
+    const lords = this.players.filter(
+      (p): p is Player => p !== null && p.alive && p.spawned && p.kind !== "bot",
+    );
+    if (lords.length < 2) return false;
+    return lords.every((a) => lords.every((b) => a === b || this.diplomacy.allied(a.id, b.id)));
+  }
+
+  /** Troupes engagées par chaque attaque visant `p`, par attaquant (ordre des attaques). */
+  incomingAttacks(p: Player): Map<number, number> {
+    const out = new Map<number, number>();
+    for (const a of this.attacks) {
+      if (a.active && a.targetId === p.id) {
+        out.set(a.attacker.id, (out.get(a.attacker.id) ?? 0) + Math.floor(a.troops));
+      }
+    }
+    return out;
+  }
+
+  /** Vrai si `p` est la cible d'une attaque d'un tiers, autre que `except` (charognards). */
+  isUnderAttack(p: Player, except: number): boolean {
+    return this.attacks.some((a) => a.active && a.targetId === p.id && a.attacker.id !== except);
+  }
+
+  relation(nationId: number, otherId: number): number {
+    return this.relations.get(nationId)?.[otherId] ?? 0;
+  }
+
+  private adjustRelation(nationId: number, otherId: number, delta: number, set = false): void {
+    const rel = this.relations.get(nationId);
+    if (!rel || otherId <= 0 || otherId >= rel.length || nationId === otherId) return;
+    const value = set ? delta : (rel[otherId] as number) + delta;
+    rel[otherId] = Math.max(-RELATION_MAX, Math.min(RELATION_MAX, value));
+  }
+
+  private updateDiplomacy(): void {
+    this.diplomacy.update();
+    if (this.ticks % RELATION_DECAY_TICKS !== 0) return;
+    for (const rel of this.relations.values()) {
+      for (let i = 0; i < rel.length; i++) {
+        const v = rel[i] as number;
+        if (v !== 0) rel[i] = v > 0 ? v - 1 : v + 1;
+      }
+    }
+  }
+
+  /** Une attaque ou une barge contre `targetId` : rancune des prétendants, demande annulée. */
+  private onAttackLaunched(attacker: Player, targetId: number): void {
+    if (targetId === 0) return;
+    this.diplomacy.cancelRequest(attacker.id, targetId);
+    const target = this.player(targetId);
+    if (target?.kind === "nation") {
+      this.adjustRelation(targetId, attacker.id, target.level.attackedRelation);
+    }
+    for (const ally of this.diplomacy.alliesOf(targetId)) {
+      if (ally !== attacker.id) this.adjustRelation(ally, attacker.id, RELATION_ALLY_ATTACKED);
+    }
+  }
+
+  /** Alliance conclue ou renouvelée : attaques entre eux retirées sans perte, amitié. */
+  onAllianceSealed(a: number, b: number): void {
+    for (const attack of this.attacks) {
+      const between =
+        (attack.attacker.id === a && attack.targetId === b) ||
+        (attack.attacker.id === b && attack.targetId === a);
+      if (attack.active && between) attack.retreat();
+    }
+    this.adjustRelation(a, b, RELATION_MAX);
+    this.adjustRelation(b, a, RELATION_MAX);
+  }
+
+  onRequestRefused(requester: number, responder: number): void {
+    this.adjustRelation(requester, responder, RELATION_REFUSED);
+  }
+
+  onBetrayal(traitor: Player, victim: number): void {
+    this.adjustRelation(victim, traitor.id, RELATION_BETRAYED, true);
+    for (const neighbor of this.neighborOwners(traitor)) {
+      if (neighbor !== victim)
+        this.adjustRelation(neighbor, traitor.id, RELATION_NEIGHBOR_BETRAYAL);
+    }
+  }
+
+  onDonation(from: number, to: number, resource: DonationResource, amount: number): void {
+    const steps = Math.floor(amount / RELATION_GIFT_STEP[resource]);
+    this.adjustRelation(to, from, Math.min(RELATION_GIFT_MAX, steps * 5));
   }
 
   // Territoire ----------------------------------------------------------------------------------
@@ -663,9 +912,11 @@ export class Game {
 
   // Bâtiments -----------------------------------------------------------------------------------
 
-  private build(p: Player, kind: BuildingKind, tile: number): void {
-    const reject = (reason: BuildRejection): void => {
+  /** Construit si les règles le permettent ; renvoie vrai en cas de succès (IA comprises). */
+  build(p: Player, kind: BuildingKind, tile: number): boolean {
+    const reject = (reason: BuildRejection): false => {
       if (p.kind === "human") this.events.push({ type: "buildingRejected", player: p.id, reason });
+      return false;
     };
     if (this.inSpawnPhase) return reject("spawnPhase");
     if (!p.alive || this.map.owner(tile) !== p.id) return reject("notOwned");
@@ -689,6 +940,7 @@ export class Game {
     this.buildings.set(building.id, building);
     this.buildingAt.set(tile, building.id);
     this.buildingsDirty = true;
+    return true;
   }
 
   private updateConstructions(): void {
@@ -755,7 +1007,8 @@ export class Game {
     let alive = 0;
     let everSpawned = 0;
     for (const p of this.players) {
-      if (!p || !p.spawned) continue;
+      // Les tribus sauvages ne peuvent pas gagner et ne comptent pas pour « dernier debout ».
+      if (!p || !p.spawned || p.kind === "bot") continue;
       everSpawned++;
       if (!p.alive) continue;
       alive++;
@@ -783,6 +1036,14 @@ export class Game {
       h = mixHash(h, p.marks);
       h = mixHash(h, p.pillaged);
       h = mixHash(h, p.raised);
+      h = mixHash(h, p.parjureUntil);
+      h = mixHash(h, p.betrayals);
+    }
+    h = this.diplomacy.hash(h);
+    for (const [id, rel] of this.relations) {
+      let sum = 0;
+      for (let i = 0; i < rel.length; i++) sum = (sum * 31 + (rel[i] as number)) | 0;
+      h = mixHash(mixHash(h, id), sum);
     }
     h = mixHash(h, this.charniers.size);
     h = mixHash(h, this.charnierHead);
@@ -823,6 +1084,15 @@ export class Game {
         marks: p.marks,
         pillaged: p.pillaged,
         raised: p.raised,
+        allies: this.diplomacy.alliesOf(p.id),
+        parjureUntil: p.parjureUntil,
+        betrayals: p.betrayals,
+        regard:
+          p.kind === "nation"
+            ? Array.from({ length: this.config.humans.length + 1 }, (_, id) =>
+                this.relation(p.id, id),
+              )
+            : [],
       });
     }
     return views;
@@ -867,6 +1137,7 @@ export class Game {
       buildings: this.buildingsDirty ? this.buildingViews() : null,
       attacks,
       boats,
+      diplomacy: this.diplomacy.dirty ? this.diplomacy.view() : null,
       events: this.events,
       hash: this.ticks % HASH_INTERVAL === 0 ? this.hash() : null,
       winner: this.winner,
@@ -874,6 +1145,7 @@ export class Game {
     this.changed = [];
     this.events = [];
     this.buildingsDirty = false;
+    this.diplomacy.dirty = false;
     return result;
   }
 }

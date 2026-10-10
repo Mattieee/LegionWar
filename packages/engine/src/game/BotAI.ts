@@ -4,8 +4,10 @@ import type { Game } from "./Game";
 import type { Player } from "./Player";
 
 /**
- * IA d'une tribu sauvage : s'étend sur les terres libres, puis attaque un voisin quand elle
- * a assez de troupes. Ne construit pas et ne fait pas de diplomatie.
+ * IA d'une tribu sauvage (GDD §13, comme les « Bots » d'OpenFront) : remplissage passif.
+ * Elle s'étend sur les terres libres, riposte contre qui l'attaque, frappe un Parjure voisin,
+ * sinon un voisin au hasard (en évitant seigneurs et prétendants une fois sur deux).
+ * Elle accepte presque toute alliance, n'en demande jamais et ne construit pas.
  */
 export class BotBrain {
   private readonly rng: PseudoRandom;
@@ -31,30 +33,86 @@ export class BotBrain {
   tick(ticks: number): void {
     const me = this.player;
     if (!me.alive || ticks % this.actionInterval !== this.actionOffset) return;
+    this.diplomacy();
 
-    const neighbors = this.game.neighborOwners(me);
+    const game = this.game;
+    const neighbors = game.neighborOwners(me);
     const max = maxTroops(me);
     if (neighbors.has(0)) {
       if (me.troops > max * 0.2) {
-        this.game.launchAttack(me, 0, Math.floor(me.troops * (0.25 + this.expandRatio)));
+        game.launchAttack(me, 0, Math.floor(me.troops * (0.25 + this.expandRatio)));
       }
       return;
     }
     if (me.troops < max * this.triggerRatio) return;
 
-    const targets: Player[] = [];
-    for (const id of neighbors) {
-      const p = this.game.player(id);
-      if (p === null || !p.alive) continue;
-      // Les tribus évitent les seigneurs (humains) une fois sur deux.
-      if (p.kind === "human" && this.rng.chance(2)) continue;
-      targets.push(p);
-    }
-    if (targets.length === 0) return;
-    // Préfère la cible la moins dense en troupes.
-    targets.sort((a, b) => a.troops / Math.max(1, a.tiles) - b.troops / Math.max(1, b.tiles));
-    const target = targets[0] as Player;
+    const target = this.pickTarget(neighbors);
+    if (target === null) return;
     const amount = Math.floor(me.troops - max * this.reserveRatio);
-    if (amount > 0) this.game.launchAttack(me, target.id, amount);
+    if (amount > 0) game.launchAttack(me, target.id, amount);
+  }
+
+  /**
+   * Accepte toute demande, sauf celle d'un royaume qui l'attaque (sinon on récupérerait son
+   * attaque sans perte) ; ne renouvelle que si l'allié l'a demandé.
+   */
+  private diplomacy(): void {
+    const game = this.game;
+    const me = this.player;
+    const attackers = game.incomingAttacks(me);
+    for (const r of game.diplomacy.requestsTo(me.id)) {
+      game.diplomacy.reply(me, r.from, !attackers.has(r.from));
+    }
+    for (const ally of game.diplomacy.alliesOf(me.id)) {
+      if (
+        game.diplomacy.inRenewWindow(me.id, ally) &&
+        game.diplomacy.hasRenewed(ally, me.id) &&
+        !game.diplomacy.hasRenewed(me.id, ally)
+      ) {
+        game.diplomacy.renew(me, ally);
+      }
+    }
+  }
+
+  private pickTarget(neighbors: Set<number>): Player | null {
+    const game = this.game;
+    const me = this.player;
+
+    // 1. Riposte : le voisin qui l'attaque avec le plus de troupes.
+    let riposte: Player | null = null;
+    let most = 0;
+    for (const [id, troops] of game.incomingAttacks(me)) {
+      const p = game.player(id);
+      if (p && p.alive && troops > most && !game.diplomacy.allied(me.id, id)) {
+        riposte = p;
+        most = troops;
+      }
+    }
+    if (riposte) return riposte;
+
+    // 2. Un Parjure voisin ; s'il est allié, la tribu rompt une fois sur trois.
+    for (const id of neighbors) {
+      const p = game.player(id);
+      if (!p || !p.alive || id === 0 || !game.isParjure(p)) continue;
+      if (!game.diplomacy.allied(me.id, id)) return p;
+      if (this.rng.chance(3)) {
+        game.diplomacy.breakAlliance(me, id);
+        return p;
+      }
+    }
+
+    // 3. Un voisin non allié au hasard ; seigneurs et prétendants écartés une fois sur deux.
+    const candidates: Player[] = [];
+    for (const id of neighbors) {
+      const p = game.player(id);
+      if (p && p.alive && id !== 0 && !game.diplomacy.allied(me.id, id)) candidates.push(p);
+    }
+    for (let draw = 0; draw < 2 && candidates.length > 0; draw++) {
+      const index = this.rng.nextInt(0, candidates.length);
+      const p = candidates[index] as Player;
+      if (p.kind === "bot" || !this.rng.chance(2)) return p;
+      candidates.splice(index, 1);
+    }
+    return null;
   }
 }

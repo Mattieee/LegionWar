@@ -133,7 +133,7 @@ describe("Remparts (Aldoria)", () => {
     expect(p.marks).toBe(markedTiles(game, p.id).length);
   });
 
-  it("pertes ×1,5 et progression 1,5× plus lente, sans cumul avec une tour", () => {
+  it("pertes et progression ralenties (RAMPART_*), sans cumul avec une tour", () => {
     const game = makeGame(Race.Aldoria, { bots: 1 });
     spawn(game);
     const defender = me(game);
@@ -145,6 +145,7 @@ describe("Remparts (Aldoria)", () => {
       defender,
       attackTroops: 5000,
       borderSize: 10,
+      parjure: false,
       landTiles: game.map.numLandTiles,
     };
     const open = attackLogic({ ...base, towerCover: false, rampart: false });
@@ -285,20 +286,20 @@ describe("Déterminisme des mécaniques de race", () => {
       return undefined;
     };
     // Expansion sur les terres libres, puis guerres entre peuples (chacun attaque le suivant)
-    // assez tôt pour que des charniers expirent avant la fin.
+    // assez tôt pour que des charniers expirent avant la fin (au rythme du §6 : régénération lente).
     const play = (): { hashes: number[]; game: Game } => {
       const game = new Game({ seed: 77, mapSize: "small", bots: 30, humans, singleplayer: false });
       const hashes: number[] = [];
-      for (let turn = 0; turn < 2000; turn++) {
+      for (let turn = 0; turn < 3000; turn++) {
         const intents: { clientId: string; intent: Intent }[] = [];
-        if (turn > 200 && turn < 400 && turn % 50 === 0) {
+        if (turn > 200 && turn < 800 && turn % 50 === 0) {
           for (const h of humans) {
             intents.push({
               clientId: h.clientId,
               intent: { type: "attack", target: 0, troops: 5000 },
             });
           }
-        } else if (turn >= 400 && turn < 1200 && turn % 100 === 0) {
+        } else if (turn >= 800 && turn < 2400 && turn % 100 === 0) {
           humans.forEach((h, i) => {
             const me = game.playerByClient(h.clientId);
             const foe = game.playerByClient((humans[(i + 1) % humans.length] as typeof h).clientId);

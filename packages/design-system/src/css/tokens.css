@@ -220,6 +220,12 @@
   --lw-map-label-self: var(--lw-color-garance-700);
   --lw-map-label-halo: var(--lw-color-paper-50);
   --lw-map-vignette: var(--lw-color-ink-900);
+  --lw-map-battle-capture: var(--lw-color-ink-800);
+  --lw-map-battle-incoming: var(--lw-heraldry-gules);
+  --lw-map-battle-outgoing: var(--lw-color-verdigris-700);
+  --lw-map-ally: var(--lw-color-verdigris-500);
+  --lw-map-parjure: var(--lw-heraldry-gules);
+  --lw-map-crown: var(--lw-heraldry-or);
   --lw-map-marks-rampart-ink: var(--lw-color-ink-900);
   --lw-map-marks-rampart-stone: #a59c8b;
   --lw-map-marks-grove: #4d7340;

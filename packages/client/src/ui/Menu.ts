@@ -1,5 +1,15 @@
 import { raceColor, raceTincture } from "@legionwar/design-system";
-import { ALL_RACES, MAP_DIMENSIONS, RACES, Race, type MapSize } from "@legionwar/engine";
+import {
+  ALL_RACES,
+  DEFAULT_NATIONS,
+  DIFFICULTIES,
+  Difficulty,
+  MAP_DIMENSIONS,
+  MAX_NATIONS,
+  RACES,
+  Race,
+  type MapSize,
+} from "@legionwar/engine";
 import { NAME_MAX_LENGTH, NAME_MIN_LENGTH, sanitizeName } from "@legionwar/shared";
 import { escapeHtml, storage } from "./format";
 
@@ -8,6 +18,9 @@ export interface MenuChoice {
   race: Race;
   mapSize: MapSize;
   bots: number;
+  /** Prétendants (IA rivales) et leur niveau. */
+  nations: number;
+  difficulty: Difficulty;
   seed: number;
 }
 
@@ -65,6 +78,22 @@ export function showMenu(root: HTMLElement, onStart: (choice: MenuChoice) => voi
           <input class="lw-range" type="range" id="menu-bots" min="0" max="200" step="5" value="60" />
         </label>
         <label class="lw-field">
+          <span class="lw-field__label">Prétendants : <output id="menu-nations-value">${DEFAULT_NATIONS.medium}</output></span>
+          <input class="lw-range" type="range" id="menu-nations" min="0" max="${MAX_NATIONS}" step="1" value="${DEFAULT_NATIONS.medium}" />
+          <span class="lw-field__hint">Rivaux qui bâtissent, s'allient et trahissent.</span>
+        </label>
+        <label class="lw-field">
+          <span class="lw-field__label">Niveau des prétendants</span>
+          <select class="lw-select" id="menu-difficulty">
+            ${Object.values(Difficulty)
+              .map(
+                (d) =>
+                  `<option value="${d}" ${d === Difficulty.Knight ? "selected" : ""}>${DIFFICULTIES[d].name}</option>`,
+              )
+              .join("")}
+          </select>
+        </label>
+        <label class="lw-field">
           <span class="lw-field__label">Graine de la carte</span>
           <input class="lw-input" id="menu-seed" inputmode="numeric" value="${randomSeed()}" />
           <span class="lw-field__hint">Même graine, même carte.</span>
@@ -97,6 +126,20 @@ export function showMenu(root: HTMLElement, onStart: (choice: MenuChoice) => voi
     card.addEventListener("click", () => selectRace(card.dataset.race as Race));
   }
   botsInput.addEventListener("input", () => (botsValue.value = botsInput.value));
+  const nationsInput = $<HTMLInputElement>("menu-nations");
+  const nationsValue = $<HTMLOutputElement>("menu-nations-value");
+  // Le nombre de prétendants suit la taille de carte tant qu'on ne l'a pas réglé à la main.
+  let nationsTouched = false;
+  nationsInput.addEventListener("input", () => {
+    nationsTouched = true;
+    nationsValue.value = nationsInput.value;
+  });
+  $<HTMLSelectElement>("menu-map").addEventListener("change", (e) => {
+    if (nationsTouched) return;
+    const size = (e.target as HTMLSelectElement).value as MapSize;
+    nationsInput.value = String(DEFAULT_NATIONS[size]);
+    nationsValue.value = nationsInput.value;
+  });
   nameInput.addEventListener("input", () => {
     nameInput.removeAttribute("aria-invalid");
     errorBox.textContent = "";
@@ -119,6 +162,8 @@ export function showMenu(root: HTMLElement, onStart: (choice: MenuChoice) => voi
       race,
       mapSize: $<HTMLSelectElement>("menu-map").value as MapSize,
       bots: Number(botsInput.value),
+      nations: Number(nationsInput.value),
+      difficulty: $<HTMLSelectElement>("menu-difficulty").value as Difficulty,
       seed,
     });
   });

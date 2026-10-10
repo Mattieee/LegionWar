@@ -1,5 +1,6 @@
 import { modifiersOf, type Race, type RaceModifiers } from "../config/Races";
-import { BuildingKind, type PlayerKind } from "./Types";
+import { DIFFICULTIES, type DifficultyLevel } from "../config/Rules";
+import { BuildingKind, Difficulty, type PlayerKind } from "./Types";
 
 export class Player {
   troops: number;
@@ -26,6 +27,10 @@ export class Player {
   pillaged = 0;
   /** Morvane : troupes relevées sur les charniers depuis le début de la partie. */
   raised = 0;
+  /** Tick de fin du statut de Parjure (≤ tick courant : pas Parjure). */
+  parjureUntil = 0;
+  /** Trahisons commises (compteur permanent, visible au classement). */
+  betrayals = 0;
 
   constructor(
     readonly id: number,
@@ -34,6 +39,8 @@ export class Player {
     readonly race: Race | null,
     readonly clientId: string | null,
     startTroops: number,
+    /** Niveau d'un prétendant (sans effet pour les autres types). */
+    readonly level: DifficultyLevel = DIFFICULTIES[Difficulty.Knight],
   ) {
     this.troops = startTroops;
     this.mods = modifiersOf(race);

@@ -1,12 +1,24 @@
 import { clamp, pow } from "../core/DetMath";
 import type { RaceModifiers } from "./Races";
 import type { Player } from "../game/Player";
-import { BuildingKind } from "../game/Types";
+import { BuildingKind, Difficulty } from "../game/Types";
 import { TerrainKind } from "../map/Terrain";
 
 // Temps ---------------------------------------------------------------------------------------
 export const TICK_MS = 100;
 export const TICKS_PER_SECOND = 1000 / TICK_MS;
+
+// Rythme (voir GDD §6) ------------------------------------------------------------------------
+/**
+ * Vitesse des batailles contre un royaume, relative aux formules du genre. Nos cartes ont
+ * 5 à 15 fois moins de terres qu'une carte d'OpenFront : à formule égale, une vague balaie
+ * une part bien plus grande de la carte et le défenseur n'a pas le temps de réagir.
+ */
+export const CONQUEST_PACE = 0.25;
+/** Vitesse d'expansion sur les terres libres (l'ouverture reste plus vive que la guerre). */
+export const EXPANSION_PACE = 0.5;
+/** Multiplicateur global de la régénération des troupes : l'horloge de la partie. */
+export const REGEN_PACE = 0.5;
 
 // Déploiement ---------------------------------------------------------------------------------
 export const SPAWN_RADIUS = 4;
@@ -17,9 +29,126 @@ export const SPAWN_ATTEMPTS_STRICT = 750;
 
 // Ressources ----------------------------------------------------------------------------------
 export const START_TROOPS = { human: 25_000, bot: 10_000 } as const;
-export const GOLD_PER_TICK = { human: 100, bot: 50 } as const;
+export const GOLD_PER_TICK = { human: 100, nation: 100, bot: 50 } as const;
 export const GOLD_PER_MINE_PER_TICK = 40;
 export const BOURG_TROOP_BONUS = 250_000;
+
+// Prétendants (GDD §13.3) --------------------------------------------------------------------
+export interface DifficultyLevel {
+  /** Nom affiché. */
+  name: string;
+  startTroops: number;
+  troopMult: number;
+  regenMult: number;
+  /** Intervalle d'action de l'IA, en ticks [min, max[. */
+  interval: readonly [number, number];
+  /** Probabilité de renoncer à une cible humaine. */
+  humanGiveUp: number;
+  /** Part des troupes du plus fort voisin non allié gardée en réserve. */
+  prudence: number;
+  /** Barges : jamais, vers les terres libres seulement, ou toutes. */
+  boats: "none" | "free" | "all";
+  towers: boolean;
+  /** Se ligue contre le porteur de la Couronne. */
+  league: boolean;
+  /** Une réponse d'alliance sur N est inversée (0 = jamais). */
+  confusion: number;
+  /** Rapport de troupes requis pour trahir un allié voisin. */
+  betrayRatio: number;
+  /** Relation infligée à qui l'attaque. */
+  attackedRelation: number;
+}
+
+export const DIFFICULTIES: Record<Difficulty, DifficultyLevel> = {
+  [Difficulty.Squire]: {
+    name: "Écuyer",
+    startTroops: 12_500,
+    troopMult: 0.5,
+    regenMult: 0.9,
+    interval: [65, 100],
+    humanGiveUp: 0.75,
+    prudence: 0,
+    boats: "none",
+    towers: false,
+    league: false,
+    confusion: 10,
+    betrayRatio: 10,
+    attackedRelation: -60,
+  },
+  [Difficulty.Knight]: {
+    name: "Chevalier",
+    startTroops: 18_750,
+    troopMult: 0.75,
+    regenMult: 0.95,
+    interval: [55, 70],
+    humanGiveUp: 0.25,
+    prudence: 0,
+    boats: "free",
+    towers: true,
+    league: false,
+    confusion: 20,
+    betrayRatio: 10,
+    attackedRelation: -70,
+  },
+  [Difficulty.Duke]: {
+    name: "Duc",
+    startTroops: 25_000,
+    troopMult: 1,
+    regenMult: 1,
+    interval: [45, 60],
+    humanGiveUp: 0,
+    prudence: 0.75,
+    boats: "all",
+    towers: true,
+    league: true,
+    confusion: 40,
+    betrayRatio: 3,
+    attackedRelation: -80,
+  },
+  [Difficulty.Emperor]: {
+    name: "Empereur",
+    startTroops: 31_250,
+    troopMult: 1.25,
+    regenMult: 1.05,
+    interval: [30, 50],
+    humanGiveUp: 0,
+    prudence: 0.9,
+    boats: "all",
+    towers: true,
+    league: true,
+    confusion: 0,
+    betrayRatio: 2,
+    attackedRelation: -100,
+  },
+};
+
+/** Prétendants par défaut selon la taille de carte. */
+export const DEFAULT_NATIONS = { small: 3, medium: 5, large: 8 } as const;
+export const MAX_NATIONS = 12;
+/** Distance minimale (Manhattan) entre deux prétendants au déploiement, relâchée si besoin. */
+export const NATION_SPAWN_DISTANCE = 60;
+export const NATION_SPAWN_DISTANCE_RELAXED = 30;
+
+// Diplomatie (GDD §12) ------------------------------------------------------------------------
+/** Une demande d'alliance vaut 20 s ; 30 s avant de redemander à la même cible. */
+export const ALLIANCE_REQUEST_TICKS = 200;
+export const ALLIANCE_REQUEST_COOLDOWN = 300;
+/** Durée d'une alliance (5 min) et fenêtre de renouvellement (30 dernières secondes). */
+export const ALLIANCE_TICKS = 3000;
+export const ALLIANCE_RENEW_WINDOW = 300;
+/** Alliances simultanées par joueur, tribus comprises. */
+export const MAX_ALLIANCES = 5;
+/** Statut de Parjure après une trahison (60 s, rythme du §6) et ses effets en combat. */
+export const PARJURE_TICKS = 600;
+export const PARJURE_LOSS_MULT = 0.5;
+export const PARJURE_COST_MULT = 0.8;
+/** Un don par destinataire toutes les 10 s, or et troupes confondus. */
+export const DONATION_COOLDOWN = 100;
+/** Part des terres à partir de laquelle on porte la Couronne (et devient la cible de la Ligue). */
+export const CROWN_PERCENT = 35;
+/** Relations des prétendants : bornes, retour vers 0 d'un point tous les 25 ticks. */
+export const RELATION_MAX = 100;
+export const RELATION_DECAY_TICKS = 25;
 
 // Victoire ------------------------------------------------------------------------------------
 export const WIN_PERCENT = 80;
@@ -40,9 +169,13 @@ export const TOWER_COST_MULT = 2.5;
 // Mécaniques de race (voir GDD §7.3) ------------------------------------------------------------
 /** Aldoria : une tuile frontière tenue deux rondes de suite devient un rempart. Ronde = 10 s. */
 export const RAMPART_INTERVAL = 100;
-/** Pertes de l'attaquant ×1,5 et progression 1,5× plus lente sur un rempart (sans cumul avec une tour). */
+/**
+ * Pertes de l'attaquant ×1,5 et progression 1,2× plus lente sur un rempart (sans cumul avec une
+ * tour). Le ralentissement a été réduit de 1,5 à 1,2 avec le rythme (§6) : à batailles 4× plus
+ * lentes, il durait 4× plus longtemps et portait Aldoria à 33 % des parties menées.
+ */
 export const RAMPART_LOSS_MULT = 1.5;
-export const RAMPART_COST_MULT = 1.5;
+export const RAMPART_COST_MULT = 1.2;
 /** Sylvanor : les plaines à cette distance d'une forêt (en tuiles) se boisent. */
 export const GROVE_REACH = 8;
 /** Durée d'un balayage complet de la carte par la pousse des bosquets (20 s). */
@@ -55,8 +188,8 @@ export const PILLAGE_TRIBE_RATIO = 0.5;
 // Naval ---------------------------------------------------------------------------------------
 /** Barges de débarquement en mer simultanément, par seigneur. */
 export const MAX_BOATS = 3;
-/** Vitesse d'une barge, en tuiles d'eau par tick. */
-export const BOAT_TILES_PER_TICK = 3;
+/** Vitesse d'une barge, en tuiles d'eau par tick (10 tuiles/s, comme OpenFront). */
+export const BOAT_TILES_PER_TICK = 1;
 /** Nombre maximal de plages candidates essayées pour un débarquement. */
 export const LANDING_CANDIDATES = 8;
 /** Tuiles de terre explorées au maximum pour trouver une plage depuis la tuile visée. */
@@ -96,7 +229,7 @@ export function buildingCost(kind: BuildingKind, player: Player): number {
 // Formules de ressources ----------------------------------------------------------------------
 export function maxTroops(p: Player): number {
   const base = 2 * (pow(p.tiles, 0.6) * 1000 + 50_000) + p.completedBourgs * BOURG_TROOP_BONUS;
-  const kindMult = p.kind === "bot" ? 1 / 3 : 1;
+  const kindMult = p.kind === "bot" ? 1 / 3 : p.kind === "nation" ? p.level.troopMult : 1;
   return Math.floor(base * kindMult * p.mods.maxTroopsMult);
 }
 
@@ -105,7 +238,8 @@ export function troopIncrease(p: Player): number {
   const max = maxTroops(p);
   let add = (10 + pow(p.troops, 0.73) / 4) * (1 - p.troops / max);
   if (p.kind === "bot") add *= 0.5;
-  add *= p.mods.regenMult;
+  if (p.kind === "nation") add *= p.level.regenMult;
+  add *= p.mods.regenMult * REGEN_PACE;
   return Math.floor(Math.min(p.troops + add, max) - p.troops);
 }
 
@@ -148,6 +282,8 @@ export interface CombatInput {
   towerCover: boolean;
   /** La tuile est un rempart du défenseur (ignoré si une tour la couvre déjà). */
   rampart: boolean;
+  /** Le défenseur est Parjure. */
+  parjure: boolean;
   /** Tuiles terrestres de la carte (échelle du bonus « grand territoire »). */
   landTiles: number;
 }
@@ -183,7 +319,8 @@ export function attackLogic(input: CombatInput): CombatResult {
       tickFraction:
         clamp((2000 * tileCost) / Math.max(1, input.attackTroops), 5, 100) /
         (2 * Math.max(1, input.borderSize)) /
-        attacker.mods.conquestSpeedMult,
+        attacker.mods.conquestSpeedMult /
+        EXPANSION_PACE,
     };
   }
 
@@ -196,7 +333,13 @@ export function attackLogic(input: CombatInput): CombatResult {
   }
   mag *= defender.mods.defenseMult * attacker.mods.attackLossMult;
   if (kind === TerrainKind.Forest) mag *= defender.mods.forestDefenseMult;
-  if (attacker.kind === "human" && defender.kind === "bot") mag *= 0.7;
+  // Seigneurs et prétendants saignent moins contre les tribus.
+  if (attacker.kind !== "bot" && defender.kind === "bot") mag *= 0.7;
+  // Le Parjure : ses ennemis perdent moitié moins et avancent plus vite.
+  if (input.parjure) {
+    mag *= PARJURE_LOSS_MULT;
+    tileCost *= PARJURE_COST_MULT;
+  }
 
   const attackerBonus = largeTerritoryBonus(attacker.tiles, 0.7, input.landTiles);
   const defenderBonus = largeTerritoryBonus(defender.tiles, 0.3, input.landTiles);
@@ -210,7 +353,8 @@ export function attackLogic(input: CombatInput): CombatResult {
   const tickFraction =
     (speedCost * tileCost * attackerSpeedBonus * defenderBonus) /
     Math.max(1, input.borderSize) /
-    attacker.mods.conquestSpeedMult;
+    attacker.mods.conquestSpeedMult /
+    CONQUEST_PACE;
 
   return { attackerLoss, defenderLoss: defenderDensity, tickFraction };
 }

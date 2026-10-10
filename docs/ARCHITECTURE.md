@@ -55,12 +55,13 @@ En lockstep, chaque client rejoue la même suite de tours. Le serveur n'envoie q
 1. Appliquer les intents du tour, dans l'ordre reçu.
 2. `tick()` :
    - **pendant le déploiement :** attendre (fin de phase au premier spawn en solo, à 200 ticks en multijoueur) ;
-   - **ensuite :** économie (régénération, or, mines), puis chantiers, puis IA des tribus, puis attaques, puis vérification de victoire tous les 10 ticks.
+   - **ensuite :** économie (régénération, or, mines), chantiers, charniers, remparts, bosquets, diplomatie (expirations des demandes et alliances, fenêtres de renouvellement, retour des relations vers 0), IA dans l'ordre des identifiants (prétendants puis tribus), barges, attaques, puis vérification de victoire tous les 10 ticks.
 3. `collect()` renvoie un `TickResult` :
    - les tuiles modifiées, en paires `[tuile, état]` dans un `Uint32Array` transférable ;
    - la vue des joueurs ;
    - les bâtiments, seulement s'ils ont changé ;
    - les attaques en cours ;
+   - l'état diplomatique (demandes, alliances), seulement s'il a changé ;
    - les événements ;
    - le hash, tous les 10 ticks ;
    - le vainqueur.
@@ -134,6 +135,21 @@ Le budget est de 100 ms par tick ; l'objectif est de rester sous 5 ms en moyenne
   - contrôle de version du moteur ;
   - intents horodatés avec l'identifiant attribué par le serveur (impossible à usurper).
 - **Reconnexion :** `rejoin` renvoie les tours manquants depuis `lastTurn`.
+
+### Intents de diplomatie
+
+| Intent            | Champs                                             | Validation dans `shared` (forme uniquement)               |
+| ----------------- | -------------------------------------------------- | --------------------------------------------------------- |
+| `allianceRequest` | `target`                                           | entier, 1 ≤ target ≤ `MAX_PLAYER_ID`                      |
+| `allianceReply`   | `requester`, `accept`                              | identifiant valide, `accept` booléen                      |
+| `allianceRenew`   | `ally`                                             | identifiant valide                                        |
+| `allianceBreak`   | `ally`                                             | identifiant valide                                        |
+| `donate`          | `target`, `resource: "gold" \| "troops"`, `amount` | identifiant valide, ressource autorisée, montant fini ≥ 0 |
+
+- **Règles dans le moteur** (`game/Diplomacy.ts`) : joueurs vivants, hors déploiement, délais, plafond d'alliances, fenêtre de renouvellement, alliances activées. Un refus émet `diplomacyRejected {player, reason}` pour les humains.
+- **IA :** tribus (`BotAI.ts`) et prétendants (`NationAI.ts`) appellent les **mêmes méthodes** que les intents ; il n'y a pas de chemin de règles parallèle.
+- **Déterminisme :** chaque cerveau a son `PseudoRandom` (graine + id × 7919, sel distinct pour les prétendants) ; alliances et demandes dans des tableaux, dans l'ordre de création ; relations dans un `Int8Array` par prétendant ; échéances en ticks entiers. Le hash couvre les alliances (paire, échéance, renouvellements), le nombre de demandes, `parjureUntil`, les trahisons et une somme de contrôle des relations.
+- **Vues :** `PlayerView` porte `kind` (`human`, `nation`, `bot`), `allies`, `parjureUntil` et `betrayals` ; `TickResult.diplomacy` vaut `null` si rien n'a changé. `GameConfig` reçoit `nations`, `difficulty`, `allianceTicks` et `donations`.
 
 ## Qualité
 
