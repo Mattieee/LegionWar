@@ -1,5 +1,4 @@
-import { Race } from "../config/Races";
-import { buildingCost, maxTroops } from "../config/Rules";
+import { NATION_WEAKEST_EDGE, buildingCost, maxTroops } from "../config/Rules";
 import { PseudoRandom } from "../core/PseudoRandom";
 import type { Game } from "./Game";
 import type { Player } from "./Player";
@@ -15,13 +14,15 @@ const EARLY_GAME_TICKS = 1800;
 const BUILD_SAMPLES = 25;
 const BUILD_DEPTH = 8;
 const TOWER_DEPTH = 5;
+/** Part des troupes engagées contre lui au-delà de laquelle il bâtit une tour. */
+const TOWER_THRESHOLD = 0.35;
 
 /**
  * IA d'un prétendant (GDD §13, comme les « Nations » d'OpenFront), version 1 : à chaque cycle,
  * il répond aux demandes d'alliance, trahit éventuellement un allié faible, propose une
  * alliance, construit, puis attaque selon une liste de stratégies. Son niveau (Écuyer à
  * Empereur) règle ses troupes, son rythme, sa prudence et sa propension à trahir ; son peuple
- * nuance légèrement son caractère.
+ * ne change pas son caractère (GDD §13.3).
  */
 export class NationBrain {
   private readonly rng: PseudoRandom;
@@ -30,8 +31,8 @@ export class NationBrain {
   private readonly triggerRatio: number;
   private readonly reserveRatio: number;
   private readonly prudence: number;
-  /** Part des troupes engagées contre lui au-delà de laquelle il bâtit une tour. */
-  private readonly towerThreshold: number;
+  /** Propriétaires voisins, calculés une fois par cycle (le territoire ne bouge pas pendant le cycle). */
+  private neighbors: Set<number> = new Set();
 
   constructor(
     private readonly game: Game,
@@ -42,29 +43,16 @@ export class NationBrain {
     const level = player.level;
     this.interval = this.rng.nextInt(level.interval[0], level.interval[1]);
     this.offset = this.rng.nextInt(0, this.interval);
-    let trigger = this.rng.nextInt(45, 55) / 100;
-    let prudence = level.prudence;
-    let towerThreshold = 0.35;
-    // Nuances de peuple, légères.
-    if (player.race === Race.Kharag) {
-      trigger -= 0.1;
-      prudence *= 0.8;
-      towerThreshold = 0.5;
-    } else if (player.race === Race.Sylvanor) {
-      trigger += 0.1;
-      prudence = Math.min(0.95, prudence + 0.1);
-    } else if (player.race === Race.Aldoria) {
-      towerThreshold = 0.25;
-    }
-    this.triggerRatio = trigger;
+    // Pas de nuance de peuple : mesurées, elles portaient Kharag à 38–41 % des parties menées.
+    this.triggerRatio = this.rng.nextInt(45, 55) / 100;
     this.reserveRatio = this.rng.nextInt(25, 35) / 100;
-    this.prudence = prudence;
-    this.towerThreshold = towerThreshold;
+    this.prudence = level.prudence;
   }
 
   tick(ticks: number): void {
     const me = this.player;
     if (!me.alive || ticks % this.interval !== this.offset) return;
+    this.neighbors = this.game.neighborOwners(me);
     this.answerRequests();
     const betrayed = this.scheduledBetrayal();
     // Pas de demande le cycle d'une trahison : il se re-proposerait à sa victime.
@@ -88,6 +76,8 @@ export class NationBrain {
       game.diplomacy.reply(me, r.from, accept);
     }
     const crown = game.crownHolder();
+    // Enfermé par ses alliances, il laisse expirer celle de son allié voisin le plus faible.
+    const boxed = this.weakestAllyIfBoxed();
     for (const ally of game.diplomacy.alliesOf(me.id)) {
       if (!game.diplomacy.inRenewWindow(me.id, ally) || game.diplomacy.hasRenewed(me.id, ally)) {
         continue;
@@ -97,6 +87,7 @@ export class NationBrain {
         other &&
         game.relation(me.id, ally) >= 0 &&
         crown?.id !== ally &&
+        ally !== boxed &&
         !this.wouldBetray(other)
       ) {
         game.diplomacy.renew(me, ally);
@@ -112,8 +103,8 @@ export class NationBrain {
     if (requester.betrayals >= 2 && this.rng.chance(2)) return false;
     if (this.lordAlliances(requester) >= 3) return false;
     if (game.crownHolder()?.id === requester.id) return false;
-    const neighbors = game.neighborOwners(me);
-    if (neighbors.has(requester.id) && requester.troops >= me.troops * THREAT_RATIO) return true;
+    if (this.neighbors.has(requester.id) && requester.troops >= me.troops * THREAT_RATIO)
+      return true;
     const relation = game.relation(me.id, requester.id);
     if (relation < 0) return false;
     if (relation >= 50) return true;
@@ -123,18 +114,45 @@ export class NationBrain {
     return ratio >= 0.5 && ratio <= 2;
   }
 
-  /** Trahit un allié voisin bien plus faible, si rien ne le menace et que l'alliance a duré. */
+  /**
+   * Trahit un allié voisin bien plus faible, si rien ne le menace et que l'alliance a duré ; le
+   * rapport exigé baisse quand il est enfermé et que cet allié est le plus faible de ses voisins.
+   */
   private wouldBetray(ally: Player): boolean {
     const game = this.game;
     const me = this.player;
+    const level = me.level;
     const formed = game.diplomacy.formedAt(me.id, ally.id);
+    if (
+      formed === null ||
+      game.ticks - formed < BETRAYAL_MIN_TICKS ||
+      !this.neighbors.has(ally.id) ||
+      game.incomingAttacks(me).size > 0
+    ) {
+      return false;
+    }
+    if (me.troops >= ally.troops * level.betrayRatio) return true;
     return (
-      formed !== null &&
-      game.ticks - formed >= BETRAYAL_MIN_TICKS &&
-      game.neighborOwners(me).has(ally.id) &&
-      game.incomingAttacks(me).size === 0 &&
-      me.troops >= ally.troops * me.level.betrayRatio
+      level.boxedBetrayRatio > 0 &&
+      me.troops >= ally.troops * level.boxedBetrayRatio &&
+      this.weakestAllyIfBoxed() === ally.id
     );
+  }
+
+  /**
+   * Enfermé : ni terre libre ni voisin non allié (tribu ou royaume) à sa frontière. Renvoie alors
+   * l'allié voisin (seigneur ou prétendant) qui a le moins de troupes, sinon null.
+   */
+  private weakestAllyIfBoxed(): number | null {
+    const game = this.game;
+    let weakest: Player | null = null;
+    for (const id of this.neighbors) {
+      if (id === 0 || !game.diplomacy.allied(this.player.id, id)) return null;
+      const p = game.player(id);
+      if (!p || !p.alive || p.kind === "bot") continue;
+      if (weakest === null || p.troops < weakest.troops) weakest = p;
+    }
+    return weakest?.id ?? null;
   }
 
   private scheduledBetrayal(): Player | null {
@@ -161,7 +179,7 @@ export class NationBrain {
       !game.isParjure(p) &&
       crown?.id !== p.id &&
       !game.diplomacy.allied(me.id, p.id);
-    const neighbors = [...game.neighborOwners(me)]
+    const neighbors = [...this.neighbors]
       .map((id) => game.player(id))
       .filter((p): p is Player => p !== null && p.id !== me.id);
 
@@ -200,10 +218,7 @@ export class NationBrain {
           worstId = id;
         }
       }
-      if (
-        worst > me.troops * this.towerThreshold &&
-        me.gold >= buildingCost(BuildingKind.Tour, me)
-      ) {
+      if (worst > me.troops * TOWER_THRESHOLD && me.gold >= buildingCost(BuildingKind.Tour, me)) {
         const front = this.frontTile(worstId);
         if (front !== null) {
           const tile = this.inward(front, TOWER_DEPTH);
@@ -276,7 +291,7 @@ export class NationBrain {
     const game = this.game;
     const me = this.player;
     let strongest = 0;
-    for (const id of game.neighborOwners(me)) {
+    for (const id of this.neighbors) {
       const p = game.player(id);
       if (p && id !== 0 && !game.diplomacy.allied(me.id, id))
         strongest = Math.max(strongest, p.troops);
@@ -289,7 +304,7 @@ export class NationBrain {
     const game = this.game;
     const me = this.player;
     const max = maxTroops(me);
-    const neighbors = game.neighborOwners(me);
+    const neighbors = this.neighbors;
 
     // Priorité absolue : les terres libres, par la terre puis en barge (dès Chevalier).
     if (neighbors.has(0)) {
@@ -306,7 +321,7 @@ export class NationBrain {
     if (me.troops < max * this.triggerRatio) return;
     const amount = this.engageable();
     if (amount < 1) return;
-    const target = this.pickTarget(neighbors, amount);
+    const target = this.pickTarget(neighbors);
     if (target === null) return;
     if (target.player.kind === "human" && this.rng.next() < me.level.humanGiveUp) return;
     this.strike(target.player, amount, target.byBoat);
@@ -319,10 +334,7 @@ export class NationBrain {
   }
 
   /** Stratégies essayées dans l'ordre (GDD §13.4). */
-  private pickTarget(
-    neighbors: Set<number>,
-    amount: number,
-  ): { player: Player; byBoat: boolean } | null {
+  private pickTarget(neighbors: Set<number>): { player: Player; byBoat: boolean } | null {
     const game = this.game;
     const me = this.player;
     const isNeighbor = (p: Player): boolean => neighbors.has(p.id);
@@ -367,12 +379,6 @@ export class NationBrain {
     const parjure = around.find((p) => game.isParjure(p));
     if (parjure) return { player: parjure, byBoat: false };
 
-    // 5. Morvane, charognard : un voisin déjà attaqué par un tiers.
-    if (me.race === Race.Morvane) {
-      const prey = around.find((p) => game.isUnderAttack(p, me.id));
-      if (prey) return { player: prey, byBoat: false };
-    }
-
     // 6. La tribu voisine la moins dense.
     const density = (p: Player): number => p.troops / Math.max(1, p.tiles);
     const tribes = around.filter((p) => p.kind === "bot").sort((a, b) => density(a) - density(b));
@@ -386,9 +392,24 @@ export class NationBrain {
     }
     if (hated) return { player: hated, byBoat: false };
 
-    // 8. Le voisin le plus faible, s'il ne fait pas le poids.
+    // 8. Le voisin le moins dense, si nos troupes valent au moins 1,25 fois les siennes.
     const weakest = [...around].sort((a, b) => density(a) - density(b))[0];
-    if (weakest && weakest.troops < amount * 0.8) return { player: weakest, byBoat: false };
+    if (weakest && me.troops >= weakest.troops * NATION_WEAKEST_EDGE) {
+      return { player: weakest, byBoat: false };
+    }
+
+    // 9. Île : sans aucun voisin à attaquer, une barge vers le royaume non allié le plus faible.
+    if (around.length === 0 && me.level.boats !== "none") {
+      let prey: Player | null = null;
+      for (let id = 1; ; id++) {
+        const p = game.player(id);
+        if (p === null) break;
+        if (p.kind === "bot" || !p.spawned || !hostile(p)) continue;
+        if (prey === null || p.troops < prey.troops) prey = p;
+      }
+      if (prey && me.troops >= prey.troops * NATION_WEAKEST_EDGE)
+        return { player: prey, byBoat: true };
+    }
     return null;
   }
 

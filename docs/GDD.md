@@ -125,7 +125,7 @@ le défenseur perd sa densité moyenne (troupes / tuiles) par tuile prise
 | -------------------- | ------------------- | --------- | ------------------------------------- | ---------------------- |
 | Or                   | **×1,20**           | ×0,75     | ×0,90                                 | ×1,05                  |
 | Plafond de troupes   | ×1                  | ×1        | ×1                                    | ×1                     |
-| Régénération         | ×1                  | ×1        | ×0,90                                 | ×1                     |
+| Régénération         | ×1                  | ×1        | ×0,95                                 | ×1                     |
 | Pertes en attaque    | ×1                  | **×0,85** | ×1                                    | ×1                     |
 | Défense              | ×1 (remparts, §7.3) | ×0,95     | ×1                                    | ×1                     |
 | Vitesse de conquête  | ×1                  | **×1,10** | ×1                                    | ×1                     |
@@ -137,6 +137,8 @@ le défenseur perd sa densité moyenne (troupes / tuiles) par tuile prise
 | Mécanique propre     | Remparts            | Pillage   | Levée des charniers (15 %)            | Bosquets               |
 
 Avec le rythme du 2026-10-10 (§6), le ralentissement des remparts passe de 1,5 à **1,2** (sinon Aldoria monte à 33 %) ; mesuré sur 200 parties : **27,5 / 22,5 / 23 / 27 %**. Il faut au moins 200 parties pour mesurer l'équilibre : entre deux moitiés de 100 parties, l'écart atteint ±8 points.
+
+Réglage de l'IA du 2026-10-10 : régénération de Morvane −10 % → **−5 %**. Mesures du game designer : 4 prétendants Duc, un par peuple, sans nuances (400 parties, sièges tournants) : **23 / 29 / 26 / 22 %** des parties menées ; contre-épreuve sur 4 seigneurs scriptés (300 parties) : 30,7 / 25 / 24,7 / 19,7 %. Cette contre-épreuve place Aldoria à 32,7 % sur les règles d'avant, contrairement à la mesure du 2026-10-09 ci-dessous : à suivre (option : remparts ×1,35).
 
 Rééquilibrage du 2026-10-09, mesuré par le game designer sur 300 parties simulées (4 seigneurs scriptés, un par race, sièges tournants, 60 tribus, carte moyenne) : avant, Aldoria 30,7 %, **Kharag 40 %**, Morvane 15,3 %, Sylvanor 14 % des parties menées ; après, **21,7 / 26,7 / 27,3 / 24,3 %** (écart d'une simulation à l'autre : environ ±5 points).
 
@@ -317,23 +319,24 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 
 ### 13.3 Prétendants : version 1 [Proto]
 
-| Levier                                                                      | Écuyer      | Chevalier     | Duc     | Empereur      |
-| --------------------------------------------------------------------------- | ----------- | ------------- | ------- | ------------- |
-| Plafond / régénération                                                      | ×0,5 / ×0,9 | ×0,75 / ×0,95 | ×1 / ×1 | ×1,25 / ×1,05 |
-| Intervalle d'action (ticks)                                                 | 65–99       | 55–69         | 45–59   | 30–49         |
-| Renonce à une cible humaine                                                 | 75 %        | 25 %          | 0       | 0             |
-| Prudence (part des troupes du plus fort voisin non allié gardée en réserve) | 0           | 0             | 75 %    | 90 %          |
-| Barges                                                                      | non         | terres libres | toutes  | toutes        |
-| Tours de garde                                                              | jamais      | oui           | oui     | oui           |
-| Ligue contre la Couronne                                                    | non         | non           | oui     | oui           |
-| Réponse d'alliance inversée (« confusion »)                                 | 1/10        | 1/20          | 1/40    | jamais        |
-| Trahison programmée (rapport de troupes requis)                             | 10:1        | 10:1          | 3:1     | 2:1           |
-| Relation quand il est attaqué                                               | −60         | −70           | −80     | −100          |
+| Levier                                                                      | Écuyer      | Chevalier            | Duc     | Empereur      |
+| --------------------------------------------------------------------------- | ----------- | -------------------- | ------- | ------------- |
+| Plafond / régénération                                                      | ×0,5 / ×0,9 | ×0,75 / ×0,95        | ×1 / ×1 | ×1,25 / ×1,05 |
+| Intervalle d'action (ticks)                                                 | 65–99       | 55–69                | 45–59   | 30–49         |
+| Renonce à une cible humaine                                                 | 75 %        | 25 %                 | 0       | 0             |
+| Prudence (part des troupes du plus fort voisin non allié gardée en réserve) | 0           | 0                    | 75 %    | 90 %          |
+| Barges                                                                      | non         | terres libres et île | toutes  | toutes        |
+| Tours de garde                                                              | jamais      | oui                  | oui     | oui           |
+| Ligue contre la Couronne                                                    | non         | non                  | oui     | oui           |
+| Réponse d'alliance inversée (« confusion »)                                 | 1/10        | 1/20                 | 1/40    | jamais        |
+| Trahison programmée (rapport de troupes requis)                             | 10:1        | 10:1                 | 3:1     | 2:1           |
+| Trahison quand il est enfermé (allié voisin le plus faible)                 | jamais      | 2:1                  | 1,5:1   | 1,2:1         |
+| Relation quand il est attaqué                                               | −60         | −70                  | −80     | −100          |
 
 - **Cycle :** 1. répondre aux demandes et renouvellements ; 2. trahison programmée éventuelle ; 3. au plus une demande d'alliance sortante ; 4. construction ; 5. attaque. Reportés : emojis, embargo, navires de guerre, sorts.
-- **Attaque :** déclenchement à 45–54 % du plafond ; réserve = max(25–34 % du plafond, prudence × troupes du plus fort voisin non allié). Priorité absolue aux terres libres (40 % des troupes au-delà de 15 % du plafond), en barge si aucune n'est adjacente (dès Chevalier). Puis, dans l'ordre : **riposte** ; **Couronne** (Duc, Empereur : le royaume qui tient au moins 35 % des terres, voisin ou en barge) ; **aide à un allié** ; **Parjure voisin** ; tribu voisine la moins dense ; voisin le plus haï (relation < −50) ; voisin le plus faible s'il vaut moins de 0,8 fois les troupes engageables. Une barge offensive ne sert qu'en riposte ou contre la Couronne.
+- **Attaque :** déclenchement à 45–54 % du plafond ; réserve = max(25–34 % du plafond, prudence × troupes du plus fort voisin non allié). Priorité absolue aux terres libres (40 % des troupes au-delà de 15 % du plafond), en barge si aucune n'est adjacente (dès Chevalier). Puis, dans l'ordre : **riposte** ; **Couronne** (Duc, Empereur : le royaume qui tient au moins 35 % des terres, voisin ou en barge) ; **aide à un allié** ; **Parjure voisin** ; tribu voisine la moins dense ; voisin le plus haï (relation < −50) ; voisin le moins dense si nos troupes valent au moins **1,25 fois** les siennes (`NATION_WEAKEST_EDGE` ; l'ancien seuil, 0,8 × troupes engageables, exigeait un voisin 5 fois plus faible entre Ducs égaux et figeait 44 % des parties) ; **île** : sans aucun voisin à attaquer, une barge vers le royaume non allié le plus faible, au même rapport (dès Chevalier). Une barge offensive ne sert qu'en riposte, contre la Couronne ou vers une île.
 - **Construction :** Bourg dès que l'or le couvre (×1,5 pour Écuyer et Chevalier), au cœur du royaume ; Tour quand les attaques entrantes engagent plus de 35 % de ses troupes, quelques tuiles derrière la frontière la plus menacée.
-- **Nuances de peuple** (légères) : Kharag déclenche 10 points plus tôt, prudence ×0,8, Tour seulement au-delà de 50 % d'attaque entrante ; Aldoria bâtit une Tour dès 25 % ; Morvane, charognard, vise un voisin déjà attaqué par un tiers ; Sylvanor déclenche 10 points plus tard, prudence +0,1.
+- **Pas de nuance de peuple** : le caractère d'un prétendant ne dépend que de son niveau. Mesurées, les nuances portaient Kharag à 38–41 % des parties menées et laissaient Morvane à 13–16 % ; la stratégie « charognard » de Morvane est retirée, et tous bâtissent une Tour à 35 % d'attaque entrante.
 
 ### 13.4 Arbre d'alliance des prétendants [Proto]
 
@@ -342,14 +345,16 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 3. Demandeur qui a déjà au moins 3 alliances hors tribus : rejet.
 4. Demandeur qui porte la Couronne : rejet.
 5. Demandeur menaçant (voisin dont les troupes valent au moins 1,5 fois les siennes) : **acceptation**.
-6. Relation < 0 : rejet. 7. Relation ≥ 50 : acceptation.
-7. Le prétendant a déjà au moins 2 alliances hors tribus : rejet.
-8. Moins de 3 minutes de jeu : acceptation.
-9. Forces comparables (rapport des troupes entre 0,5 et 2) : acceptation ; sinon rejet.
+6. Relation < 0 : rejet.
+7. Relation ≥ 50 : acceptation.
+8. Le prétendant a déjà au moins 2 alliances hors tribus : rejet.
+9. Moins de 3 minutes de jeu : acceptation.
+10. Forces comparables (rapport des troupes entre 0,5 et 2) : acceptation ; sinon rejet.
 
-- **Renouvellement :** si la relation est ≥ 0, que l'allié ne porte pas la Couronne et qu'aucune trahison n'est prévue contre lui.
+- **Enfermé** : ni terre libre ni voisin non allié (tribu ou royaume) à sa frontière : toutes ses frontières sont alliées.
+- **Renouvellement :** si la relation est ≥ 0, que l'allié ne porte pas la Couronne, qu'aucune trahison n'est prévue contre lui et, s'il est enfermé, que ce n'est pas son allié voisin le plus faible (qu'il laisse expirer). Mesure : le test de relation seul ne filtrait presque rien (la relation retombe à 0 avant l'ouverture de la fenêtre), d'où des renouvellements systématiques et des fronts figés.
 - **Demandes sortantes :** à un voisin Amical ; ou, s'il est menacé, à un voisin de la menace dont la relation est ≥ 0 ; jamais vers un Parjure ni vers la Couronne.
-- **Trahison programmée :** il rompt avec un allié voisin si le rapport de troupes atteint le seuil de son niveau, qu'aucune attaque ne le vise et que l'alliance dure depuis au moins 60 s ; le même cycle, il attaque cet ancien allié.
+- **Trahison programmée :** il rompt avec un allié voisin si le rapport de troupes atteint le seuil de son niveau, qu'aucune attaque ne le vise et que l'alliance dure depuis au moins 60 s ; le même cycle, il attaque cet ancien allié. Enfermé, il trahit aussi son allié voisin le plus faible à un rapport moindre (tableau du §13.3).
 
 ### 13.5 Plus tard
 
@@ -421,7 +426,10 @@ Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, 
 - Le délai avant que les terres libres soient épuisées est mesuré à **50 s environ** sur une carte moyenne avec 60 tribus ; viser **40 à 60 s**. Si l'ouverture semble molle, c'est le premier réglage à revoir (`EXPANSION_PACE`, `REGEN_PACE`).
 - Cibles de rythme : une vague entre deux seigneurs **15 à 30 s**, une barge **10 à 20 s** pour une traversée moyenne, une guerre entre royaumes comparables **2 à 4 min**.
 - Durée de partie : les 15 à 25 min visées ne s'obtiennent pas par le rythme seul (le meneur fait boule de neige sur les tribus) ; ce sera le rôle des seigneurs IA et de l'anti-boule de neige. Cibles d'ici là : solo contre les tribus **≥ 5 min**, partie à 4 seigneurs **≈ 10 min**.
-- Les charniers relèvent deux fois moins de morts au nouveau rythme (vagues plus espacées) ; si Morvane passe sous 20 % en vraie partie, allonger `CHARNIER_TICKS` de 600 à 900.
+- Les charniers relèvent deux fois moins de morts au nouveau rythme (vagues plus espacées). Allonger `CHARNIER_TICKS` à 900 a été mesuré sans effet (Morvane à 17 %) : le levier est la régénération de Morvane (−5 % depuis le 2026-10-10).
+- **IA des prétendants (2026-10-10)**, mesures du game designer : 4 prétendants Duc + 60 tribus, carte moyenne, 400 parties : parties gagnées en moins de 30 min **54 % → 98,5 %**, durée médiane 11,2 → **8,6 min** (p10–p90 : 6,6–14,3), trahisons par partie 0,44 → **1,2**. Un seigneur contre 5 prétendants : il gagne 78 % des parties contre des Écuyers, 18 % contre des Chevaliers (éliminé avant 5 min : 10 %), 4 % contre des Ducs, 0 % contre des Empereurs.
+- La durée médiane (≈ 9 min) reste sous la cible de 10 à 20 min : ce n'est pas l'IA qui l'allongera mais l'anti-boule de neige (Crépuscule, §14). Un seuil d'attaque à 1,5 allonge à 10 min mais refige 22 % des parties.
+- Recherche de route maritime : pics de 60 à 85 ms par tick sur 2 M de tuiles avec 12 prétendants (budget 100 ms) ; la stratégie « île » l'utilise un peu plus. À optimiser.
 - Le premier Bourg arrive vers 2 min de jeu (125 k d'or à environ 1 000 à 1 200 or/s) : vérifier que ce n'est pas trop lent.
 - La moisson de Morvane (25 %) et la levée des charniers (15 %) peuvent faire boule de neige pendant les guerres longues : si c'est le cas, interdire la levée sur les charniers créés par Morvane lui-même.
 - Le banc d'essai des mécaniques propres fait beaucoup de va-et-vient (environ 55 % des prises tombent sur un charnier) : avec de vrais joueurs, Morvane pourrait être plus faible et Kharag piller davantage. Suivre l'or pillé et les morts relevés.

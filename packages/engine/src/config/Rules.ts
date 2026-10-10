@@ -55,6 +55,8 @@ export interface DifficultyLevel {
   confusion: number;
   /** Rapport de troupes requis pour trahir un allié voisin. */
   betrayRatio: number;
+  /** Rapport requis pour trahir l'allié voisin le plus faible quand on est enfermé (0 = jamais). */
+  boxedBetrayRatio: number;
   /** Relation infligée à qui l'attaque. */
   attackedRelation: number;
 }
@@ -73,6 +75,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyLevel> = {
     league: false,
     confusion: 10,
     betrayRatio: 10,
+    boxedBetrayRatio: 0,
     attackedRelation: -60,
   },
   [Difficulty.Knight]: {
@@ -88,6 +91,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyLevel> = {
     league: false,
     confusion: 20,
     betrayRatio: 10,
+    boxedBetrayRatio: 2,
     attackedRelation: -70,
   },
   [Difficulty.Duke]: {
@@ -103,6 +107,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyLevel> = {
     league: true,
     confusion: 40,
     betrayRatio: 3,
+    boxedBetrayRatio: 1.5,
     attackedRelation: -80,
   },
   [Difficulty.Emperor]: {
@@ -118,9 +123,16 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyLevel> = {
     league: true,
     confusion: 0,
     betrayRatio: 2,
+    boxedBetrayRatio: 1.2,
     attackedRelation: -100,
   },
 };
+
+/**
+ * Un prétendant attaque son voisin le plus faible quand ses troupes valent au moins 1,25 fois
+ * les siennes (l'ancien seuil, 0,8 × troupes engageables, figeait les fronts entre égaux).
+ */
+export const NATION_WEAKEST_EDGE = 1.25;
 
 /** Prétendants par défaut selon la taille de carte. */
 export const DEFAULT_NATIONS = { small: 3, medium: 5, large: 8 } as const;

@@ -131,13 +131,13 @@ export const RACES: Record<Race, RaceInfo> = {
     traits: [
       "Levée des charniers : relève 15 % des morts d'une bataille récente",
       "Relève 25 % des pertes ennemies",
-      "Régénération −10 %",
+      "Régénération −5 %",
       "−10 % d'or",
     ],
     modifiers: {
       ...NEUTRAL_MODIFIERS,
       goldMult: 0.9,
-      regenMult: 0.9,
+      regenMult: 0.95,
       harvestRatio: 0.25,
       charnierRaise: 0.15,
     },

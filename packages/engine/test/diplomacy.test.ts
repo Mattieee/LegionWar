@@ -417,3 +417,107 @@ describe("Derniers survivants", () => {
     expect(game.diplomacy.renew(a, b.id)).toBe("lastSurvivors");
   });
 });
+
+describe("IA des prétendants (réglage du GDD §13.3)", () => {
+  /**
+   * Partie de prétendants sans tribus ; la terre est partagée en bandes verticales à parts
+   * égales (`cuts` = parts cumulées), du joueur 1 à gauche au dernier à droite.
+   */
+  function bands(difficulty: Difficulty, cuts: number[], allianceTicks?: number) {
+    const game = new Game({
+      seed: 4242,
+      mapSize: "small",
+      bots: 0,
+      nations: cuts.length,
+      difficulty,
+      humans: [],
+      singleplayer: false,
+      allianceTicks,
+    });
+    while (game.inSpawnPhase) play(game);
+    const w = game.map.width;
+    const land: number[] = [];
+    for (let t = 0; t < game.map.size; t++) if (game.map.isPassableLand(t)) land.push(t);
+    land.sort((x, y) => (x % w) - (y % w) || x - y);
+    land.forEach((t, i) => game.conquer(t, cuts.findIndex((c) => i < c * land.length) + 1));
+    return {
+      game,
+      lords: cuts.map((_, i) => {
+        const p = game.player(i + 1);
+        if (!p) throw new Error("prétendant introuvable");
+        return p;
+      }),
+    };
+  }
+
+  /** Joue `ticks` tours en fixant les troupes avant chacun ; renvoie événements et attaques. */
+  function hold(game: Game, ticks: number, fix: () => void) {
+    const events: GameEvent[] = [];
+    const attacks: { attacker: number; target: number }[] = [];
+    for (let i = 0; i < ticks; i++) {
+      fix();
+      const result = play(game);
+      events.push(...result.events);
+      attacks.push(...result.attacks);
+    }
+    return { events, attacks };
+  }
+
+  it("entre égaux, un Chevalier attaque son voisin dès 1,3 fois ses troupes", () => {
+    const {
+      game,
+      lords: [a, b],
+    } = bands(Difficulty.Knight, [0.5, 1]);
+    if (!a || !b) throw new Error("prétendants introuvables");
+    const { attacks } = hold(game, 130, () => {
+      a.troops = Math.floor(maxTroops(a) * 0.75);
+      b.troops = Math.floor(a.troops / 1.3);
+    });
+    expect(attacks.some((x) => x.attacker === a.id && x.target === b.id)).toBe(true);
+  });
+
+  it("enfermé par ses alliances, un Duc laisse expirer celle de l'allié le plus faible", () => {
+    const {
+      game,
+      lords: [b, a, c, d],
+    } = bands(Difficulty.Duke, [0.25, 0.5, 0.75, 1], 700);
+    if (!a || !b || !c || !d) throw new Error("prétendants introuvables");
+    game.diplomacy.request(a, b);
+    game.diplomacy.reply(b, a.id, true);
+    game.diplomacy.request(a, c);
+    game.diplomacy.reply(c, a.id, true);
+    hold(game, 720, () => {
+      a.troops = 300_000;
+      b.troops = 250_000;
+      c.troops = 280_000;
+      d.troops = 280_000;
+    });
+    expect(game.diplomacy.allied(a.id, c.id)).toBe(true);
+    expect(game.diplomacy.allied(a.id, b.id)).toBe(false);
+  });
+
+  it.each([
+    [Difficulty.Duke, true],
+    [Difficulty.Squire, false],
+  ])("enfermé, un %s trahit l'allié le plus faible à 1,6:1 : %s", (difficulty, betrays) => {
+    const {
+      game,
+      lords: [b, a, c, d],
+    } = bands(difficulty, [0.25, 0.5, 0.75, 1]);
+    if (!a || !b || !c || !d) throw new Error("prétendants introuvables");
+    game.diplomacy.request(a, b);
+    game.diplomacy.reply(b, a.id, true);
+    game.diplomacy.request(a, c);
+    game.diplomacy.reply(c, a.id, true);
+    const { events } = hold(game, 720, () => {
+      a.troops = 400_000;
+      b.troops = 250_000;
+      c.troops = 380_000;
+      d.troops = 1000;
+    });
+    const broke = (victim: number) =>
+      events.some((e) => e.type === "allianceBroken" && e.traitor === a.id && e.victim === victim);
+    expect(broke(b.id)).toBe(betrays);
+    expect(broke(c.id)).toBe(false);
+  });
+});

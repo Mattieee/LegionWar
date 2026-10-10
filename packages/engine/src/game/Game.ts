@@ -780,11 +780,6 @@ export class Game {
     return out;
   }
 
-  /** Vrai si `p` est la cible d'une attaque d'un tiers, autre que `except` (charognards). */
-  isUnderAttack(p: Player, except: number): boolean {
-    return this.attacks.some((a) => a.active && a.targetId === p.id && a.attacker.id !== except);
-  }
-
   relation(nationId: number, otherId: number): number {
     return this.relations.get(nationId)?.[otherId] ?? 0;
   }
