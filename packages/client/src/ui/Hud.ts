@@ -15,6 +15,7 @@ import {
 } from "@legionwar/engine";
 import { ContextMenu } from "./ContextMenu";
 import { DealCards } from "./DealCards";
+import { RadialMenu } from "./RadialMenu";
 import { escapeHtml, formatClock, formatNumber, formatPercent } from "./format";
 
 export interface HudCallbacks {
@@ -44,12 +45,39 @@ export interface HudState {
   winPercent: number;
 }
 
+/** Fiche du royaume survolé, affichée en haut de l'écran (comme OpenFront). */
+export type InfoModel =
+  | {
+      kind: "player";
+      player: PlayerView;
+      /** Troupes engagées dans ses attaques et barges en cours. */
+      committed: number;
+      typeLabel: string;
+      /** Disposition d'un prétendant envers vous. */
+      disposition: { label: string; tone: "hostile" | "wary" | "neutral" | "friendly" } | null;
+      self: boolean;
+      ally: boolean;
+      /** Temps restant (ticks) d'une alliance avec vous, d'un statut de Parjure. */
+      allyLeft: number | null;
+      parjureLeft: number | null;
+      crown: boolean;
+      /** Demande d'alliance en attente : de sa part, ou de la vôtre. */
+      requested: "fromThem" | "fromMe" | null;
+      landShare: number;
+      /** Terrain survolé et marques (Rempart, Charnier…). */
+      detail: string;
+      actions: { label: string; key: string; danger?: boolean; run: () => void }[];
+    }
+  | { kind: "land"; title: string; detail: string };
+
 export type EventTone = "info" | "good" | "bad";
 
-const LOG_SIZE = 7;
+const LOG_SIZE = 6;
 const ALERT_COOLDOWN_MS = 15_000;
 /** Le compte à rebours du Crépuscule s'affiche 2 min avant. */
 const TWILIGHT_WARNING_TICKS = 1200;
+/** Un gain d'or ponctuel reste affiché 2 s au-dessus de la case d'or. */
+const GOLD_GAIN_MS = 2000;
 
 /** Compteur de la mécanique propre à chaque peuple (GDD §7.3). */
 const RACE_STAT: Record<Race, { label: string; hint: string; value: (p: PlayerView) => string }> = {
@@ -74,12 +102,22 @@ const RACE_STAT: Record<Race, { label: string; hint: string; value: (p: PlayerVi
     value: (p) => formatNumber(p.marks),
   },
 };
+
 const BUILD_KEYS: Record<BuildingKind, string> = {
   [BuildingKind.Bourg]: "1",
   [BuildingKind.Tour]: "2",
 };
 
-/** Interface en jeu (DOM superposé au canvas), construite avec les composants du design system. */
+const BUILD_HELP: Record<BuildingKind, string> = {
+  [BuildingKind.Bourg]: "Augmente le plafond de troupes de 250 k.",
+  [BuildingKind.Tour]: "Ralentit et saigne les assaillants à portée.",
+};
+
+/**
+ * Interface en jeu (DOM superposé au canvas), construite avec les composants du design system
+ * et disposée comme OpenFront : panneau de contrôle en bas (régénération, troupes, or, ratio,
+ * bâtiments), fiche du royaume survolé en haut, classement à droite, menu radial au clic droit.
+ */
 export class Hud {
   private readonly el: HTMLElement;
   private readonly $: <T extends HTMLElement>(sel: string) => T;
@@ -87,7 +125,10 @@ export class Hud {
   private ended = false;
   private lastAlert = -Infinity;
   private skin: Race | null = null;
-  /** Menu contextuel (clic droit sur la carte) et cartes de diplomatie. */
+  private lastRegen = 0;
+  private goldGainTimer = 0;
+  /** Menu radial (clic droit), menu de confirmation et cartes de diplomatie. */
+  readonly radial: RadialMenu;
   readonly menu: ContextMenu;
   readonly deals: DealCards;
 
@@ -98,24 +139,6 @@ export class Hud {
     // son cartouche est une gravure à l'encre, illisible sur un fond sombre.
     this.el.innerHTML = `
       <div class="hud__skin" id="hud-skin">
-      <section class="lw-panel lw-panel--translucent hud__me" aria-label="Votre royaume">
-        <div class="hud__identity">
-          <span class="lw-shield lw-shield--lg" id="hud-shield" aria-hidden="true"><span id="hud-emblem"></span></span>
-          <div><h2 class="lw-title-3" id="hud-name"></h2><p class="lw-overline" id="hud-race"></p></div>
-        </div>
-        <div class="lw-stat"><span class="lw-stat__label">Or</span><span class="lw-stat__value" id="hud-gold"></span></div>
-        <div class="lw-stat"><span class="lw-stat__label">Troupes</span><span class="lw-stat__value" id="hud-troops"></span></div>
-        <div class="lw-progress" role="presentation"><div class="lw-progress__fill" id="hud-troops-bar"></div></div>
-        <div class="lw-stat"><span class="lw-stat__label">Territoire</span><span class="lw-stat__value" id="hud-land"></span></div>
-        <div class="lw-stat" id="hud-race-stat" hidden><span class="lw-stat__label" id="hud-race-label"></span><span class="lw-stat__value" id="hud-race-value"></span></div>
-        <hr class="lw-divider" />
-        <label class="lw-field">
-          <span class="lw-stat__label">Ratio d'attaque <span class="lw-kbd">T</span> <span class="lw-kbd">Y</span> :
-            <strong class="lw-text-accent lw-numeric" id="hud-ratio"></strong></span>
-          <input class="lw-range" type="range" min="1" max="100" id="hud-ratio-input" aria-label="Ratio d'attaque" />
-        </label>
-        <ul class="hud__attacks" id="hud-attacks" aria-label="Attaques en cours"></ul>
-      </section>
       <section class="lw-panel lw-panel--translucent lw-panel--compact hud__board" aria-label="Classement">
         <div class="lw-panel__header">
           <h2 class="lw-title-3">Classement</h2>
@@ -125,22 +148,43 @@ export class Hud {
         <ol class="hud__board-list" id="hud-board"></ol>
       </section>
       <div class="lw-panel lw-panel--compact hud__banner" id="hud-banner" role="status"></div>
-      <ul class="hud__log" id="hud-log" aria-live="polite"></ul>
-      <nav class="lw-panel lw-panel--translucent lw-panel--compact hud__build" aria-label="Construction">
-        ${(Object.values(BuildingKind) as BuildingKind[])
-          .map(
-            (
-              kind,
-            ) => `<button class="lw-button hud__build-btn" data-kind="${kind}" aria-pressed="false">
-              <span class="lw-kbd">${BUILD_KEYS[kind]}</span>
-              <img class="hud__build-icon" src="/art/buildings/${kind}.webp" alt="" width="256" height="256" />
-              <span class="hud__build-name">${BUILDINGS[kind].name}</span>
-              <span class="hud__build-cost lw-numeric" data-cost="${kind}"></span></button>`,
-          )
-          .join("")}
-      </nav>
-      <div class="hud__hover lw-text-sm" id="hud-hover"></div>
+      <section class="lw-panel lw-panel--translucent lw-panel--compact hud__info" id="hud-info" hidden aria-live="off"></section>
       <div class="hud__deals" id="hud-deals" aria-live="polite"></div>
+      <ul class="hud__log" id="hud-log" aria-live="polite"></ul>
+      <div class="hud__bottom">
+        <ul class="hud__attacks" id="hud-attacks" aria-label="Attaques en cours"></ul>
+        <section class="lw-panel lw-panel--translucent lw-panel--compact hud__control" id="hud-control" aria-label="Votre royaume" hidden>
+          <div class="hud__control-row">
+            <span class="hud__pill hud__pill--regen lw-numeric" id="hud-regen" data-tooltip="Troupes régénérées par seconde"></span>
+            <div class="hud__bar" id="hud-troops-bar">
+              <div class="hud__bar-home" id="hud-troops-home"></div>
+              <div class="hud__bar-out" id="hud-troops-out"></div>
+              <span class="hud__bar-text lw-numeric" id="hud-troops"></span>
+            </div>
+            <span class="hud__pill hud__pill--gold lw-numeric" id="hud-gold">
+              <span id="hud-gold-value"></span><span class="hud__gold-gain" id="hud-gold-gain" aria-hidden="true"></span>
+            </span>
+          </div>
+          <div class="hud__control-row">
+            <span class="hud__pill hud__pill--ratio lw-numeric" id="hud-ratio" data-tooltip="Ratio d'attaque : T / Y, ou Maj + molette"></span>
+            <input class="lw-range hud__ratio-range" type="range" min="1" max="100" id="hud-ratio-input" aria-label="Ratio d'attaque" />
+            <span class="hud__pill hud__pill--race lw-numeric" id="hud-race-stat" hidden></span>
+          </div>
+          <div class="hud__hotbar" role="toolbar" aria-label="Construction">
+            ${(Object.values(BuildingKind) as BuildingKind[])
+              .map(
+                (
+                  kind,
+                ) => `<button type="button" class="hud__slot" data-kind="${kind}" aria-pressed="false" aria-label="${BUILDINGS[kind].name}">
+                  <span class="hud__slot-key">${BUILD_KEYS[kind]}</span>
+                  <img class="hud__slot-icon" src="/art/buildings/${kind}.webp" alt="" width="256" height="256" />
+                  <span class="hud__slot-count lw-numeric" data-count="${kind}">0</span>
+                </button>`,
+              )
+              .join("")}
+          </div>
+        </section>
+      </div>
       </div>
       <div class="hud__alert" id="hud-alert" aria-hidden="true"></div>
       <div class="lw-modal" id="hud-modal" hidden>
@@ -156,16 +200,21 @@ export class Hud {
       </div>`;
     root.append(this.el);
     this.$ = <T extends HTMLElement>(sel: string): T => this.el.querySelector(sel) as T;
-    this.menu = new ContextMenu(this.$("#hud-skin"));
+    const skin = this.$("#hud-skin");
+    this.radial = new RadialMenu(skin);
+    this.menu = new ContextMenu(skin);
     this.deals = new DealCards(this.$("#hud-deals"));
 
     const ratioInput = this.$<HTMLInputElement>("#hud-ratio-input");
     ratioInput.addEventListener("input", () =>
       callbacks.onRatioChange(Number(ratioInput.value) / 100),
     );
+    // Le curseur rend le focus au relâchement : les raccourcis clavier restent actifs.
+    ratioInput.addEventListener("change", () => ratioInput.blur());
     this.$("#hud-exit").addEventListener("click", () => callbacks.onExit());
     this.$("#hud-modal-exit").addEventListener("click", () => callbacks.onExit());
-    for (const button of this.el.querySelectorAll<HTMLButtonElement>(".hud__build-btn")) {
+    this.$("#hud-control").addEventListener("contextmenu", (e) => e.preventDefault());
+    for (const button of this.el.querySelectorAll<HTMLButtonElement>(".hud__slot")) {
       button.addEventListener("click", () => {
         const kind = button.dataset.kind as BuildingKind;
         callbacks.onBuildMode(button.getAttribute("aria-pressed") === "true" ? null : kind);
@@ -178,6 +227,9 @@ export class Hud {
     this.$("#hud-banner").textContent = state.inSpawnPhase
       ? "Choisissez votre terre de départ : cliquez sur une terre libre"
       : "";
+    // Comme sur OpenFront : pas de panneau de contrôle pendant le déploiement ni une fois mort.
+    const control = this.$("#hud-control");
+    control.hidden = state.inSpawnPhase || !me || !me.alive;
 
     if (me) {
       if (me.race !== this.skin) {
@@ -186,51 +238,206 @@ export class Hud {
           ? `hud__skin lw-skin lw-skin--${me.race}`
           : "hud__skin";
       }
-      const race = me.race ? RACES[me.race] : null;
-      this.$("#hud-emblem").textContent = race?.emblem ?? "";
-      this.$("#hud-shield").className = me.race
-        ? `lw-shield lw-shield--lg lw-shield--hatched lw-tincture-${raceTincture(me.race)}`
-        : "lw-shield lw-shield--lg";
-      this.$("#hud-name").textContent = me.name;
-      this.$("#hud-race").textContent = race?.name ?? "";
-      this.$("#hud-gold").textContent =
-        `${formatNumber(me.gold)}  (+${formatNumber(state.goldPerSecond)}/s)`;
-      this.$("#hud-troops").textContent =
-        `${formatNumber(me.troops)} / ${formatNumber(me.maxTroops)}`;
-      this.$("#hud-troops-bar").style.width =
-        `${Math.min(100, (me.troops / Math.max(1, me.maxTroops)) * 100)}%`;
-      const stat = me.race ? RACE_STAT[me.race] : null;
-      const statRow = this.$("#hud-race-stat");
-      statRow.hidden = stat === null;
-      if (stat) {
-        const label = this.$("#hud-race-label");
-        label.textContent = stat.label;
-        label.dataset.tooltip = stat.hint;
-        this.$("#hud-race-value").textContent = stat.value(me);
-      }
-      this.$("#hud-land").textContent = formatPercent(
-        (me.tiles / Math.max(1, state.landTiles)) * 100,
-      );
-      this.$("#hud-ratio").textContent =
-        `${Math.round(state.ratio * 100)} % (${formatNumber(me.troops * state.ratio)})`;
-      const ratioInput = this.$<HTMLInputElement>("#hud-ratio-input");
-      if (document.activeElement !== ratioInput) {
-        ratioInput.value = String(Math.round(state.ratio * 100));
-      }
-
-      const mods = modifiersOf(me.race);
-      for (const kind of Object.values(BuildingKind) as BuildingKind[]) {
-        const owned = kind === BuildingKind.Bourg ? me.bourgs : me.tours;
-        const cost = costFor(kind, owned, mods);
-        const button = this.$<HTMLButtonElement>(`.hud__build-btn[data-kind="${kind}"]`);
-        this.$(`[data-cost="${kind}"]`).textContent = formatNumber(cost);
-        button.disabled = state.inSpawnPhase || !me.alive || me.gold < cost;
-        button.setAttribute("aria-pressed", String(state.buildMode === kind));
-      }
+      this.renderControl(me, state);
       this.renderAttacks(state);
     }
     this.renderBoard(state);
     this.renderClock(state);
+  }
+
+  /** Panneau du bas : régénération, troupes (à la maison et engagées), or, ratio, bâtiments. */
+  private renderControl(me: PlayerView, state: HudState): void {
+    const perSecond = me.troopRegen * 10;
+    const regen = this.$("#hud-regen");
+    regen.textContent = `+${formatNumber(perSecond)}/s`;
+    regen.classList.toggle("hud__pill--falling", perSecond < this.lastRegen);
+    this.lastRegen = perSecond;
+
+    // Troupes engagées : attaques et barges en cours.
+    let committed = 0;
+    for (const a of state.attacks) if (a.attacker === me.id) committed += a.troops;
+    for (const b of state.boats) if (b.owner === me.id) committed += b.troops;
+    const max = Math.max(1, me.maxTroops);
+    const home = Math.min(100, (me.troops / max) * 100);
+    this.$("#hud-troops-home").style.width = `${home}%`;
+    this.$("#hud-troops-out").style.width = `${Math.min(100 - home, (committed / max) * 100)}%`;
+    this.$("#hud-troops").textContent =
+      `${formatNumber(me.troops)} / ${formatNumber(me.maxTroops)}`;
+    this.$("#hud-troops-bar").dataset.tooltip = committed
+      ? `${formatNumber(me.troops)} à la maison, ${formatNumber(committed)} engagées au combat`
+      : `${formatNumber(me.troops)} à la maison`;
+
+    this.$("#hud-gold-value").textContent = `◉ ${formatNumber(me.gold)}`;
+    this.$("#hud-gold").dataset.tooltip = `Or : +${formatNumber(state.goldPerSecond)}/s`;
+
+    this.$("#hud-ratio").textContent =
+      `⚔ ${Math.round(state.ratio * 100)} % (${formatNumber(me.troops * state.ratio)})`;
+    const ratioInput = this.$<HTMLInputElement>("#hud-ratio-input");
+    if (document.activeElement !== ratioInput) {
+      ratioInput.value = String(Math.round(state.ratio * 100));
+    }
+
+    const stat = me.race ? RACE_STAT[me.race] : null;
+    const statPill = this.$("#hud-race-stat");
+    statPill.hidden = stat === null;
+    if (stat) {
+      statPill.textContent = `${stat.label} : ${stat.value(me)}`;
+      statPill.dataset.tooltip = stat.hint;
+    }
+
+    const mods = modifiersOf(me.race);
+    for (const kind of Object.values(BuildingKind) as BuildingKind[]) {
+      const owned = kind === BuildingKind.Bourg ? me.bourgs : me.tours;
+      const cost = costFor(kind, owned, mods);
+      const button = this.$<HTMLButtonElement>(`.hud__slot[data-kind="${kind}"]`);
+      this.$(`[data-count="${kind}"]`).textContent = String(owned);
+      button.disabled = state.inSpawnPhase || !me.alive || me.gold < cost;
+      button.setAttribute("aria-pressed", String(state.buildMode === kind));
+      button.dataset.tooltip = `${BUILDINGS[kind].name} [${BUILD_KEYS[kind]}] — ${BUILD_HELP[kind]} ${formatNumber(cost)} or`;
+    }
+  }
+
+  /** Gain d'or ponctuel (conquête, don…) : « +X » au-dessus de la case d'or pendant 2 s. */
+  goldGain(amount: number): void {
+    if (amount < 1) return;
+    const el = this.$("#hud-gold-gain");
+    el.textContent = `+${formatNumber(amount)}`;
+    el.classList.remove("hud__gold-gain--on");
+    void el.offsetWidth;
+    el.classList.add("hud__gold-gain--on");
+    window.clearTimeout(this.goldGainTimer);
+    this.goldGainTimer = window.setTimeout(
+      () => el.classList.remove("hud__gold-gain--on"),
+      GOLD_GAIN_MS,
+    );
+  }
+
+  /** Fiche du royaume survolé, en haut de l'écran ; null la cache. */
+  showInfo(model: InfoModel | null): void {
+    const el = this.$("#hud-info");
+    if (!model) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.replaceChildren();
+    if (model.kind === "land") {
+      const id = node("div", "hud__info-id");
+      id.append(
+        node("strong", "hud__info-name", model.title),
+        node("span", "hud__info-sub", model.detail),
+      );
+      el.append(id);
+      return;
+    }
+    const p = model.player;
+
+    // Bloc chiffres : or, troupes engagées, barre de troupes.
+    const stats = node("div", "hud__info-stats");
+    const top = node("div", "hud__info-top");
+    top.append(
+      node("span", "hud__pill hud__pill--gold lw-numeric", `◉ ${formatNumber(p.gold)}`),
+      node(
+        "span",
+        `hud__info-attack lw-numeric${model.committed > 0 ? " hud__info-attack--on" : ""}`,
+        `⚔↑ ${formatNumber(model.committed)}`,
+      ),
+    );
+    const bar = node("div", "hud__bar hud__bar--small");
+    const max = Math.max(1, p.maxTroops);
+    const home = node("div", "hud__bar-home");
+    home.style.width = `${Math.min(100, (p.troops / max) * 100)}%`;
+    const out = node("div", "hud__bar-out");
+    out.style.width = `${Math.min(100 - Math.min(100, (p.troops / max) * 100), (model.committed / max) * 100)}%`;
+    bar.append(home, out, node("span", "hud__bar-text hud__bar-text--split lw-numeric", ""));
+    const text = bar.lastElementChild as HTMLElement;
+    text.append(
+      node("span", "", formatNumber(p.troops)),
+      node("span", "", formatNumber(p.maxTroops)),
+    );
+    stats.append(top, bar);
+
+    // Bloc identité : écu, nom, disposition, type, statuts, bâtiments.
+    const id = node("div", "hud__info-id");
+    const nameRow = node("div", "hud__info-name-row");
+    if (p.race) {
+      const shield = node(
+        "span",
+        `lw-shield lw-shield--hatched lw-tincture-${raceTincture(p.race)}`,
+      );
+      shield.setAttribute("aria-hidden", "true");
+      shield.append(node("span", "", RACES[p.race].emblem));
+      nameRow.append(shield);
+    }
+    nameRow.append(
+      node("strong", `hud__info-name${model.ally ? " hud__info-name--ally" : ""}`, p.name),
+    );
+    if (model.disposition) {
+      nameRow.append(
+        node(
+          "span",
+          `hud__info-mood hud__info-mood--${model.disposition.tone}`,
+          model.disposition.label,
+        ),
+      );
+    }
+    const race = p.race ? RACES[p.race].name : "";
+    id.append(
+      nameRow,
+      node(
+        "span",
+        "hud__info-sub",
+        [model.typeLabel, race, formatPercent(model.landShare)].filter(Boolean).join(" · "),
+      ),
+    );
+    const statuses: [string, string][] = [];
+    if (model.crown) statuses.push(["hud__status--crown", "♛ Couronne"]);
+    if (model.parjureLeft !== null) {
+      statuses.push(["hud__status--parjure", `✗ Parjure ${formatClock(model.parjureLeft)}`]);
+    }
+    if (model.allyLeft !== null) {
+      statuses.push(["hud__status--ally", `⚭ Allié ${formatClock(model.allyLeft)}`]);
+    }
+    if (model.requested === "fromThem")
+      statuses.push(["hud__status--ally", "✉ Vous propose une alliance"]);
+    if (model.requested === "fromMe") statuses.push(["", "✉ Demande envoyée"]);
+    if (p.betrayals > 0) {
+      statuses.push([
+        "hud__status--parjure",
+        `${p.betrayals} trahison${p.betrayals > 1 ? "s" : ""}`,
+      ]);
+    }
+    if (statuses.length > 0) {
+      const row = node("div", "hud__info-status");
+      for (const [cls, label] of statuses) row.append(node("span", `hud__status ${cls}`, label));
+      id.append(row);
+    }
+    id.append(
+      node(
+        "span",
+        "hud__info-detail",
+        [`Bourgs ${p.bourgs}`, `Tours ${p.tours}`, model.detail].filter(Boolean).join(" · "),
+      ),
+    );
+    el.append(stats, id);
+
+    // Raccourcis (écran large) : alliance [K], rupture [L], barge [B].
+    if (model.actions.length > 0) {
+      const actions = node("div", "hud__info-actions");
+      for (const action of model.actions) {
+        const button = node(
+          "button",
+          `lw-button lw-button--sm${action.danger ? " lw-button--danger" : ""}`,
+          action.label,
+        ) as HTMLButtonElement;
+        button.type = "button";
+        const kbd = node("span", "lw-kbd", action.key);
+        button.append(" ", kbd);
+        button.addEventListener("click", () => action.run());
+        actions.append(button);
+      }
+      el.append(actions);
+    }
   }
 
   /**
@@ -254,10 +461,6 @@ export class Hud {
     el.classList.toggle("hud__clock--twilight", t >= TWILIGHT_START_TICKS);
   }
 
-  setHover(text: string): void {
-    this.$("#hud-hover").textContent = text;
-  }
-
   pushEvent(text: string, tone: EventTone = "info"): void {
     this.log.unshift({ text, tone });
     this.log.length = Math.min(this.log.length, LOG_SIZE);
@@ -266,8 +469,6 @@ export class Hud {
       .join("");
   }
 
-  /** Fin de partie : titre dans le cartouche de victoire (trompettes et lauriers) ou, en cas
-   * de défaite, dans le cartouche sobre du titre. */
   /** Cadre d'alerte sur les bords de l'écran quand on vous attaque (au plus une fois par 15 s). */
   alert(): void {
     const now = performance.now();
@@ -280,6 +481,8 @@ export class Hud {
     frame.classList.add("hud__alert--on");
   }
 
+  /** Fin de partie : titre dans le cartouche de victoire (trompettes et lauriers) ou, en cas
+   * de défaite, dans le cartouche sobre du titre. */
   showEnd(title: string, text: string, victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
@@ -291,15 +494,19 @@ export class Hud {
   }
 
   dispose(): void {
+    window.clearTimeout(this.goldGainTimer);
+    this.radial.close();
+    this.menu.close();
     this.el.remove();
   }
 
+  /** Attaques en cours au-dessus du panneau de contrôle (comme OpenFront). */
   private renderAttacks(state: HudState): void {
     const me = state.me as PlayerView;
     const names = new Map(state.players.map((p) => [p.id, p.name]));
     const row = (outgoing: boolean, icon: string, otherId: number, troops: number): string => {
       const other = otherId === 0 ? "Terres libres" : (names.get(otherId) ?? "?");
-      return `<li class="hud__attack hud__attack--${outgoing ? "out" : "in"}">
+      return `<li class="lw-toast hud__attack hud__attack--${outgoing ? "out" : "in"}">
           <span>${icon} ${outgoing ? "→" : "←"} ${escapeHtml(other)}</span>
           <span class="lw-numeric">${formatNumber(troops)}</span></li>`;
     };
@@ -315,7 +522,7 @@ export class Hud {
         const outgoing = b.owner === me.id;
         return row(outgoing, "⛵", outgoing ? b.target : b.owner, b.troops);
       });
-    this.$("#hud-attacks").innerHTML = [...sea, ...land].slice(0, 7).join("");
+    this.$("#hud-attacks").innerHTML = [...sea, ...land].slice(0, 5).join("");
   }
 
   private renderBoard(state: HudState): void {
@@ -364,4 +571,12 @@ export class Hud {
       <span class="lw-numeric">${share}</span>
       <span class="hud__board-troops lw-numeric">${formatNumber(p.troops)}</span></li>`;
   }
+}
+
+/** Élément DOM avec classes et texte (jamais de HTML : les noms de joueurs restent du texte). */
+function node(tag: string, className: string, text?: string): HTMLElement {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (text !== undefined) el.textContent = text;
+  return el;
 }

@@ -10,6 +10,8 @@ import type { Player } from "./Player";
  */
 export class Attack {
   active = true;
+  /** Repères du front pour l'affichage, recalculés tous les FRONT_VIEW_INTERVAL ticks. */
+  fronts: number[] = [];
   private readonly front = new MinHeap();
 
   constructor(

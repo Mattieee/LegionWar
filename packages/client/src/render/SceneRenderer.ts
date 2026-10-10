@@ -217,28 +217,27 @@ export class SceneRenderer {
       const mine = f.attacker === state.myId;
       const incoming = f.target === state.myId;
       if (!mine && !incoming && this.camera.zoom < OTHER_FRONTS_MIN_ZOOM) continue;
-      const [sx, sy] = this.camera.worldToScreen(f.x, f.y);
-      if (
-        sx < -60 ||
-        sy < -30 ||
-        sx > this.camera.viewWidth + 60 ||
-        sy > this.camera.viewHeight + 30
-      ) {
-        continue;
-      }
-      // Sans cadre : l'icône de guerre et le chiffre, juste au-dessus du front, sur un halo de papier.
+      // Sans cadre : l'icône de guerre et le chiffre, sur un halo de papier, un par tronçon de front.
       const text = `⚔ ${formatNumber(f.troops)}`;
-      const y = sy - 10;
-      ctx.lineWidth = 3;
-      ctx.lineJoin = "round";
-      ctx.strokeStyle = PALETTE.labelHalo;
-      ctx.strokeText(text, sx, y);
       ctx.fillStyle = incoming
         ? PALETTE.battleIncoming
         : mine
           ? PALETTE.battleOutgoing
           : PALETTE.ink;
-      ctx.fillText(text, sx, y);
+      ctx.lineWidth = 3;
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = PALETTE.labelHalo;
+      for (const p of f.positions) {
+        const [sx, sy] = this.camera.worldToScreen(p.x, p.y);
+        const offscreen =
+          sx < -60 ||
+          sy < -30 ||
+          sx > this.camera.viewWidth + 60 ||
+          sy > this.camera.viewHeight + 30;
+        if (offscreen) continue;
+        ctx.strokeText(text, sx, sy);
+        ctx.fillText(text, sx, sy);
+      }
     }
     ctx.restore();
   }

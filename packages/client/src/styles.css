@@ -216,50 +216,6 @@ body {
   display: contents;
 }
 
-.hud__me {
-  position: absolute;
-  top: var(--lw-space-3);
-  left: var(--lw-space-3);
-  width: 280px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--lw-space-1);
-}
-
-.hud__identity {
-  display: flex;
-  align-items: center;
-  gap: var(--lw-space-3);
-  margin-bottom: var(--lw-space-2);
-}
-
-.hud__identity .lw-shield {
-  font-size: var(--lw-font-size-lg);
-}
-
-.hud__attacks {
-  display: flex;
-  flex-direction: column;
-  gap: var(--lw-space-1);
-  margin: var(--lw-space-1) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hud__attack {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--lw-space-2);
-}
-
-.hud__attack--out {
-  color: var(--lw-text-info);
-}
-
-.hud__attack--in {
-  color: var(--lw-text-danger);
-}
-
 .hud__board {
   position: absolute;
   top: var(--lw-space-3);
@@ -342,57 +298,6 @@ body {
   display: none;
 }
 
-.hud__log {
-  position: absolute;
-  bottom: var(--lw-space-3);
-  left: var(--lw-space-3);
-  width: min(420px, 45vw);
-  display: flex;
-  flex-direction: column-reverse;
-  gap: var(--lw-space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  pointer-events: none;
-}
-
-.hud__build {
-  position: absolute;
-  bottom: var(--lw-space-3);
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: var(--lw-space-2);
-}
-
-.hud__build-btn {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  column-gap: var(--lw-space-2);
-  min-width: 160px;
-  text-align: left;
-}
-
-.hud__build-btn {
-  grid-template-columns: auto auto 1fr;
-}
-
-.hud__build-btn .lw-kbd,
-.hud__build-icon {
-  grid-row: span 2;
-  align-self: center;
-}
-
-.hud__build-icon {
-  width: 36px;
-  height: 36px;
-}
-
-.hud__build-btn:disabled .hud__build-icon {
-  opacity: 0.5;
-}
-
 /* Fin de partie : le titre s'inscrit dans le cartouche gravé. */
 .hud__end {
   width: min(560px, 100%);
@@ -421,27 +326,15 @@ body {
   transform: translate(-50%, -50%);
 }
 
-.hud__build-name {
-  font-size: var(--lw-font-size-sm);
-}
-
-.hud__build-cost {
-  font-family: var(--lw-font-family-body);
-  font-size: var(--lw-font-size-xs);
-  font-weight: var(--lw-font-weight-medium);
-  color: var(--lw-text-accent);
-}
-
-/* Cartes de diplomatie (demandes, renouvellements), en haut au centre. */
+/* Cartes de diplomatie (demandes, renouvellements), en haut à gauche. */
 .hud__deals {
   position: absolute;
   top: var(--lw-space-3);
-  left: 50%;
+  left: var(--lw-space-3);
   display: flex;
   flex-direction: column;
   gap: var(--lw-space-2);
   width: min(340px, 90vw);
-  transform: translateX(-50%);
 }
 
 .hud__deals:empty {
@@ -496,29 +389,370 @@ body {
   }
 }
 
-.hud__hover {
+/* Bas de l'écran, comme OpenFront : attaques en cours au-dessus du panneau de contrôle. */
+.hud__bottom {
   position: absolute;
-  right: var(--lw-space-4);
-  bottom: var(--lw-space-4);
-  padding: var(--lw-space-1) var(--lw-space-3);
-  font-family: var(--lw-font-family-flavor);
-  font-style: italic;
-  color: var(--lw-text-primary);
-  background: color-mix(in srgb, var(--lw-bg-surface) 90%, transparent);
-  border: 1px solid var(--lw-border-subtle);
-  border-radius: var(--lw-radius-md);
+  bottom: 0;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lw-space-1);
+  width: min(520px, 100%);
+  transform: translateX(-50%);
   pointer-events: none;
 }
 
-.hud__hover:empty {
-  display: none;
+.hud__bottom > * {
+  pointer-events: auto;
+}
+
+.hud__attacks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lw-space-1);
+  margin: 0;
+  padding: 0 var(--lw-space-2);
+  list-style: none;
+}
+
+.hud__attack {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--lw-space-2);
+}
+
+.hud__attack--out {
+  border-left-color: var(--lw-feedback-info);
+}
+
+.hud__attack--in {
+  color: var(--lw-text-danger);
+  border-left-color: var(--lw-feedback-danger);
+}
+
+/* Panneau de contrôle : régénération | troupes | or ; ratio ; bâtiments. */
+.hud__control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lw-space-2);
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.hud__control-row {
+  display: flex;
+  align-items: center;
+  gap: var(--lw-space-2);
+}
+
+.hud__pill {
+  position: relative;
+  flex: none;
+  padding: 2px var(--lw-space-2);
+  font-size: var(--lw-font-size-sm);
+  font-weight: var(--lw-font-weight-bold);
+  white-space: nowrap;
+  border: 1px solid var(--lw-border-default);
+  border-radius: var(--lw-radius-md);
+}
+
+.hud__pill--regen {
+  min-width: 5.5rem;
+  color: var(--lw-text-success);
+  border-color: currentColor;
+}
+
+/* La régénération baisse quand on approche du plafond : la pastille passe à l'accent. */
+.hud__pill--falling {
+  color: var(--lw-text-accent);
+}
+
+.hud__pill--gold {
+  color: var(--lw-text-accent);
+  border-color: currentColor;
+}
+
+.hud__pill--ratio {
+  min-width: 8rem;
+}
+
+.hud__pill--race {
+  font-weight: var(--lw-font-weight-medium);
+  color: var(--lw-text-secondary);
+}
+
+.hud__ratio-range {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Barre de troupes : à la maison (plein), engagées au combat (plus clair), sur le plafond. */
+.hud__bar {
+  position: relative;
+  flex: 1;
+  display: flex;
+  height: 24px;
+  overflow: hidden;
+  background: var(--lw-bg-inset);
+  border: 1px solid var(--lw-border-default);
+  border-radius: var(--lw-radius-md);
+}
+
+.hud__bar--small {
+  flex: none;
+  height: 20px;
+}
+
+.hud__bar-home,
+.hud__bar-out {
+  height: 100%;
+  transition: width var(--lw-duration-base) var(--lw-easing-standard);
+}
+
+.hud__bar-home {
+  background: var(--lw-action-primary-bg);
+}
+
+.hud__bar-out {
+  background: color-mix(in srgb, var(--lw-action-primary-bg) 45%, transparent);
+}
+
+.hud__bar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--lw-font-weight-bold);
+  color: var(--lw-text-primary);
+  text-shadow:
+    0 0 3px var(--lw-bg-surface),
+    0 0 2px var(--lw-bg-surface);
+}
+
+.hud__bar-text--split {
+  justify-content: space-between;
+  padding: 0 var(--lw-space-2);
+  font-size: var(--lw-font-size-xs);
+}
+
+/* Gain d'or ponctuel : « +X » qui monte au-dessus de la case. */
+.hud__gold-gain {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  font-size: var(--lw-font-size-xs);
+  color: var(--lw-text-success);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  pointer-events: none;
+}
+
+.hud__gold-gain--on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition:
+    opacity var(--lw-duration-base) var(--lw-easing-standard),
+    transform var(--lw-duration-base) var(--lw-easing-standard);
+}
+
+/* Rangée de bâtiments : touche, gravure, nombre possédé ; infobulle avec le coût. */
+.hud__hotbar {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  padding-top: var(--lw-space-2);
+  border-top: 1px solid var(--lw-border-subtle);
+}
+
+.hud__slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px var(--lw-space-2) 2px var(--lw-space-1);
+  font: inherit;
+  color: var(--lw-text-primary);
+  background: none;
+  border: 1px solid var(--lw-border-subtle);
+  border-radius: var(--lw-radius-sm);
+  cursor: pointer;
+}
+
+.hud__slot:hover:not(:disabled) {
+  background: var(--lw-bg-hover);
+}
+
+.hud__slot[aria-pressed="true"] {
+  background: var(--lw-bg-inset);
+  border-color: var(--lw-border-strong);
+}
+
+.hud__slot:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hud__slot-key {
+  align-self: flex-start;
+  font-size: 10px;
+  color: var(--lw-text-secondary);
+}
+
+.hud__slot-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.hud__slot-count {
+  font-size: var(--lw-font-size-xs);
+}
+
+/* Fiche du royaume survolé, en haut au centre (comme OpenFront). */
+.hud__info {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: flex;
+  align-items: stretch;
+  gap: var(--lw-space-3);
+  width: min(520px, 100%);
+  transform: translateX(-50%);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.hud__info-stats {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--lw-space-1);
+  width: 9rem;
+}
+
+.hud__info-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--lw-space-1);
+}
+
+.hud__info-attack {
+  font-size: var(--lw-font-size-xs);
+  color: var(--lw-text-muted);
+}
+
+.hud__info-attack--on {
+  color: var(--lw-text-info);
+}
+
+.hud__info-id {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hud__info-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--lw-space-2);
+  min-width: 0;
+}
+
+.hud__info-name {
+  overflow: hidden;
+  font-family: var(--lw-font-family-title);
+  font-size: var(--lw-font-size-md);
+  font-weight: var(--lw-font-weight-regular);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud__info-name--ally {
+  color: var(--lw-text-success);
+}
+
+.hud__info-mood {
+  font-size: var(--lw-font-size-xs);
+  font-style: italic;
+}
+
+.hud__info-mood--hostile {
+  color: var(--lw-text-danger);
+}
+
+.hud__info-mood--wary {
+  color: var(--lw-text-accent);
+}
+
+.hud__info-mood--neutral {
+  color: var(--lw-text-secondary);
+}
+
+.hud__info-mood--friendly {
+  color: var(--lw-text-success);
+}
+
+.hud__info-sub,
+.hud__info-detail {
+  font-size: var(--lw-font-size-xs);
+  color: var(--lw-text-secondary);
+}
+
+.hud__info-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lw-space-1) var(--lw-space-2);
+  font-size: var(--lw-font-size-xs);
+}
+
+.hud__status--crown {
+  color: var(--lw-text-accent);
+}
+
+.hud__status--parjure {
+  color: var(--lw-text-danger);
+}
+
+.hud__status--ally {
+  color: var(--lw-text-success);
+}
+
+.hud__info-actions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--lw-space-1);
+}
+
+/* Journal des événements, en bas à droite (comme OpenFront). */
+.hud__log {
+  position: absolute;
+  right: var(--lw-space-3);
+  bottom: var(--lw-space-3);
+  width: min(360px, 30vw);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--lw-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+@media (max-width: 1100px) {
+  .hud__log {
+    display: none;
+  }
 }
 
 @media (max-width: 760px) {
-  .hud__me {
-    width: 220px;
-  }
-
   .hud__board {
     width: 200px;
   }
@@ -527,7 +761,12 @@ body {
     display: none;
   }
 
-  .hud__build-btn {
-    min-width: 0;
+  .hud__info-actions,
+  .hud__info-stats {
+    display: none;
+  }
+
+  .hud__pill--race {
+    display: none;
   }
 }

@@ -5,6 +5,8 @@ export interface InputHandlers {
   onHover(x: number, y: number): void;
   onPan(dx: number, dy: number): void;
   onZoom(x: number, y: number, factor: number): void;
+  /** Maj + molette : +1 ou −1 cran de ratio d'attaque. */
+  onRatioWheel(direction: number): void;
   onKey(event: KeyboardEvent): void;
 }
 
@@ -33,6 +35,12 @@ export class Input {
       "wheel",
       (e) => {
         e.preventDefault();
+        if (e.shiftKey) {
+          // Certains navigateurs transforment Maj + molette en défilement horizontal.
+          const delta = e.deltaY !== 0 ? e.deltaY : e.deltaX;
+          if (delta !== 0) this.handlers.onRatioWheel(delta < 0 ? 1 : -1);
+          return;
+        }
         const [x, y] = this.local(e);
         this.handlers.onZoom(x, y, Math.exp(-e.deltaY * 0.0015));
       },

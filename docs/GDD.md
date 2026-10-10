@@ -391,18 +391,20 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 
 ## 17. Contrôles [Proto]
 
-| Action                     | Souris / clavier                                                                                               |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Choisir sa terre de départ | Clic sur une terre libre                                                                                       |
-| Attaquer                   | Clic gauche sur la cible                                                                                       |
-| Ratio d'attaque            | Curseur, <kbd>T</kbd> / <kbd>Y</kbd> (pas de 10 %)                                                             |
-| Construire                 | <kbd>1</kbd> Bourg, <kbd>2</kbd> Tour, puis clic                                                               |
-| Annuler                    | <kbd>Échap</kbd>, clic droit                                                                                   |
-| Caméra                     | Glisser, molette, <kbd>+</kbd> / <kbd>−</kbd>, <kbd>C</kbd> pour centrer                                       |
-| Débarquer                  | Clic sur une terre au-delà de la mer, ou <kbd>B</kbd> sur la terre visée                                       |
-| Alliance                   | <kbd>K</kbd> sur un royaume : proposer, accepter sa demande, ou renouveler (fenêtre des 30 dernières secondes) |
-| Rompre une alliance        | <kbd>L</kbd> deux fois en moins de 2 s sur un allié (vous devenez Parjure 60 s)                                |
-| Menu diplomatique          | Clic droit sur un royaume, cartes de demande, marqueurs sur la carte [Prévu, étape interface]                  |
+| Action                     | Souris / clavier                                                                                                                                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Choisir sa terre de départ | Clic sur une terre libre                                                                                                                                                                                                   |
+| Attaquer                   | Clic gauche sur la cible                                                                                                                                                                                                   |
+| Ratio d'attaque            | Curseur du panneau du bas, <kbd>T</kbd> / <kbd>Y</kbd> ou <kbd>Maj</kbd> + molette (pas de 10 %)                                                                                                                           |
+| Construire                 | <kbd>1</kbd> Bourg, <kbd>2</kbd> Tour, puis clic                                                                                                                                                                           |
+| Annuler                    | <kbd>Échap</kbd>, clic droit                                                                                                                                                                                               |
+| Caméra                     | Glisser, molette, <kbd>+</kbd> / <kbd>−</kbd>, <kbd>C</kbd> pour centrer                                                                                                                                                   |
+| Débarquer                  | Clic sur une terre au-delà de la mer, ou <kbd>B</kbd> sur la terre visée                                                                                                                                                   |
+| Alliance                   | <kbd>K</kbd> sur un royaume : proposer, accepter sa demande, ou renouveler (fenêtre des 30 dernières secondes)                                                                                                             |
+| Rompre une alliance        | <kbd>L</kbd> deux fois en moins de 2 s sur un allié (vous devenez Parjure 60 s)                                                                                                                                            |
+| Menu radial                | Clic droit (comme OpenFront) : au centre, l'action principale (attaquer, s'étendre, donner des troupes à un allié) ; autour : alliance, barge, renouveler, rompre (avec confirmation), don d'or ; sur ses terres : bâtir   |
+| Fiche du royaume           | Survol : en haut de l'écran, or, troupes (à la maison et engagées), peuple, disposition d'un prétendant, alliance et temps restant, Parjure, Couronne, bâtiments, terrain ; raccourcis Alliance [K], Rompre [L], Barge [B] |
+| Panneau du bas             | Régénération (+X/s), troupes à la maison et engagées sur le plafond, or (+X lors d'un gain ponctuel), ratio, compteur du peuple, bâtiments [1] [2] avec coût en infobulle ; masqué pendant le déploiement                  |
 
 Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, un glissement déplace la caméra.
 

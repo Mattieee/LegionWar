@@ -175,6 +175,11 @@ export const TWILIGHT_STEP_PERCENT = 3;
 export const TIME_LIMIT_TICKS = 21_000;
 export const WIN_CHECK_INTERVAL = 10;
 export const HASH_INTERVAL = 10;
+/** Repères de front envoyés au client (indicateurs de troupes) : recalcul toutes les 200 ms. */
+export const FRONT_VIEW_INTERVAL = 2;
+/** Un tronçon de front plus court n'a pas son propre indicateur (sauf s'il est le seul). */
+export const FRONT_VIEW_MIN_SEGMENT = 30;
+export const FRONT_VIEW_MAX_SEGMENTS = 2;
 /** Le hash couvre aussi l'état complet des tuiles à cet intervalle (≈ 2 ms sur 2 M de tuiles). */
 export const STATE_HASH_INTERVAL = 100;
 /** Sous ce nombre de tuiles, un joueur conquis est annexé en entier. */

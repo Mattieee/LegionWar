@@ -5,6 +5,9 @@ import {
   CROWN_PERCENT,
   DIFFICULTIES,
   CHARNIER_TICKS,
+  FRONT_VIEW_INTERVAL,
+  FRONT_VIEW_MAX_SEGMENTS,
+  FRONT_VIEW_MIN_SEGMENT,
   GOLD_PER_MINE_PER_TICK,
   GROVE_REACH,
   GROVE_SWEEP_TICKS,
@@ -1105,6 +1108,7 @@ export class Game {
         tiles: p.tiles,
         troops: p.troops,
         maxTroops: maxTroops(p),
+        troopRegen: p.alive && p.spawned && !this.inSpawnPhase ? troopIncrease(p) : 0,
         gold: p.gold,
         bourgs: p.buildingCounts[BuildingKind.Bourg],
         tours: p.buildingCounts[BuildingKind.Tour],
@@ -1135,6 +1139,96 @@ export class Game {
     }));
   }
 
+  /**
+   * Repères d'affichage d'une attaque (comme OpenFront) : la ligne de front (tuiles de
+   * l'attaquant qui touchent la cible) est découpée en tronçons connexes ; chaque tronçon
+   * assez long donne un repère, la tuile du tronçon la plus proche de son centre. Le repère
+   * suit ainsi tout le front, pas les dernières prises : il bouge lentement et régulièrement.
+   */
+  private updateFrontMarkers(): void {
+    // Un seul passage sur la frontière de chaque attaquant, pour toutes ses attaques : chaque
+    // tuile est rangée dans la ligne de front de la cible qu'elle touche.
+    const byAttacker = new Map<Player, Map<number, Set<number>>>();
+    for (const a of this.attacks) {
+      if (!a.active || a.targetId === 0) continue;
+      let lines = byAttacker.get(a.attacker);
+      if (!lines) {
+        lines = new Map();
+        byAttacker.set(a.attacker, lines);
+      }
+      lines.set(a.targetId, new Set());
+    }
+    const map = this.map;
+    const w = map.width;
+    const size = map.size;
+    for (const [attacker, lines] of byAttacker) {
+      for (const t of attacker.border) {
+        const x = t % w;
+        if (t >= w) lines.get(map.owner(t - w))?.add(t);
+        if (t + w < size) lines.get(map.owner(t + w))?.add(t);
+        if (x > 0) lines.get(map.owner(t - 1))?.add(t);
+        if (x < w - 1) lines.get(map.owner(t + 1))?.add(t);
+      }
+    }
+    for (const a of this.attacks) {
+      const line = a.targetId === 0 ? undefined : byAttacker.get(a.attacker)?.get(a.targetId);
+      if (line) a.fronts = this.frontMarkers(line);
+    }
+  }
+
+  private frontMarkers(line: ReadonlySet<number>): number[] {
+    const map = this.map;
+    const seen = new Set<number>();
+    const segments: { tile: number; size: number }[] = [];
+    const w = map.width;
+    for (const start of line) {
+      if (seen.has(start)) continue;
+      const queue = [start];
+      seen.add(start);
+      let sumX = 0;
+      let sumY = 0;
+      for (let i = 0; i < queue.length; i++) {
+        const t = queue[i] as number;
+        const x = t % w;
+        const y = (t - x) / w;
+        sumX += x;
+        sumY += y;
+        // Voisinage à 8 : une ligne de front en escalier reste d'un seul tenant.
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if ((dx === 0 && dy === 0) || nx < 0 || ny < 0 || nx >= w || ny >= map.height) {
+              continue;
+            }
+            const n = ny * w + nx;
+            if (line.has(n) && !seen.has(n)) {
+              seen.add(n);
+              queue.push(n);
+            }
+          }
+        }
+      }
+      const cx = sumX / queue.length;
+      const cy = sumY / queue.length;
+      let best = start;
+      let bestDist = Infinity;
+      for (const t of queue) {
+        const dx = (t % w) - cx;
+        const dy = Math.floor(t / w) - cy;
+        const d = dx * dx + dy * dy;
+        if (d < bestDist) {
+          bestDist = d;
+          best = t;
+        }
+      }
+      segments.push({ tile: best, size: queue.length });
+    }
+    segments.sort((a, b) => b.size - a.size || a.tile - b.tile);
+    const kept = segments.filter((s, i) => i === 0 || s.size >= FRONT_VIEW_MIN_SEGMENT);
+    return kept.slice(0, FRONT_VIEW_MAX_SEGMENTS).map((s) => s.tile);
+  }
+
   private collect(): TickResult {
     const changedTiles = new Uint32Array(this.changed.length * 2);
     for (let i = 0; i < this.changed.length; i++) {
@@ -1142,11 +1236,13 @@ export class Game {
       changedTiles[2 * i] = t;
       changedTiles[2 * i + 1] = this.map.state[t] as number;
     }
+    if (this.ticks % FRONT_VIEW_INTERVAL === 0) this.updateFrontMarkers();
     const attacks: AttackView[] = this.attacks.map((a) => ({
       id: a.id,
       attacker: a.attacker.id,
       target: a.targetId,
       troops: Math.floor(a.troops),
+      fronts: a.fronts,
     }));
     const boats: BoatView[] = this.boats.map((b) => ({
       id: b.id,

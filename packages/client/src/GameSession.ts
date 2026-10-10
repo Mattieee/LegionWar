@@ -5,7 +5,6 @@ import {
   BuildingKind,
   CHARNIER_BIT,
   DIFFICULTIES,
-  RACES,
   costFor,
   GameMap,
   MARK_BIT,
@@ -24,6 +23,7 @@ import {
   type DiplomacyView,
   type GameConfig,
   type GameEvent,
+  type Intent,
   type PlayerView,
   type TickResult,
   type WinReason,
@@ -38,8 +38,8 @@ import { SceneRenderer } from "./render/SceneRenderer";
 import { placeSeaOrnaments } from "./render/SeaDecor";
 import { TerritoryLayer } from "./render/TerritoryLayer";
 import { formatClock, formatNumber } from "./ui/format";
-import { Hud, type EventTone } from "./ui/Hud";
-import type { MenuEntry, MenuModel } from "./ui/ContextMenu";
+import { Hud, type EventTone, type InfoModel } from "./ui/Hud";
+import type { RadialAction, RadialModel } from "./ui/RadialMenu";
 import type { DealCard } from "./ui/DealCards";
 import type { MenuChoice } from "./ui/Menu";
 import type { FromWorker, ToWorker } from "./workerProtocol";
@@ -86,6 +86,17 @@ function disposition(relation: number): string {
   return "Amical";
 }
 
+/** Fiche du royaume survolé : rafraîchie au plus toutes les 100 ms (comme OpenFront). */
+const INFO_THROTTLE_MS = 100;
+
+/** Tonalité de la disposition d'un prétendant, pour la fiche du haut. */
+function dispositionTone(relation: number): "hostile" | "wary" | "neutral" | "friendly" {
+  if (relation < -50) return "hostile";
+  if (relation < 0) return "wary";
+  if (relation < 50) return "neutral";
+  return "friendly";
+}
+
 /** Cartes de diplomatie visibles en même temps, au plus. */
 const MAX_DEALS = 3;
 
@@ -120,6 +131,7 @@ export class GameSession {
   private myAllies = new Set<number>();
   /** Cartes de diplomatie déjà traitées par le joueur, masquées jusqu'à ce qu'elles disparaissent. */
   private readonly dismissedDeals = new Set<string>();
+  private lastInfoAt = 0;
   private readonly nationLevel: string;
   private hud: Hud | null = null;
   private input: Input | null = null;
@@ -252,6 +264,7 @@ export class GameSession {
       onHover: (x, y) => this.onHover(x, y),
       onPan: (dx, dy) => this.camera.pan(dx, dy),
       onZoom: (x, y, factor) => this.camera.zoomAt(x, y, factor),
+      onRatioWheel: (direction) => this.stepRatio(direction),
       onKey: (e) => this.onKey(e),
     });
     window.addEventListener("resize", () => this.scene?.resize(), { signal: this.abort.signal });
@@ -435,6 +448,11 @@ export class GameSession {
       event.attacker !== this.myId;
     const betrayed = event.type === "allianceBroken" && event.victim === this.myId;
     if (targetsMe || betrayed) hud.alert();
+    // Gains d'or ponctuels : « +X » au-dessus de la case d'or (comme OpenFront).
+    if (event.type === "eliminated" && event.by === this.myId) hud.goldGain(event.gold);
+    if (event.type === "donation" && event.to === this.myId && event.resource === "gold") {
+      hud.goldGain(event.amount);
+    }
     const described = this.describe(event);
     if (described) hud.pushEvent(described[0], described[1]);
   }
@@ -588,7 +606,7 @@ export class GameSession {
   private onClick(sx: number, sy: number, button: number): void {
     const tile = this.tileAt(sx, sy);
     if (tile === null || !this.map || !this.territory) return;
-    if (this.hud?.menu.consumedClick()) return;
+    if (this.hud?.menu.consumedClick() || this.hud?.radial.consumedClick()) return;
     if (button === 2) {
       if (this.buildMode !== null) this.buildMode = null;
       else if (!this.inSpawnPhase) this.openMenu(sx, sy, tile);
@@ -621,8 +639,13 @@ export class GameSession {
     const me = this.me();
     const tile = this.hoverTile;
     if (!me || !me.alive || this.inSpawnPhase || tile === null || !this.territory) return;
-    const owner = this.territory.owner(tile);
-    if (owner === 0 || owner === me.id) return;
+    this.allianceWith(this.territory.owner(tile));
+  }
+
+  /** Accepte la demande de `owner`, renouvelle l'alliance pendant sa fenêtre, ou en propose une. */
+  private allianceWith(owner: number): void {
+    const me = this.me();
+    if (!me || !me.alive || this.inSpawnPhase || owner === 0 || owner === me.id) return;
     if (me.allies.includes(owner)) {
       this.server.submit({ type: "allianceRenew", ally: owner });
       return;
@@ -655,58 +678,66 @@ export class GameSession {
     );
   }
 
-  /** Menu contextuel d'une tuile, selon son propriétaire (GDD §17). */
+  /** Menu radial d'une tuile (comme OpenFront), selon son propriétaire (GDD §17). */
   private openMenu(sx: number, sy: number, tile: number): void {
     const me = this.me();
     if (!me || !me.alive || !this.territory || !this.map || !this.hud) return;
     const rect = this.canvas.getBoundingClientRect();
-    const model = this.menuFor(me, tile);
-    if (model) this.hud.menu.open(rect.left + sx, rect.top + sy, model);
+    const model = this.radialFor(me, tile);
+    if (model) this.hud.radial.open(rect.left + sx, rect.top + sy, model);
   }
 
-  private menuFor(me: PlayerView, tile: number): MenuModel | null {
+  private radialFor(me: PlayerView, tile: number): RadialModel | null {
     const territory = this.territory;
-    if (!territory || !this.map) return null;
+    const map = this.map;
+    if (!territory || !map || !map.isPassableLand(tile)) return null;
     const owner = territory.owner(tile);
     const troops = Math.floor(me.troops * this.ratio);
-    const ratio = `${Math.round(this.ratio * 100)} % · ${formatNumber(troops)}`;
+    const engaged = `${Math.round(this.ratio * 100)} % · ${formatNumber(troops)} troupes`;
     const mods = modifiersOf(me.race);
+    const submit = (intent: Intent) => () => this.server.submit(intent);
 
     if (owner === me.id) {
-      const build = (kind: BuildingKind): MenuEntry => {
+      const build = (kind: BuildingKind): RadialAction => {
         const owned = kind === BuildingKind.Bourg ? me.bourgs : me.tours;
         const cost = costFor(kind, owned, mods);
         return {
           label: `Bâtir : ${BUILDINGS[kind].name}`,
-          hint: `${formatNumber(cost)} or`,
+          hint: `${formatNumber(cost)} or · vous en avez ${owned}`,
+          icon: { image: `/art/buildings/${kind}.webp` },
+          tone: "build",
           disabled: me.gold < cost,
-          run: () => this.server.submit({ type: "build", building: kind, tile }),
+          run: submit({ type: "build", building: kind, tile }),
         };
       };
       return {
-        title: "Vos terres",
-        subtitle: TERRAIN_NAMES[this.map.kind(tile)],
-        entries: [build(BuildingKind.Bourg), build(BuildingKind.Tour)],
-      };
-    }
-    if (owner === 0) {
-      return {
-        title: "Terres libres",
-        subtitle: TERRAIN_NAMES[this.map.kind(tile)],
-        entries: [
-          {
-            label: "S'étendre",
-            hint: ratio,
-            disabled: !this.map.isPassableLand(tile) || troops < 1,
-            run: () => this.server.submit({ type: "attack", target: 0, troops, tile }),
-          },
-        ],
+        center: { label: "Vos terres", icon: "⚔", tone: "neutral", disabled: true },
+        ring: [build(BuildingKind.Bourg), build(BuildingKind.Tour)],
       };
     }
 
-    const other = this.players.get(owner);
-    if (!other) return null;
-    const subtitle = this.describePlayer(other);
+    const boat: RadialAction = {
+      label: "Débarquer",
+      hint: `${engaged} · touche B`,
+      icon: "⛵",
+      tone: "boat",
+      disabled: troops < 1,
+      run: submit({ type: "boat", tile, troops }),
+    };
+    if (owner === 0) {
+      return {
+        center: {
+          label: "S'étendre",
+          hint: engaged,
+          icon: "⚔",
+          tone: "attack",
+          disabled: troops < 1,
+          run: submit({ type: "attack", target: 0, troops, tile }),
+        },
+        ring: [boat],
+      };
+    }
+
     if (me.allies.includes(owner)) {
       const al = this.diplomacy?.alliances.find(
         (x) => (x.a === me.id && x.b === owner) || (x.b === me.id && x.a === owner),
@@ -715,47 +746,41 @@ export class GameSession {
       const inWindow = al !== undefined && left <= ALLIANCE_RENEW_WINDOW;
       const renewed = al?.renew.includes(me.id) ?? false;
       const giftGold = Math.floor(me.gold / 3);
-      const giftTroops = Math.floor(me.troops / 3);
       return {
-        title: other.name,
-        subtitle: `${subtitle} · allié encore ${formatClock(left)}`,
-        entries: [
+        // Au centre, comme OpenFront : donner des troupes à l'allié (au ratio choisi).
+        center: {
+          label: "Donner des troupes",
+          hint: engaged,
+          icon: "⚑",
+          tone: "ally",
+          disabled: troops < 1,
+          run: submit({ type: "donate", target: owner, resource: "troops", amount: troops }),
+        },
+        ring: [
           {
-            label: "Donner de l'or",
-            hint: `⅓ · ${formatNumber(giftGold)}`,
-            disabled: giftGold < 1,
-            run: () =>
-              this.server.submit({
-                type: "donate",
-                target: owner,
-                resource: "gold",
-                amount: giftGold,
-              }),
-          },
-          {
-            label: "Donner des troupes",
-            hint: `⅓ · ${formatNumber(giftTroops)}`,
-            disabled: giftTroops < 1,
-            run: () =>
-              this.server.submit({
-                type: "donate",
-                target: owner,
-                resource: "troops",
-                amount: giftTroops,
-              }),
+            label: "Rompre l'alliance",
+            hint: "Vous serez Parjure 60 s · touche L deux fois",
+            icon: "✗",
+            tone: "danger",
+            run: () => this.confirmBreak(owner),
           },
           {
             label: renewed ? "Renouvellement demandé" : "Renouveler l'alliance",
-            hint: inWindow ? "K" : "30 dernières s",
+            hint: inWindow
+              ? `expire dans ${formatClock(left)} · touche K`
+              : `possible dans les 30 dernières secondes (${formatClock(left)})`,
+            icon: "↻",
+            tone: "ally",
             disabled: !inWindow || renewed,
-            run: () => this.server.submit({ type: "allianceRenew", ally: owner }),
+            run: submit({ type: "allianceRenew", ally: owner }),
           },
-          "separator",
           {
-            label: "Rompre l'alliance…",
-            hint: "L L",
-            danger: true,
-            run: () => this.confirmBreak(owner),
+            label: "Donner de l'or",
+            hint: `⅓ · ${formatNumber(giftGold)} or`,
+            icon: "◉",
+            tone: "gold",
+            disabled: giftGold < 1,
+            run: submit({ type: "donate", target: owner, resource: "gold", amount: giftGold }),
           },
         ],
       };
@@ -765,52 +790,33 @@ export class GameSession {
       this.diplomacy?.requests.some((r) => r.from === owner && r.to === me.id) ?? false;
     const iAsked =
       this.diplomacy?.requests.some((r) => r.from === me.id && r.to === owner) ?? false;
-    const diplomacy: MenuEntry = theyAsked
+    const alliance: RadialAction = theyAsked
       ? {
           label: "Accepter son alliance",
-          hint: "K",
-          run: () => this.server.submit({ type: "allianceReply", requester: owner, accept: true }),
+          hint: "touche K",
+          icon: "⚭",
+          tone: "ally",
+          run: submit({ type: "allianceReply", requester: owner, accept: true }),
         }
-      : iAsked
-        ? { label: "Proposition envoyée", disabled: true }
-        : {
-            label: "Proposer une alliance",
-            hint: "K",
-            run: () => this.server.submit({ type: "allianceRequest", target: owner }),
-          };
+      : {
+          label: iAsked ? "Proposition envoyée" : "Proposer une alliance",
+          hint: iAsked ? undefined : "5 minutes · touche K",
+          icon: "⚭",
+          tone: "ally",
+          disabled: iAsked,
+          run: submit({ type: "allianceRequest", target: owner }),
+        };
     return {
-      title: other.name,
-      subtitle,
-      entries: [
-        {
-          label: "Attaquer",
-          hint: ratio,
-          disabled: troops < 1 || !this.map.isPassableLand(tile),
-          run: () => this.server.submit({ type: "attack", target: owner, troops, tile }),
-        },
-        {
-          label: "Débarquer",
-          hint: "B",
-          disabled: troops < 1 || !this.map.isPassableLand(tile),
-          run: () => this.server.submit({ type: "boat", tile, troops }),
-        },
-        "separator",
-        diplomacy,
-      ],
+      center: {
+        label: `Attaquer ${this.nameOf(owner)}`,
+        hint: engaged,
+        icon: "⚔",
+        tone: "attack",
+        disabled: troops < 1,
+        run: submit({ type: "attack", target: owner, troops, tile }),
+      },
+      ring: [alliance, boat],
     };
-  }
-
-  /** « Prétendant (Chevalier) · Kharag · Méfiant · Parjure ». */
-  private describePlayer(p: PlayerView): string {
-    const parts: string[] = [];
-    if (p.kind === "human") parts.push("Seigneur");
-    else if (p.kind === "nation") parts.push(`Prétendant (${this.nationLevel})`);
-    else parts.push("Tribu sauvage");
-    if (p.race) parts.push(RACES[p.race].name);
-    if (p.kind === "nation" && this.myId !== null)
-      parts.push(disposition(p.regard[this.myId] ?? 0));
-    if (p.parjureUntil > this.tick) parts.push("Parjure");
-    return parts.join(" · ");
   }
 
   /** Rupture d'alliance : confirmation explicite, car on devient Parjure. */
@@ -832,6 +838,16 @@ export class GameSession {
     });
   }
 
+  /** Un cran de ratio d'attaque (T / Y, Maj + molette) : 10 points, entre 1 % et 100 %. */
+  private stepRatio(direction: number): void {
+    this.ratio =
+      direction < 0
+        ? Math.max(0.01, Math.round((this.ratio - RATIO_STEP) * 100) / 100)
+        : this.ratio < RATIO_STEP
+          ? RATIO_STEP
+          : Math.min(1, Math.round((this.ratio + RATIO_STEP) * 100) / 100);
+  }
+
   /** Débarquement forcé sur la tuile survolée (touche B). */
   private launchBoatAtHover(): void {
     const me = this.me();
@@ -844,30 +860,76 @@ export class GameSession {
 
   private onHover(sx: number, sy: number): void {
     this.hoverTile = this.tileAt(sx, sy);
-    if (this.hoverTile === null || !this.map || !this.territory) {
-      this.hud?.setHover("");
-      return;
-    }
-    const t = this.hoverTile;
+    // Comme OpenFront : la fiche est rafraîchie au plus toutes les 100 ms.
+    const now = performance.now();
+    if (now - this.lastInfoAt < INFO_THROTTLE_MS) return;
+    this.lastInfoAt = now;
+    this.hud?.showInfo(this.infoFor(this.hoverTile));
+  }
+
+  /** Fiche du royaume survolé (null sur l'eau ou hors carte). */
+  private infoFor(t: number | null): InfoModel | null {
+    if (t === null || !this.map || !this.territory || !this.map.isLand(t)) return null;
     const owner = this.territory.owner(t);
-    const parts = [TERRAIN_NAMES[this.map.kind(t)]];
-    if (this.mines.includes(t)) parts.push("Mine d'or");
+    const details = [TERRAIN_NAMES[this.map.kind(t)]];
+    if (this.mines.includes(t)) details.push("Mine d'or");
     // L'état des tuiles (marques, charniers) vit dans la couche de territoire, pas dans this.map.
     const state = this.territory.state[t] as number;
-    const race = this.players.get(owner)?.race;
-    if (state & MARK_BIT && race === Race.Aldoria) parts.push("Rempart");
-    if (state & MARK_BIT && race === Race.Sylvanor) parts.push("Bosquet");
-    if (state & CHARNIER_BIT) parts.push("Charnier");
-    parts.push(owner === 0 ? "Terres libres" : this.nameOf(owner));
     const player = owner === 0 ? null : this.players.get(owner);
-    if (player && owner !== this.myId) {
-      if (this.myAllies.has(owner)) parts.push("Allié — clic droit pour les dons");
-      else if (player.kind === "nation" && this.myId !== null) {
-        parts.push(`Prétendant, ${disposition(player.regard[this.myId] ?? 0).toLowerCase()}`);
-      } else if (player.kind === "bot") parts.push("Tribu");
-      if (player.parjureUntil > this.tick) parts.push("Parjure");
+    if (state & MARK_BIT && player?.race === Race.Aldoria) details.push("Rempart");
+    if (state & MARK_BIT && player?.race === Race.Sylvanor) details.push("Bosquet");
+    if (state & CHARNIER_BIT) details.push("Charnier");
+    if (!player) return { kind: "land", title: "Terres libres", detail: details.join(" · ") };
+
+    const me = this.me();
+    const self = player.id === this.myId;
+    let committed = 0;
+    for (const a of this.attacks) if (a.attacker === player.id) committed += a.troops;
+    for (const b of this.boats) if (b.owner === player.id) committed += b.troops;
+    const al = this.diplomacy?.alliances.find(
+      (x) => (x.a === this.myId && x.b === owner) || (x.b === this.myId && x.a === owner),
+    );
+    const requested = this.diplomacy?.requests.find(
+      (r) => (r.from === owner && r.to === this.myId) || (r.from === this.myId && r.to === owner),
+    );
+    const regard =
+      this.myId !== null && player.kind === "nation" ? (player.regard[this.myId] ?? 0) : null;
+    const actions: { label: string; key: string; danger?: boolean; run: () => void }[] = [];
+    if (me && me.alive && !self && !this.inSpawnPhase) {
+      if (al)
+        actions.push({
+          label: "Rompre",
+          key: "L",
+          danger: true,
+          run: () => this.confirmBreak(owner),
+        });
+      else actions.push({ label: "Alliance", key: "K", run: () => this.allianceWith(owner) });
+      actions.push({ label: "Barge", key: "B", run: () => this.launchBoatAtHover() });
     }
-    this.hud?.setHover(parts.join(" · "));
+    return {
+      kind: "player",
+      player,
+      committed,
+      typeLabel:
+        player.kind === "human"
+          ? self
+            ? "Vous"
+            : "Seigneur"
+          : player.kind === "nation"
+            ? `Prétendant (${this.nationLevel})`
+            : "Tribu sauvage",
+      disposition:
+        regard === null ? null : { label: disposition(regard), tone: dispositionTone(regard) },
+      self,
+      ally: al !== undefined,
+      allyLeft: al ? al.expires - this.tick : null,
+      parjureLeft: player.parjureUntil > this.tick ? player.parjureUntil - this.tick : null,
+      crown: player.id === this.crown,
+      requested: requested ? (requested.from === owner ? "fromThem" : "fromMe") : null,
+      landShare: (player.tiles * 100) / Math.max(1, this.map.numLandTiles),
+      detail: details.join(" · "),
+      actions,
+    };
   }
 
   private onKey(e: KeyboardEvent): void {
@@ -881,6 +943,7 @@ export class GameSession {
       case "escape":
         this.buildMode = null;
         this.hud?.menu.close();
+        this.hud?.radial.close();
         break;
       case "k":
         this.allianceAtHover();
@@ -889,13 +952,10 @@ export class GameSession {
         this.breakAtHover();
         break;
       case "t":
-        this.ratio = Math.max(0.01, Math.round((this.ratio - RATIO_STEP) * 100) / 100);
+        this.stepRatio(-1);
         break;
       case "y":
-        this.ratio =
-          this.ratio < RATIO_STEP
-            ? RATIO_STEP
-            : Math.min(1, Math.round((this.ratio + RATIO_STEP) * 100) / 100);
+        this.stepRatio(1);
         break;
       case "c":
         this.centerOnMe();

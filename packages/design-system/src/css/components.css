@@ -744,6 +744,8 @@
   --lw-text-danger: var(--_s-danger);
   --lw-text-success: var(--_s-success);
   --lw-text-emboss: var(--_s-inset);
+  /* Infobulles : fond clair (le texte de la matière), texte sombre. */
+  --lw-text-inverse: var(--_s-inset);
   --lw-border-subtle: var(--_s-border);
   --lw-border-default: var(--_s-border);
   --lw-border-hover: var(--_s-text-muted);
@@ -898,6 +900,128 @@
   margin: var(--lw-space-1) 0;
   border: 0;
   border-top: 1px solid var(--lw-border-subtle);
+}
+
+/* Menu radial -----------------------------------------------------------------------------------
+ * Clic droit sur la carte (comme OpenFront) : action principale au centre, anneau d'actions.
+ * Construit en SVG par le client ; teintes par .lw-radial__item--{attack|boat|ally|build|gold|danger|neutral}. */
+.lw-radial {
+  position: fixed;
+  z-index: var(--lw-z-overlay);
+  pointer-events: none;
+  animation: lw-radial-in var(--lw-duration-base) var(--lw-easing-emphasized);
+}
+
+.lw-radial svg {
+  overflow: visible;
+}
+
+.lw-radial__item {
+  --_tone: var(--lw-border-default);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.lw-radial__item--attack {
+  --_tone: var(--lw-feedback-danger);
+}
+
+.lw-radial__item--boat {
+  --_tone: var(--lw-feedback-info);
+}
+
+.lw-radial__item--ally {
+  --_tone: var(--lw-feedback-success);
+}
+
+.lw-radial__item--build {
+  --_tone: var(--lw-feedback-warning);
+}
+
+.lw-radial__item--gold {
+  --_tone: var(--lw-heraldry-or);
+}
+
+.lw-radial__item--danger {
+  --_tone: var(--lw-text-danger);
+}
+
+.lw-radial__shape {
+  fill: color-mix(in srgb, var(--_tone) 82%, transparent);
+  fill-rule: evenodd;
+  stroke: var(--lw-bg-surface);
+  stroke-width: 2;
+  transition: filter var(--lw-duration-fast) var(--lw-easing-standard);
+}
+
+.lw-radial__center .lw-radial__shape {
+  stroke: var(--lw-border-strong);
+}
+
+.lw-radial__item:hover .lw-radial__shape {
+  filter: brightness(1.25);
+}
+
+.lw-radial__item--disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.lw-radial__item--disabled .lw-radial__shape {
+  fill: color-mix(in srgb, var(--lw-bg-inset) 85%, transparent);
+  filter: none;
+}
+
+.lw-radial__glyph {
+  fill: var(--lw-heraldry-argent);
+  stroke: var(--lw-heraldry-sable);
+  stroke-width: 0.6;
+  paint-order: stroke;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.lw-radial__image {
+  pointer-events: none;
+  /* Gravure à l'encre sur fond coloré : un halo de papier la rend lisible. */
+  filter: drop-shadow(0 0 1.5px var(--lw-heraldry-argent))
+    drop-shadow(0 0 1px var(--lw-heraldry-argent));
+}
+
+.lw-radial__tooltip {
+  position: fixed;
+  z-index: var(--lw-z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 260px;
+  padding: var(--lw-space-1) var(--lw-space-2);
+  font-size: var(--lw-font-size-xs);
+  color: var(--lw-text-inverse);
+  background: var(--lw-text-primary);
+  border-radius: var(--lw-radius-md);
+  box-shadow: var(--lw-shadow-sm);
+  pointer-events: none;
+}
+
+.lw-radial__tooltip strong {
+  font-family: var(--lw-font-family-title);
+  font-size: var(--lw-font-size-sm);
+  font-weight: var(--lw-font-weight-regular);
+}
+
+@keyframes lw-radial-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lw-radial {
+    animation: none;
+  }
 }
 
 /* Infobulle (CSS pure, déclenchée par [data-tooltip]) ------------------------------------------ */

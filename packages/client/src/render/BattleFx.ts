@@ -2,37 +2,38 @@ import { OWNER_MASK, type AttackView } from "@legionwar/engine";
 
 /** Durée de la trace laissée sur une tuile prise de force (ms). */
 export const SPARK_MS = 1000;
-/** Fenêtre des prises récentes qui situent le front d'une attaque (ms). */
-const FRONT_WINDOW_MS = 2000;
-/** Prises « fraîches » : la ligne de front actuelle, que suit le chiffre (ms). */
-const FRESH_MS = 500;
-/** Au-delà, les plus anciennes étincelles sont oubliées (200 tribus en guerre). */
+/** Au-delà, les plus anciennes traces sont oubliées (200 tribus en guerre). */
 const MAX_SPARKS = 6000;
-/** Lissage par image : le chiffre glisse vers la frontière au lieu d'y sauter. */
-const FRONT_SMOOTHING = 0.15;
+/** Un chiffre de front glisse vers son nouveau repère en ce temps (ms), comme sur OpenFront. */
+const SLIDE_MS = 250;
+/** Au-delà de cette distance (tuiles), il saute au lieu de glisser. */
+const SNAP_TILES = 200;
 
-interface Capture {
-  tile: number;
-  at: number;
+/** Un chiffre de front : glisse de (fromX, fromY) vers (toX, toY) à partir de `start`. */
+interface Slot {
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  start: number;
 }
 
-/** Front d'une attaque entre deux royaumes : là où ses tuiles tombent en ce moment. */
+/** Front d'une attaque entre deux royaumes, avec un chiffre par tronçon de la ligne de front. */
 export interface Front {
   attack: number;
   attacker: number;
   target: number;
   troops: number;
-  /** Position du chiffre (tuiles), lissée vers le cœur de la ligne de front. */
-  x: number;
-  y: number;
-  /** Prises récentes, de la plus ancienne à la plus récente. */
-  recent: Capture[];
+  /** Positions affichées des chiffres (tuiles), calculées pour l'image courante. */
+  positions: { x: number; y: number }[];
+  slots: Slot[];
 }
 
 /**
- * Effets de bataille, purement visuels : ligne de front sur les tuiles qui changent de main
- * (vert ou rouge sur vos fronts) et chiffre des troupes de chaque front, comme sur OpenFront.
- * Tout se déduit des changements de tuiles reçus à chaque tick : le moteur n'en sait rien.
+ * Effets de bataille, purement visuels : trace sur les tuiles qui changent de main (vert ou
+ * rouge sur vos fronts) et chiffre des troupes de chaque front, comme sur OpenFront.
+ * Le moteur fournit, pour chaque attaque, un repère par tronçon de la ligne de front (recalculé
+ * toutes les 200 ms) ; les chiffres y glissent en 250 ms au lieu de sauter à chaque tick.
  */
 export class BattleFx {
   private sparkTiles: number[] = [];
@@ -54,9 +55,6 @@ export class BattleFx {
     attacks: readonly AttackView[],
     now: number,
   ): void {
-    const byPair = new Map<number, AttackView>();
-    for (const a of attacks) if (a.target !== 0) byPair.set(pairKey(a.attacker, a.target), a);
-
     for (let i = 0; i < changed.length; i += 2) {
       const tile = changed[i] as number;
       const owner = (changed[i + 1] as number) & OWNER_MASK;
@@ -67,20 +65,28 @@ export class BattleFx {
       this.sparkTimes.push(now);
       this.sparkWinners.push(owner);
       this.sparkLosers.push(before);
-      const attack = byPair.get(pairKey(owner, before));
-      if (attack) this.front(attack).recent.push({ tile, at: now });
     }
-    if (this.sparkTiles.length > MAX_SPARKS) {
-      this.dropSparks(this.sparkTiles.length - MAX_SPARKS);
-    }
+    this.dropSparks(this.sparkTiles.length - MAX_SPARKS);
 
-    // Les fronts suivent les attaques en cours ; une attaque terminée retire ses effets.
+    // Les fronts suivent les attaques en cours ; une attaque terminée retire ses chiffres.
     const alive = new Set<number>();
     for (const a of attacks) {
       if (a.target === 0) continue;
       alive.add(a.id);
-      const f = this.fronts.get(a.id);
-      if (f) f.troops = a.troops;
+      let front = this.fronts.get(a.id);
+      if (!front) {
+        front = {
+          attack: a.id,
+          attacker: a.attacker,
+          target: a.target,
+          troops: a.troops,
+          positions: [],
+          slots: [],
+        };
+        this.fronts.set(a.id, front);
+      }
+      front.troops = a.troops;
+      this.retarget(front, a.fronts, now);
     }
     for (const id of this.fronts.keys()) if (!alive.has(id)) this.fronts.delete(id);
   }
@@ -105,6 +111,56 @@ export class BattleFx {
     }
   }
 
+  /** Fronts ayant au moins un repère, positions interpolées pour l'image courante. */
+  activeFronts(now: number): Front[] {
+    const out: Front[] = [];
+    for (const f of this.fronts.values()) {
+      if (f.slots.length === 0) continue;
+      f.positions = f.slots.map((s) => position(s, now));
+      out.push(f);
+    }
+    return out;
+  }
+
+  /** Nouveaux repères d'un front : chaque chiffre repart de sa position actuelle. */
+  private retarget(front: Front, tiles: readonly number[], now: number): void {
+    if (tiles.length === 0) return;
+    const targets = tiles.map((t) => ({
+      x: (t % this.width) + 0.5,
+      y: Math.floor(t / this.width) + 0.5,
+    }));
+    // Deux tronçons : on garde l'appariement le plus proche, pour que les chiffres ne se croisent pas.
+    const [s0, s1] = front.slots;
+    const [t0, t1] = targets;
+    if (s0 && s1 && t0 && t1) {
+      const straight = manhattan(s0, t0) + manhattan(s1, t1);
+      const swapped = manhattan(s0, t1) + manhattan(s1, t0);
+      if (swapped < straight) targets.reverse();
+    }
+    front.slots.length = Math.min(front.slots.length, targets.length);
+    targets.forEach((target, i) => {
+      const slot = front.slots[i];
+      if (!slot) {
+        front.slots.push({
+          fromX: target.x,
+          fromY: target.y,
+          toX: target.x,
+          toY: target.y,
+          start: now,
+        });
+        return;
+      }
+      if (slot.toX === target.x && slot.toY === target.y) return;
+      const current = position(slot, now);
+      const far = Math.hypot(target.x - current.x, target.y - current.y) > SNAP_TILES;
+      slot.fromX = far ? target.x : current.x;
+      slot.fromY = far ? target.y : current.y;
+      slot.toX = target.x;
+      slot.toY = target.y;
+      slot.start = now;
+    });
+  }
+
   private dropSparks(count: number): void {
     if (count <= 0) return;
     this.sparkTiles.splice(0, count);
@@ -112,97 +168,18 @@ export class BattleFx {
     this.sparkWinners.splice(0, count);
     this.sparkLosers.splice(0, count);
   }
-
-  /** Fronts ayant des prises récentes, chiffre recalé sur la ligne de front actuelle. */
-  activeFronts(now: number): Front[] {
-    const out: Front[] = [];
-    for (const f of this.fronts.values()) {
-      f.recent = f.recent.filter((r) => now - r.at <= FRONT_WINDOW_MS);
-      if (f.recent.length === 0) continue;
-      // La ligne de front, c'est ce qui est tombé au dernier tick ; à défaut, les prises récentes.
-      const fresh = this.fresh(f, now);
-      const lastAt = fresh.length > 0 ? (fresh[fresh.length - 1] as Capture).at : 0;
-      const line = fresh.length > 0 ? fresh.filter((r) => r.at === lastAt) : f.recent;
-      // La prise la plus proche du centre de la ligne : toujours sur la frontière, même quand
-      // le front est long ou en plusieurs morceaux.
-      let cx = 0;
-      let cy = 0;
-      for (const r of line) {
-        cx += this.tx(r.tile);
-        cy += this.ty(r.tile);
-      }
-      cx /= line.length;
-      cy /= line.length;
-      const best = this.nearest(line, cx, cy, Infinity) as Capture;
-      const tx = this.tx(best.tile);
-      const ty = this.ty(best.tile);
-      if (Number.isNaN(f.x)) {
-        f.x = tx;
-        f.y = ty;
-      } else {
-        f.x += (tx - f.x) * FRONT_SMOOTHING;
-        f.y += (ty - f.y) * FRONT_SMOOTHING;
-      }
-      out.push(f);
-    }
-    return out;
-  }
-
-  private fresh(front: Front, now: number): Capture[] {
-    let i = front.recent.length;
-    while (i > 0 && now - (front.recent[i - 1] as Capture).at <= FRESH_MS) i--;
-    return front.recent.slice(i);
-  }
-
-  /** Prise la plus proche de (x, y) à moins de √`maxSq` tuiles, ou null. */
-  private nearest(
-    captures: readonly Capture[],
-    x: number,
-    y: number,
-    maxSq: number,
-  ): Capture | null {
-    let best: Capture | null = null;
-    let bestSq = maxSq;
-    for (const r of captures) {
-      const d = dist2(this.tx(r.tile), this.ty(r.tile), x, y);
-      if (d < bestSq) {
-        bestSq = d;
-        best = r;
-      }
-    }
-    return best;
-  }
-
-  private tx(tile: number): number {
-    return (tile % this.width) + 0.5;
-  }
-
-  private ty(tile: number): number {
-    return Math.floor(tile / this.width) + 0.5;
-  }
-
-  private front(attack: AttackView): Front {
-    let f = this.fronts.get(attack.id);
-    if (!f) {
-      f = {
-        attack: attack.id,
-        attacker: attack.attacker,
-        target: attack.target,
-        troops: attack.troops,
-        x: Number.NaN,
-        y: Number.NaN,
-        recent: [],
-      };
-      this.fronts.set(attack.id, f);
-    }
-    return f;
-  }
 }
 
-function dist2(ax: number, ay: number, bx: number, by: number): number {
-  return (ax - bx) ** 2 + (ay - by) ** 2;
+/** Position d'un chiffre à l'instant `now` : glissement linéaire de 250 ms. */
+function position(slot: Slot, now: number): { x: number; y: number } {
+  const t = Math.min(1, Math.max(0, (now - slot.start) / SLIDE_MS));
+  return {
+    x: slot.fromX + (slot.toX - slot.fromX) * t,
+    y: slot.fromY + (slot.toY - slot.fromY) * t,
+  };
 }
 
-function pairKey(attacker: number, target: number): number {
-  return attacker * 4096 + target;
+/** Distance de Manhattan entre la destination d'un chiffre et un repère. */
+function manhattan(slot: Slot, p: { x: number; y: number }): number {
+  return Math.abs(slot.toX - p.x) + Math.abs(slot.toY - p.y);
 }

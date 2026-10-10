@@ -89,6 +89,8 @@ export interface PlayerView {
   tiles: number;
   troops: number;
   maxTroops: number;
+  /** Troupes régénérées par tick (0 hors jeu) : la pastille « +X/s » de l'interface. */
+  troopRegen: number;
   gold: number;
   bourgs: number;
   tours: number;
@@ -129,6 +131,11 @@ export interface AttackView {
   attacker: number;
   target: number;
   troops: number;
+  /**
+   * Repères du front pour l'affichage (au plus 2 tuiles) : un par tronçon de la ligne de front,
+   * sur la tuile la plus proche de son centre. Vue seulement, hors simulation et hors hash.
+   */
+  fronts: number[];
 }
 
 export interface BoatView {

@@ -12,6 +12,7 @@ import {
 } from "@legionwar/design-system";
 import { ALL_RACES, RACES } from "@legionwar/engine";
 import { escapeHtml } from "../ui/format";
+import { RadialMenu } from "../ui/RadialMenu";
 
 /**
  * Page de référence du design system. Les sections « tokens » sont générées depuis
@@ -239,6 +240,10 @@ ${section(
     </div>
   </div>
 
+  <h3 class="lw-title-3">Menu radial</h3>
+  <div class="sg-row"><button class="lw-button" id="sg-radial">Ouvrir le menu radial</button></div>
+  <pre class="sg-code"><code>new RadialMenu(hôte).open(x, y, { center, ring })</code></pre>
+
   <h3 class="lw-title-3">Menu contextuel</h3>
   <div class="sg-row">
     <div class="lw-menu" role="menu" aria-label="Exemple de menu contextuel" style="position: static">
@@ -312,3 +317,35 @@ ${section(
 </main>
 <footer class="sg-footer lw-text-xs lw-text-muted">Généré depuis les tokens — modifiez <code>tokens.ts</code>, puis <code>npm run tokens</code>.</footer>
 `;
+
+// Démonstration du menu radial : centré sur le bouton.
+const radial = new RadialMenu(document.body);
+document.querySelector<HTMLButtonElement>("#sg-radial")?.addEventListener("click", (e) => {
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  radial.open(rect.left + rect.width / 2, rect.top + rect.height / 2, {
+    center: {
+      label: "Attaquer",
+      hint: "20 % · 12,4 k troupes",
+      icon: "⚔",
+      tone: "attack",
+      run: () => undefined,
+    },
+    ring: [
+      {
+        label: "Proposer une alliance",
+        hint: "touche K",
+        icon: "⚭",
+        tone: "ally",
+        run: () => undefined,
+      },
+      { label: "Débarquer", hint: "touche B", icon: "⛵", tone: "boat", run: () => undefined },
+      {
+        label: "Bâtir : Bourg",
+        hint: "125 k or",
+        icon: { image: "/art/buildings/bourg.webp" },
+        tone: "build",
+        disabled: true,
+      },
+    ],
+  });
+});
