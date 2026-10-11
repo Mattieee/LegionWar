@@ -154,7 +154,6 @@ Rééquilibrage du 2026-10-09, mesuré par le game designer sur 300 parties simu
 - _Style :_ économie forte, frontières fortifiées, poussée méthodique.
 - _Force :_ l'or, des tours bon marché et à longue portée.
 - _Faiblesse :_ une armée moyenne, qui paie cher les guerres d'usure.
-- _Bâtiments_ [Prévu] : Bourg, Port, Guilde marchande, Tour de garde, Tour des arcanes, Cathédrale des mages.
 - _Sorts_ [Prévu] : Châtiment (mineur), Pluie de météores (majeur), **Jugement céleste** (ultime : plusieurs colonnes de lumière, sans corruption).
 
 **⚒ Clans de Kharag — les conquérants**
@@ -162,7 +161,6 @@ Rééquilibrage du 2026-10-09, mesuré par le game designer sur 300 parties simu
 - _Style :_ expansion brutale, guerre permanente.
 - _Force :_ des attaques moins coûteuses et plus rapides.
 - _Faiblesse :_ un trésor maigre et une défense fragile.
-- _Bâtiments_ [Prévu] : Kraal, Quai de guerre, Comptoir de troc, Palissade à pointes, Totem de résistance, Autel des esprits.
 - _Sorts_ [Prévu] : Éclair chamanique, Tempête de foudre, **Rage des ancêtres** (ultime : frappes multiples, puis 60 s de pertes en attaque −30 %).
 
 **☠ Les Damnés de Morvane — les nécromanciens**
@@ -170,7 +168,6 @@ Rééquilibrage du 2026-10-09, mesuré par le game designer sur 300 parties simu
 - _Style :_ guerre d'attrition ; chaque victoire nourrit la suivante.
 - _Force :_ ils relèvent les morts. Plus le combat est sanglant, plus ils en sortent gagnants.
 - _Faiblesse :_ une régénération et une économie lentes, une agonie s'ils restent passifs.
-- _Bâtiments_ [Prévu] : Ossuaire, Débarcadère maudit, Crypte des tributs, Ziggourat, Obélisque nécrotique, Nécropole.
 - _Sorts_ [Prévu] : Trait d'ombre, Nuée de crânes, **Peste noire** (ultime : corruption durable ; les troupes ennemies au contact perdent 1 %/s ; les Damnés conquièrent les terres maudites 2× plus vite).
 
 **❦ Cercle de Sylvanor — les gardiens**
@@ -178,7 +175,6 @@ Rééquilibrage du 2026-10-09, mesuré par le game designer sur 300 parties simu
 - _Style :_ défense en profondeur, guérilla, commerce discret.
 - _Force :_ imprenables en forêt, et rapides pour s'emparer des bois voisins.
 - _Faiblesse :_ moins de troupes ; vulnérables en plaine.
-- _Bâtiments_ [Prévu] : Sylve-demeure, Havre, Marché des lunes, Arbre gardien, Puits de lune, Arbre ancestral.
 - _Sorts_ [Prévu] : Ronces, Colère des racines, **Courroux sylvestre** (ultime : les tuiles touchées deviennent de la **forêt**, le terrain des elfes).
 
 ### 7.3 Mécaniques propres [Proto]
@@ -198,6 +194,7 @@ Chaque peuple a une mécanique visible sur la carte. Constantes dans `Rules.ts` 
 
 ### 8.1 Règles générales [Proto]
 
+- **Bâtiments communs à tous les peuples** (décision du 2026-10-11) : pas de bâtiments propres à chaque peuple ; l'identité d'un peuple passe par ses modificateurs, sa mécanique propre et son habillage d'interface.
 - **Placement :** sur ses propres terres, à au moins **12 tuiles** de tout autre bâtiment, quel que soit son propriétaire.
 - **Coût croissant :** le prix dépend du nombre de bâtiments du même type déjà possédés, chantiers compris. Perdre un bâtiment fait donc rebaisser le prix.
 - **Capture :** un Bourg passe au conquérant ; une Tour de garde est **détruite**.
@@ -221,7 +218,7 @@ Spécification du game designer (2026-10-10), validée par le porteur de projet 
 
 ### 9.1 Port et nefs marchandes [Proto]
 
-- **Port** (Aldoria : Port, Kharag : Quai de guerre, Morvane : Débarcadère maudit, Sylvanor : Havre) : sur **une tuile à soi qui touche l'océan** (les lacs ne comptent pas) ; un clic à 20 tuiles ou moins d'une côte de mer se cale sur la côte la plus proche. Coût 125 k → 250 k → 500 k → 1 M selon le nombre de ports possédés (×0,85 pour Aldoria), 5 s de construction, écart de 12 tuiles avec les autres bâtiments. Capturé comme un Bourg ; détruit s'il tombe aux mains d'une tribu (qui ne commerce pas).
+- **Port** : sur **une tuile à soi qui touche l'océan** (les lacs ne comptent pas) ; un clic à 20 tuiles ou moins d'une côte de mer se cale sur la côte la plus proche. Coût 125 k → 250 k → 500 k → 1 M selon le nombre de ports possédés (×0,85 pour Aldoria), 5 s de construction, écart de 12 tuiles avec les autres bâtiments. Capturé comme un Bourg ; détruit s'il tombe aux mains d'une tribu (qui ne commerce pas).
 - **Nefs :** chaque port achevé arme une nef **toutes les 15 s** (premier départ décalé selon son identifiant) vers le port d'un **autre seigneur ou prétendant** de la **même mer**, sans embargo entre eux, jamais une tribu. Poids de tirage : 1, +1 pour le tiers le plus proche, +1 si son maître est allié. La nef avance d'**une case d'eau par tick** (comme la barge). Route : la plus courte sur l'océan, calculée à la première traversée de chaque paire de ports puis gardée.
 - **Gain :** à l'arrivée, **les maîtres actuels des deux ports** touchent chacun `clamp(40 × cases de mer, 4 000, 20 000)` or, sans bonus d'or de peuple. « Une nef rapporte 40 or par lieue de mer, jusqu'à 20 000, au port de départ comme au port d'arrivée. »
 - **Perte :** la nef disparaît sans or si un des deux ports est détruit ou passe au même maître que l'autre, si un maître est éliminé, ou si un embargo tombe entre eux. Plafond de sécurité : 400 nefs en mer.
@@ -240,7 +237,7 @@ Spécification du game designer (2026-10-10), validée par le porteur de projet 
 
 Comme l'usine d'OpenFront et ses trains (spécification du game designer, 2026-10-10, validée par le porteur de projet).
 
-- **Marché** (Aldoria : Guilde marchande, Kharag : Comptoir de troc, Morvane : Crypte des tributs, Sylvanor : Marché des lunes) : sur une tuile à soi, n'importe où. Coût 125 k → 250 k → 500 k → 1 M selon le nombre de Marchés possédés (compteur propre, ×0,85 pour Aldoria), 2 s de construction, écart de 12 tuiles. Capturé comme un Bourg ; une tribu qui le prend n'en tire rien.
+- **Marché** : sur une tuile à soi, n'importe où. Coût 125 k → 250 k → 500 k → 1 M selon le nombre de Marchés possédés (compteur propre, ×0,85 pour Aldoria), 2 s de construction, écart de 12 tuiles. Capturé comme un Bourg ; une tribu qui le prend n'en tire rien.
 - **Étapes et routes :** un Marché achevé rattache les **Bourgs, Ports et Marchés achevés à 40 cases ou moins** (vol d'oiseau), **quel que soit leur maître** ; un Bourg ou un Port achevé plus tard s'y rattache s'il a un Marché à portée. Chaque nouvelle étape trace une **route par la terre** (au plus le coût de 60 pas droits, une diagonale comptant 1,5 pas ; montagnes contournées si possible ; tracée dans les ticks qui suivent, deux étapes par tick) vers les étapes à portée, les plus proches d'abord, sauf celles déjà joignables en 3 étapes ou moins. Les routes traversent les frontières et survivent aux captures et à la guerre ; seule la destruction d'une étape efface ses routes.
 - **Caravanes :** chaque Marché d'un seigneur ou d'un prétendant envoie une caravane **toutes les 10 s** vers un Bourg ou un Port de son réseau tiré au sort (les siens, ou ceux d'un royaume sans embargo), par le plus court chemin en étapes qui évite les royaumes sous embargo. Elle avance d'une case par tick.
 - **Gain, à chaque Bourg ou Port traversé** (5 étapes payantes au plus) : **2 000 or** chez soi ; **6 000** chez un autre seigneur ou prétendant, versés à son maître **et** au maître de la caravane ; **8 000** chez un allié, aux deux. Sans bonus d'or de peuple. Les étapes d'une tribu se traversent sans payer.
@@ -445,21 +442,21 @@ Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, 
 
 ## 18. Correspondance avec OpenFront (référence du genre)
 
-| OpenFront                  | LegionWar                                           |
-| -------------------------- | --------------------------------------------------- |
-| City                       | Bourg (Kraal, Ossuaire, Sylve-demeure)              |
-| Defense Post               | Tour de garde (Palissade, Ziggourat, Arbre gardien) |
-| Port / Trade Ship          | Port / Nef marchande                                |
-| Factory / Train / Railroad | Marché / Caravane / Route commerciale               |
-| SAM Launcher               | Bastion runique                                     |
-| Missile Silo               | Sanctuaire                                          |
-| Atom / Hydrogen Bomb       | Sort mineur / Sort majeur                           |
-| MIRV                       | Sort ultime (propre à chaque race)                  |
-| Fallout                    | Terres maudites                                     |
-| Bots (Tribes)              | Tribus sauvages                                     |
-| Nations                    | Seigneurs IA                                        |
-| Traitor                    | Parjure                                             |
-| Overtime / Doomsday Clock  | Crépuscule / Horloge du Jugement                    |
+| OpenFront                  | LegionWar                             |
+| -------------------------- | ------------------------------------- |
+| City                       | Bourg                                 |
+| Defense Post               | Tour de garde                         |
+| Port / Trade Ship          | Port / Nef marchande                  |
+| Factory / Train / Railroad | Marché / Caravane / Route commerciale |
+| SAM Launcher               | Bastion runique                       |
+| Missile Silo               | Sanctuaire                            |
+| Atom / Hydrogen Bomb       | Sort mineur / Sort majeur             |
+| MIRV                       | Sort ultime (propre à chaque race)    |
+| Fallout                    | Terres maudites                       |
+| Bots (Tribes)              | Tribus sauvages                       |
+| Nations                    | Seigneurs IA                          |
+| Traitor                    | Parjure                               |
+| Overtime / Doomsday Clock  | Crépuscule / Horloge du Jugement      |
 
 ## 19. Équilibrage : points à surveiller
 
@@ -471,7 +468,7 @@ Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, 
 - **IA des prétendants (2026-10-10)**, mesures du game designer : 4 prétendants Duc + 60 tribus, carte moyenne, 400 parties : parties gagnées en moins de 30 min **54 % → 98,5 %**, durée médiane 11,2 → **8,6 min** (p10–p90 : 6,6–14,3), trahisons par partie 0,44 → **1,2**. Un seigneur contre 5 prétendants : il gagne 78 % des parties contre des Écuyers, 18 % contre des Chevaliers (éliminé avant 5 min : 10 %), 4 % contre des Ducs, 0 % contre des Empereurs.
 - Les parties longues favorisent Aldoria (or ×1,2, Bourgs moins chers, remparts) : 29 % des victoires à 4 Ducs, et 34 à 37 % des victoires de prétendants contre un seigneur seul au niveau Duc ou Empereur (100 parties chacun, ±5 points ; 27 à 31 % avant). Remparts ×1,35 ou or ×1,1 mesurés sans effet net : refaire un banc solo de 400 parties avant de toucher au peuple.
 - Recherche de route maritime : pics de 60 à 85 ms par tick sur 2 M de tuiles avec 12 prétendants (budget 100 ms) ; la stratégie « île » l'utilise un peu plus. À optimiser.
-- Routes des nefs (remesure du 2026-10-10, grande carte) : pics de `trade.tick` jusqu'à 45 ms à 8 prétendants, ramenés vers 30 ms en ne parcourant l'océan qu'une fois par port neuf ; il reste un parcours complet de l'océan quand un port apparaît. Les caravanes, tracées en file, plafonnent à 17,5 ms.
+- Routes des nefs (grande carte, 8 prétendants Duc) : pics de `trade.tick` de 45 ms ramenés à environ 30 ms (un seul parcours de l'océan par port neuf, 2026-10-10), puis à **5 à 18 ms** en écrivant ce parcours à plat (2026-10-11 ; ticks au-delà de 10 ms : 33 → 1 sur 3 parties de 7 000 ticks, hashes inchangés). Les caravanes, tracées en file, plafonnent à 17,5 ms.
 - **Mesurer l'équilibre : 1 200 parties au minimum par variante, comparées sur les mêmes graines** (écart apparié graine par graine). À 400 parties, un peuple varie de ±4 points d'un bloc à l'autre (Kharag : 19 à 25,5 %).
 - **Aldoria** tient environ 30 % des victoires dans toutes les variantes du 2026-10-11 (29,9 ± 1,1 % sur 7 200 parties), au plafond de la cible sans le dépasser nettement. Si elle passe au-delà, la corriger par un autre levier que l'or (remparts), mesuré aussi sur un banc solo de 1 200 parties.
 - L'IA des prétendants ignore son peuple : Kharag, peuple d'agression, est sans doute sous-joué par le banc (22,5 %) ; suivre l'or pillé et ses victoires en partie réelle. Seul le format 4 prétendants sur carte moyenne est mesuré.
