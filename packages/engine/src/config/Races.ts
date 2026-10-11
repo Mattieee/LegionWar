@@ -111,6 +111,7 @@ export const RACES: Record<Race, RaceInfo> = {
       "Pertes en attaque −15 %",
       "Conquête +10 % plus rapide",
       "−25 % d'or",
+      "Défense −5 %",
     ],
     modifiers: {
       ...NEUTRAL_MODIFIERS,
