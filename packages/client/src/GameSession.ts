@@ -38,6 +38,7 @@ import { Input } from "./input/Input";
 import { LocalServer } from "./LocalServer";
 import { BattleFx } from "./render/BattleFx";
 import { Camera } from "./render/Camera";
+import { buildingIconUrl } from "./render/Icons";
 import { type RGB, playerColor } from "./render/colors";
 import { type Label, computeLabels } from "./render/Labels";
 import { SceneRenderer } from "./render/SceneRenderer";
@@ -769,7 +770,7 @@ export class GameSession {
         return {
           label: `Bâtir : ${BUILDINGS[kind].name}`,
           hint: `${formatNumber(cost)} or · vous en avez ${owned}`,
-          icon: { image: `/art/buildings/${kind}.webp` },
+          icon: { image: buildingIconUrl(kind) },
           tone: "build",
           disabled: me.gold < cost,
           run: submit({ type: "build", building: kind, tile }),

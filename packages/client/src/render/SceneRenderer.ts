@@ -11,9 +11,10 @@ import {
 import type { BattleFx } from "./BattleFx";
 import type { Camera } from "./Camera";
 import { TABLE, type RGB, rgbCss } from "./colors";
+import { drawBuildingIcon, glyphColorFor } from "./Icons";
 import type { Label } from "./Labels";
 import type { SeaOrnament } from "./SeaDecor";
-import { type Sprite, sprite } from "./Sprites";
+import { sprite } from "./Sprites";
 import type { TerritoryLayer } from "./TerritoryLayer";
 import { formatNumber } from "../ui/format";
 
@@ -92,8 +93,7 @@ const PALETTE = {
   label: rgbCss(tokenRgb("map.label")),
   labelSelf: rgbCss(tokenRgb("map.labelSelf")),
   labelHalo: rgbCss(tokenRgb("map.labelHalo"), 0.9),
-  vignette: tokenRgb("map.vignette"),
-  sheetShadow: rgbCss(tokenRgb("map.vignette"), 0.6),
+  sheetShadow: rgbCss(tokenRgb("map.shadow"), 0.6),
   battleCapture: rgbCss(tokenRgb("map.battle.capture")),
   trade: rgbCss(tokenRgb("map.trade")),
   road: rgbCss(tokenRgb("map.road"), 0.5),
@@ -110,19 +110,19 @@ const FONT_FLAVOR = tokens.font.family.flavor;
 /** Taille des noms sur la carte, en pixels CSS : discrets comme sur un atlas. */
 const LABEL_MAX_PX = 17;
 const LABEL_MIN_PX = 9;
-/** Nefs marchandes : 3 tuiles de large, jamais moins de 14 px à l'écran. */
-const NEF_TILES = 3;
-const NEF_MIN_PX = 14;
-/** Caravanes : 2 tuiles de large, jamais moins de 9 px ; sous ce zoom, routes et chariots s'effacent. */
-const CARAVAN_TILES = 2;
-const CARAVAN_MIN_PX = 9;
+/** Nefs marchandes : 2,5 tuiles de large, jamais moins de 11 px à l'écran. */
+const NEF_TILES = 2.5;
+const NEF_MIN_PX = 11;
+/** Caravanes : 1,6 tuile, jamais moins de 7 px ; sous ce zoom, routes et caravanes s'effacent. */
+const CARAVAN_TILES = 1.6;
+const CARAVAN_MIN_PX = 7;
 const ROAD_MIN_ZOOM = 0.9;
 /** Zoom (px par tuile) à partir duquel on voit aussi les fronts des autres seigneurs. */
 const OTHER_FRONTS_MIN_ZOOM = 2.5;
 /** Les seigneurs signent dans la police de leur peuple, dès que la taille la rend lisible. */
 const RACE_LABEL_MIN_PX = 13;
-/** Largeur des bâtiments gravés : 4,2 tuiles, et jamais moins de 16 px à l'écran. */
-const BUILDING_TILES = 4.2;
+/** Icônes des bâtiments : 3,5 tuiles de diamètre, jamais moins de 16 px à l'écran. */
+const BUILDING_TILES = 3.5;
 const BUILDING_MIN_PX = 16;
 /** Opacité des ornements marins : un décor de cartographe, en retrait du jeu. */
 const ORNAMENT_ALPHA = 0.5;
@@ -133,7 +133,6 @@ const ORNAMENT_MIN_PX = 28;
 export class SceneRenderer {
   private readonly ctx: CanvasRenderingContext2D;
   private dpr = 1;
-  private vignette: CanvasGradient | null = null;
   /** Tracé des routes, refait seulement quand la liste des routes change. */
   private roads: { source: readonly RouteView[]; path: Path2D } | null = null;
 
@@ -154,20 +153,6 @@ export class SceneRenderer {
     this.canvas.width = Math.round(rect.width * this.dpr);
     this.canvas.height = Math.round(rect.height * this.dpr);
     this.camera.resize(rect.width, rect.height);
-    // Vignettage du papier : bords de l'écran assombris, calculé une fois par taille.
-    const w = this.canvas.width;
-    const h = this.canvas.height;
-    const [r, g, b] = PALETTE.vignette;
-    this.vignette = this.ctx.createRadialGradient(
-      w / 2,
-      h / 2,
-      Math.min(w, h) * 0.35,
-      w / 2,
-      h / 2,
-      Math.hypot(w, h) * 0.6,
-    );
-    this.vignette.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
-    this.vignette.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.38)`);
   }
 
   draw(state: SceneState): void {
@@ -214,12 +199,6 @@ export class SceneRenderer {
     this.drawFronts(state);
     this.drawGoldPops(state);
     this.drawBoatTroops(state);
-
-    if (this.vignette) {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = this.vignette;
-      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    }
   }
 
   /**
@@ -340,7 +319,7 @@ export class SceneRenderer {
     ctx.restore();
   }
 
-  /** Barge gravée : coque, mât et voile aux couleurs du propriétaire. Taille lisible à tout zoom. */
+  /** Barge : coque à la couleur du propriétaire, voile claire. Taille lisible à tout zoom. */
   private drawBoat(boat: BoatSprite, color: RGB): void {
     const ctx = this.ctx;
     const scale = Math.max(1.4, 9 / this.camera.zoom);
@@ -357,7 +336,7 @@ export class SceneRenderer {
     ctx.quadraticCurveTo(1, 0.9, 0, 0.9);
     ctx.quadraticCurveTo(-1, 0.9, -1.3, 0.2);
     ctx.closePath();
-    ctx.fillStyle = PALETTE.paper;
+    ctx.fillStyle = rgbCss(color);
     ctx.fill();
     ctx.stroke();
     // Mât.
@@ -370,7 +349,7 @@ export class SceneRenderer {
     ctx.moveTo(0.08, -1.3);
     ctx.quadraticCurveTo(0.9, -0.65, 0.08, 0.05);
     ctx.closePath();
-    ctx.fillStyle = rgbCss(color);
+    ctx.fillStyle = PALETTE.argent;
     ctx.fill();
     ctx.stroke();
     ctx.restore();
@@ -410,38 +389,42 @@ export class SceneRenderer {
     ctx.stroke();
   }
 
-  /** Bâtiment gravé, marqué d'un petit écu aux couleurs du propriétaire. */
+  /** Bâtiment : icône plate à la couleur du propriétaire (comme les structures d'OpenFront). */
   private drawBuilding(b: BuildingView, color: RGB): void {
-    const art = sprite(`buildings/${b.kind}`);
-    if (!art.ready) {
-      this.drawBuildingShape(b, color);
-      return;
-    }
-    const ctx = this.ctx;
     const x = (b.tile % this.territory.width) + 0.5;
     const y = Math.floor(b.tile / this.territory.width) + 0.5;
-    const w = Math.max(BUILDING_TILES, BUILDING_MIN_PX / this.camera.zoom);
-    const h = w * art.aspect;
-    ctx.save();
-    ctx.globalAlpha = b.done ? 1 : 0.45;
-    this.drawEngraving(art, x - w / 2, y - h * 0.6, w, h);
-    this.drawOwnerShield(x + w * 0.36, y + h * 0.28, w * 0.34, color);
-    ctx.restore();
+    const size = Math.max(BUILDING_TILES, BUILDING_MIN_PX / this.camera.zoom);
+    drawBuildingIcon(this.ctx, b.kind, x, y, size, color, b.done);
   }
 
-  /** Nef marchande gravée (la cog), retournée selon son cap, marquée de l'écu de son maître. */
+  /** Nef marchande : coque à l'encre, voile carrée à la couleur de son maître, selon son cap. */
   private drawNef(nef: NefSprite, color: RGB): void {
-    const art = sprite("sea/cog");
-    if (!art.ready) return;
     const ctx = this.ctx;
     const w = Math.max(NEF_TILES, NEF_MIN_PX / this.camera.zoom);
-    const h = w * art.aspect;
+    const u = w / 2;
     ctx.save();
     ctx.translate(nef.x, nef.y);
-    if (nef.heading < 0) ctx.scale(-1, 1);
-    this.drawEngraving(art, -w / 2, -h * 0.7, w, h);
+    ctx.scale(nef.heading < 0 ? -u : u, u);
+    ctx.lineWidth = 0.14;
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = PALETTE.ink;
+    // Coque.
+    ctx.beginPath();
+    ctx.moveTo(-1, 0.15);
+    ctx.lineTo(1, 0.15);
+    ctx.lineTo(0.7, 0.65);
+    ctx.lineTo(-0.75, 0.65);
+    ctx.closePath();
+    ctx.fillStyle = PALETTE.trade;
+    ctx.fill();
+    ctx.stroke();
+    // Voile carrée.
+    ctx.beginPath();
+    ctx.rect(-0.45, -0.95, 0.9, 0.95);
+    ctx.fillStyle = rgbCss(color);
+    ctx.fill();
+    ctx.stroke();
     ctx.restore();
-    this.drawOwnerShield(nef.x + w * 0.3, nef.y + h * 0.15, w * 0.28, color);
   }
 
   /** Routes des caravanes : trait fin continu à l'encre, sous les bâtiments. */
@@ -460,51 +443,27 @@ export class SceneRenderer {
     ctx.restore();
   }
 
-  /** Chariot bâché gravé : caisse et roues à l'encre, bâche aux couleurs de son maître. */
+  /** Caravane : petit carré arrondi à la couleur de son maître, cerné d'encre ; un point de loin. */
   private drawCaravan(c: CaravanSprite, color: RGB): void {
     const ctx = this.ctx;
     const zoom = this.camera.zoom;
+    ctx.fillStyle = rgbCss(color);
     if (zoom < ROAD_MIN_ZOOM) {
-      ctx.fillStyle = rgbCss(color);
       ctx.beginPath();
       ctx.arc(c.x, c.y, 1.5 / zoom, 0, Math.PI * 2);
       ctx.fill();
       return;
     }
     const w = Math.max(CARAVAN_TILES, CARAVAN_MIN_PX / zoom);
-    const h = w * 0.5;
-    const x = c.x - w / 2;
-    const top = c.y - h * 0.6;
-    ctx.save();
-    ctx.lineWidth = Math.max(0.12, w / 14);
-    ctx.strokeStyle = PALETTE.ink;
-    // Bâche en demi-tonneau.
     ctx.beginPath();
-    ctx.moveTo(x + w * 0.1, top + h * 0.45);
-    ctx.bezierCurveTo(
-      x + w * 0.1,
-      top - h * 0.35,
-      x + w * 0.9,
-      top - h * 0.35,
-      x + w * 0.9,
-      top + h * 0.45,
-    );
-    ctx.closePath();
-    ctx.fillStyle = rgbCss(color);
+    ctx.roundRect(c.x - w / 2, c.y - w / 2, w, w, w * 0.25);
     ctx.fill();
+    ctx.lineWidth = Math.max(0.1, w / 8);
+    ctx.strokeStyle = PALETTE.ink;
     ctx.stroke();
-    // Caisse.
-    ctx.fillStyle = PALETTE.paper;
-    ctx.fillRect(x, top + h * 0.45, w, h * 0.35);
-    ctx.strokeRect(x, top + h * 0.45, w, h * 0.35);
-    // Roues.
-    for (const wx of [x + w * 0.25, x + w * 0.75]) {
-      ctx.beginPath();
-      ctx.arc(wx, top + h * 0.85, h * 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-    ctx.restore();
+    // Marque claire ou sombre au centre : un ballot de marchandises.
+    ctx.fillStyle = rgbCss(glyphColorFor(color));
+    ctx.fillRect(c.x - w * 0.18, c.y - w * 0.18, w * 0.36, w * 0.36);
   }
 
   /** « +X or » qui monte au-dessus de vos ports (coordonnées écran). */
@@ -527,88 +486,6 @@ export class SceneRenderer {
       ctx.fillStyle = PALETTE.trade;
       ctx.fillText(text, sx, y);
     }
-    ctx.restore();
-  }
-
-  private drawEngraving(art: Sprite, x: number, y: number, w: number, h: number): void {
-    const level = art.pick(w * this.camera.zoom * this.dpr);
-    if (level) this.ctx.drawImage(level, x, y, w, h);
-  }
-
-  /** Écu du propriétaire en coordonnées monde : émail de sa couleur, bordure à l'encre. */
-  private drawOwnerShield(cx: number, cy: number, w: number, color: RGB): void {
-    const ctx = this.ctx;
-    const h = w * 1.2;
-    const x = cx - w / 2;
-    const y = cy - h / 2;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + w, y);
-    ctx.lineTo(x + w, y + h * 0.55);
-    ctx.quadraticCurveTo(x + w, y + h * 0.85, cx, y + h);
-    ctx.quadraticCurveTo(x, y + h * 0.85, x, y + h * 0.55);
-    ctx.closePath();
-    ctx.fillStyle = rgbCss(color);
-    ctx.fill();
-    ctx.lineWidth = w * 0.1;
-    ctx.strokeStyle = PALETTE.ink;
-    ctx.stroke();
-  }
-
-  /** Repli : bâtiment tracé à l'encre, avec un fanion aux couleurs du propriétaire. */
-  private drawBuildingShape(b: BuildingView, color: RGB): void {
-    const ctx = this.ctx;
-    const x = (b.tile % this.territory.width) + 0.5;
-    const y = Math.floor(b.tile / this.territory.width) + 0.5;
-    ctx.save();
-    ctx.globalAlpha = b.done ? 1 : 0.45;
-    ctx.translate(x, y);
-    ctx.lineWidth = 0.3;
-    ctx.strokeStyle = PALETTE.ink;
-    ctx.fillStyle = PALETTE.paper;
-    ctx.beginPath();
-    if (b.kind === BuildingKind.Bourg) {
-      // Symbole de ville des cartes anciennes : enceinte ronde et clocher.
-      ctx.arc(0, 0.4, 1.6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-0.6, 0.4);
-      ctx.lineTo(-0.6, -1.2);
-      ctx.lineTo(0, -2);
-      ctx.lineTo(0.6, -1.2);
-      ctx.lineTo(0.6, 0.4);
-    } else {
-      // Tour crénelée.
-      ctx.moveTo(-0.9, 1.6);
-      ctx.lineTo(-0.9, -1.1);
-      ctx.lineTo(-1.2, -1.1);
-      ctx.lineTo(-1.2, -1.8);
-      ctx.lineTo(-0.4, -1.8);
-      ctx.lineTo(-0.4, -1.4);
-      ctx.lineTo(0.4, -1.4);
-      ctx.lineTo(0.4, -1.8);
-      ctx.lineTo(1.2, -1.8);
-      ctx.lineTo(1.2, -1.1);
-      ctx.lineTo(0.9, -1.1);
-      ctx.lineTo(0.9, 1.6);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    // Fanion du propriétaire.
-    ctx.beginPath();
-    ctx.moveTo(0, -2);
-    ctx.lineTo(0, -3.6);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, -3.6);
-    ctx.lineTo(1.8, -3.25);
-    ctx.lineTo(0, -2.9);
-    ctx.closePath();
-    ctx.fillStyle = rgbCss(color);
-    ctx.fill();
-    ctx.stroke();
     ctx.restore();
   }
 

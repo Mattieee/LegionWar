@@ -13,6 +13,7 @@ import {
   type BoatView,
   type PlayerView,
 } from "@legionwar/engine";
+import { buildingIconUrl } from "../render/Icons";
 import { ContextMenu } from "./ContextMenu";
 import { DealCards } from "./DealCards";
 import { RadialMenu } from "./RadialMenu";
@@ -207,7 +208,7 @@ export class Hud {
                   kind,
                 ) => `<button type="button" class="hud__slot" data-kind="${kind}" aria-pressed="false" aria-label="${BUILDINGS[kind].name}">
                   <span class="hud__slot-key">${BUILD_KEYS[kind]}</span>
-                  <img class="hud__slot-icon" src="/art/buildings/${kind}.webp" alt="" width="256" height="256" />
+                  <img class="hud__slot-icon" src="${buildingIconUrl(kind)}" alt="" width="256" height="256" />
                   <span class="hud__slot-count lw-numeric" data-count="${kind}">0</span>
                 </button>`,
               )

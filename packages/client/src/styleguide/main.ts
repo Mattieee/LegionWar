@@ -10,7 +10,8 @@ import {
   token,
   tokens,
 } from "@legionwar/design-system";
-import { ALL_RACES, RACES } from "@legionwar/engine";
+import { ALL_RACES, BuildingKind, RACES } from "@legionwar/engine";
+import { buildingIconUrl } from "../render/Icons";
 import { escapeHtml } from "../ui/format";
 import { RadialMenu } from "../ui/RadialMenu";
 
@@ -139,8 +140,8 @@ ${section(
 ${section(
   "carte",
   "Carte",
-  `Couleurs du rendu Canvas. La mer porte des hachures côtières gravées ; les royaumes sont des lavis d'aquarelle (pigment multiplié sur le papier : ${Math.round(tokens.map.washInterior * 100)} % à l'intérieur, ${Math.round(tokens.map.washEdge * 100)} % près du bord) cernés d'une frontière à l'encre.`,
-  `<div class="sg-grid sg-grid--dense">${[...group("map.terrain."), "map.coastLine", "map.table", "map.mine", "map.buildValid", "map.buildInvalid", "map.towerRange", "map.labelSelf"].map((p) => swatch(p)).join("")}</div>`,
+  `Couleurs du rendu Canvas, en aplats comme OpenFront : terrain en teintes naturelles, mer bleue plus foncée au large ; les royaumes sont un aplat de leur couleur (${Math.round(tokens.map.territoryFill * 100)} %) cerné d'une frontière de leur couleur assombrie (${Math.round(tokens.map.borderShade * 100)} % d'encre). Bâtiments en icônes : forme à la couleur du maître, pictogramme clair ou sombre selon le contraste.`,
+  `<div class="sg-grid sg-grid--dense">${[...group("map.terrain."), "map.table", "map.mine", "map.buildValid", "map.buildInvalid", "map.towerRange", "map.labelSelf"].map((p) => swatch(p)).join("")}</div>`,
 )}
 ${section(
   "typographie",
@@ -342,7 +343,7 @@ document.querySelector<HTMLButtonElement>("#sg-radial")?.addEventListener("click
       {
         label: "Bâtir : Bourg",
         hint: "125 k or",
-        icon: { image: "/art/buildings/bourg.webp" },
+        icon: { image: buildingIconUrl(BuildingKind.Bourg) },
         tone: "build",
         disabled: true,
       },

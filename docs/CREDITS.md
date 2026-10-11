@@ -24,7 +24,7 @@ d'œuvre existante.
 
 Les originaux (PNG, non versionnés) sont dans `tools/assets/originals/` ; `npm run assets:optimize`
 en tire les WebP du jeu (`packages/client/public/art/`) et le grain de papier du design system.
-L'original `building-comptoir` sert d'icône au Marché (`buildings/marche.webp`).
+Depuis le 2026-10-11, les bâtiments sont dessinés en icônes vectorielles : les gravures `buildings/*.webp` ne sont plus affichées en jeu (gardées pour d'éventuels écrans d'illustration). La cog (`sea/cog.webp`) ne sert plus qu'au décor de haute mer.
 
 | Date       | Lot                                                                                                                                                             | Modèle              | Qualité / taille                      | Coût   | Cumul         |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | ------------------------------------- | ------ | ------------- |

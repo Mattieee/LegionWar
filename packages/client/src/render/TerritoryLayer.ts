@@ -2,9 +2,8 @@ import { tokenRgb, tokens } from "@legionwar/design-system";
 import { CHARNIER_BIT, MARK_BIT, OWNER_MASK, Race } from "@legionwar/engine";
 import { type RGB, terrainColor } from "./colors";
 
-const WASH_INTERIOR = tokens.map.washInterior;
-const WASH_EDGE = tokens.map.washEdge;
-const BORDER_INK = tokens.map.borderInk;
+const FILL = tokens.map.territoryFill;
+const BORDER_SHADE = tokens.map.borderShade;
 const INK = tokenRgb("map.ink");
 const ALLY = tokenRgb("map.ally");
 
@@ -14,7 +13,6 @@ const MARKS = {
   rampartStone: tokenRgb("map.marks.rampartStone"),
   grove: tokenRgb("map.marks.grove"),
   groveStrength: tokens.map.marks.groveStrength,
-  groveTree: tokenRgb("map.marks.groveTree"),
   ash: tokenRgb("map.marks.ash"),
   ashStrength: tokens.map.marks.ashStrength,
   bone: tokenRgb("map.marks.bone"),
@@ -34,10 +32,10 @@ function speckle(t: number): number {
 }
 
 /**
- * Image de la carte (1 pixel par tuile), rendue comme un atlas : papier, lavis d'aquarelle
- * plus soutenu près des bords (l'eau du pinceau « bave » vers la frontière), frontière à l'encre.
- * Mise à jour incrémentale : seules les tuiles modifiées et leur voisinage (rayon 2) sont
- * repeintes, puis seul le rectangle modifié est renvoyé au canvas.
+ * Image de la carte (1 pixel par tuile), en aplats comme OpenFront : terrain uni, royaumes
+ * teintés de leur couleur, frontière de leur couleur assombrie.
+ * Mise à jour incrémentale : seules les tuiles modifiées et leurs voisines sont repeintes, puis
+ * seul le rectangle modifié est renvoyé au canvas.
  */
 export class TerritoryLayer {
   readonly canvas: HTMLCanvasElement;
@@ -68,7 +66,7 @@ export class TerritoryLayer {
     this.image = ctx.createImageData(width, height);
     this.base = new Float32Array(width * height * 3);
     for (let t = 0; t < width * height; t++) {
-      const c = terrainColor(terrain[t] as number, t);
+      const c = terrainColor(terrain[t] as number);
       this.base[t * 3] = c[0];
       this.base[t * 3 + 1] = c[1];
       this.base[t * 3 + 2] = c[2];
@@ -90,11 +88,11 @@ export class TerritoryLayer {
       this.state[t] = packed[i + 1] as number;
       const x = t % w;
       const y = (t - x) / w;
-      // Rayon 2 : le lavis de bord dépend des tuiles à distance 2.
-      for (let dy = -2; dy <= 2; dy++) {
+      // Rayon 1 : une tuile devient frontière selon ses voisines directes.
+      for (let dy = -1; dy <= 1; dy++) {
         const ny = y + dy;
         if (ny < 0 || ny >= h) continue;
-        const span = 2 - Math.abs(dy);
+        const span = 1 - Math.abs(dy);
         for (let dx = -span; dx <= span; dx++) {
           const nx = x + dx;
           if (nx >= 0 && nx < w) this.touch(ny * w + nx, nx, ny);
@@ -157,23 +155,16 @@ export class TerritoryLayer {
     if (y > this.maxY) this.maxY = y;
   }
 
-  /** Vrai si une tuile à distance de Manhattan ≤ `radius` appartient à un autre propriétaire. */
-  private differsWithin(t: number, owner: number, radius: 1 | 2): boolean {
+  /** Vrai si une voisine directe appartient à un autre propriétaire (tuile de frontière). */
+  private isBorder(t: number, owner: number): boolean {
     const w = this.width;
     const x = t % w;
-    const y = (t - x) / w;
-    for (let dy = -radius; dy <= radius; dy++) {
-      const ny = y + dy;
-      if (ny < 0 || ny >= this.height) continue;
-      const span = radius - Math.abs(dy);
-      for (let dx = -span; dx <= span; dx++) {
-        const nx = x + dx;
-        if ((dx !== 0 || dy !== 0) && nx >= 0 && nx < w && this.owner(ny * w + nx) !== owner) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return (
+      (t >= w && this.owner(t - w) !== owner) ||
+      (t + w < w * this.height && this.owner(t + w) !== owner) ||
+      (x > 0 && this.owner(t - 1) !== owner) ||
+      (x < w - 1 && this.owner(t + 1) !== owner)
+    );
   }
 
   private paint(t: number): void {
@@ -200,35 +191,29 @@ export class TerritoryLayer {
         g = lerp(g, Math.min(255, (lum * MARKS.deadland[1]) / DEADLAND_LUM), k);
         bl = lerp(bl, Math.min(255, (lum * MARKS.deadland[2]) / DEADLAND_LUM), k);
       } else if (marked && race === Race.Sylvanor) {
-        // Bosquet : feuillage mêlé au papier, semé de petits arbres à l'encre.
+        // Bosquet : le terrain prend la teinte du feuillage.
         r = lerp(r, MARKS.grove[0], MARKS.groveStrength);
         g = lerp(g, MARKS.grove[1], MARKS.groveStrength);
         bl = lerp(bl, MARKS.grove[2], MARKS.groveStrength);
-        if (speckle(t) < 24) [r, g, bl] = mixRgb([r, g, bl], MARKS.groveTree, 0.55);
       }
-      if (this.differsWithin(t, owner, 1)) {
+      const border = mixRgb(c, INK, BORDER_SHADE);
+      if (this.isBorder(t, owner)) {
         if (this.allyAcross(t, owner)) {
           // Frontière alliée : liseré vert en pointillé, alterné avec l'encre du royaume.
           const x = t % this.width;
           const y = (t - x) / this.width;
-          out = (x + y) % 2 === 0 ? ALLY : mixRgb(c, INK, BORDER_INK);
+          out = (x + y) % 2 === 0 ? ALLY : border;
         } else if (marked && race === Race.Aldoria) {
           // Rempart : créneaux, encre et pierre en alternance, la pierre teintée du blason.
           const x = t % this.width;
           const y = (t - x) / this.width;
           out = (x + y) % 2 === 0 ? MARKS.rampartInk : mixRgb(MARKS.rampartStone, c, 0.3);
         } else {
-          // Frontière : trait d'encre teinté de la couleur du royaume.
-          out = mixRgb(c, INK, BORDER_INK);
+          out = border;
         }
       } else {
-        // Lavis : multiplication papier × pigment, plus dense près du bord.
-        const a = this.differsWithin(t, owner, 2) ? WASH_EDGE : WASH_INTERIOR;
-        out = [
-          r * (1 - a + (a * c[0]) / 255),
-          g * (1 - a + (a * c[1]) / 255),
-          bl * (1 - a + (a * c[2]) / 255),
-        ];
+        // Aplat : la couleur du royaume posée sur le terrain.
+        out = mixRgb([r, g, bl], c, FILL);
       }
       if ((state & CHARNIER_BIT) !== 0) out = this.charnier(t, out, race);
     }

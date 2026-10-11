@@ -254,24 +254,21 @@ export const tokens = {
   },
   map: {
     table: "{color.table.800}",
+    /** Terrain en aplats (comme OpenFront) : teintes naturelles sourdes, mer bleue. */
     terrain: {
-      plain: "#ece0bf",
-      coast: "#e4d4a8",
-      forest: "#d5d1a2",
-      hills: "#e2cf9c",
-      mountain: "#cbb58a",
-      peaks: "#f7f0dc",
-      sea: "#d6d2b0",
-      seaDeep: "#c9c6a2",
-      lake: "#cfcfae",
+      plain: "#b7c48a",
+      coast: "#d8cb98",
+      forest: "#8ea468",
+      hills: "#bdb07c",
+      mountain: "#bdb196",
+      peaks: "#e6e2d6",
+      sea: "#7aa3bf",
+      seaDeep: "#5a86a6",
+      lake: "#8db6cc",
     },
-    /** Hachures côtières gravées (encre posée sur la mer près des côtes). */
-    coastLine: "{color.ink.700}",
-    coastLineStrength: 0.32,
-    /** Lavis d'aquarelle des territoires : intérieur, bord qui « bave », frontière à l'encre. */
-    washInterior: 0.36,
-    washEdge: 0.58,
-    borderInk: 0.55,
+    /** Royaumes : aplat de leur couleur sur le terrain, frontière de leur couleur assombrie. */
+    territoryFill: 0.5,
+    borderShade: 0.35,
     ink: "{color.ink.800}",
     mine: "{color.sienna.500}",
     hover: "{color.ink.900}",
@@ -281,7 +278,8 @@ export const tokens = {
     label: "{color.ink.900}",
     labelSelf: "{color.garance.700}",
     labelHalo: "{color.paper.50}",
-    vignette: "{color.ink.900}",
+    /** Ombre portée de la carte sur la table. */
+    shadow: "{color.ink.900}",
     /** Batailles : ligne de front sur les tuiles qui changent de main, chiffre des fronts. */
     battle: {
       /** Ombre d'encre brève sur une tuile prise de force. */
