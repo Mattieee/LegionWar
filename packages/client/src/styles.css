@@ -229,6 +229,15 @@ body {
   list-style: none;
 }
 
+.hud__board-toggle {
+  margin-left: auto;
+}
+
+/* Replié : seule votre ligne reste (votre rang), avec l'horloge. */
+.hud__board--collapsed .hud__board-row:not(.hud__board-row--me) {
+  display: none;
+}
+
 .hud__board-row {
   display: grid;
   grid-template-columns: 1.6rem 1fr auto auto;
@@ -768,6 +777,17 @@ body {
     width: 200px;
   }
 
+  /* Petit écran : la fiche survolée occupe le haut à gauche, le classement le haut à droite. */
+  .hud__info {
+    left: var(--lw-space-2);
+    width: calc(100% - 200px - 3 * var(--lw-space-2));
+    transform: none;
+  }
+
+  .hud__deals {
+    top: calc(var(--lw-space-3) + 5.5rem);
+  }
+
   .hud__board-troops {
     display: none;
   }
@@ -779,5 +799,17 @@ body {
 
   .hud__pill--race {
     display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .hud__board {
+    top: var(--lw-space-2);
+    right: var(--lw-space-2);
+    width: min(170px, 44vw);
+  }
+
+  .hud__info {
+    width: calc(100% - min(170px, 44vw) - 3 * var(--lw-space-2));
   }
 }

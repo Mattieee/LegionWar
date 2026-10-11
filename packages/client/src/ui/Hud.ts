@@ -78,6 +78,8 @@ export type InfoModel =
 export type EventTone = "info" | "good" | "bad";
 
 const LOG_SIZE = 6;
+/** En dessous de cette largeur d'écran (px), le classement démarre replié. */
+const COMPACT_BOARD_MAX_WIDTH = 600;
 const ALERT_COOLDOWN_MS = 15_000;
 /** Le compte à rebours du Crépuscule s'affiche 2 min avant. */
 const TWILIGHT_WARNING_TICKS = 1200;
@@ -169,9 +171,10 @@ export class Hud {
     // son cartouche est une gravure à l'encre, illisible sur un fond sombre.
     this.el.innerHTML = `
       <div class="hud__skin" id="hud-skin">
-      <section class="lw-panel lw-panel--translucent lw-panel--compact hud__board" aria-label="Classement">
+      <section class="lw-panel lw-panel--translucent lw-panel--compact hud__board" id="hud-board-panel" aria-label="Classement">
         <div class="lw-panel__header">
           <h2 class="lw-title-3">Classement</h2>
+          <button class="lw-button lw-button--ghost lw-button--sm hud__board-toggle" id="hud-board-toggle" aria-controls="hud-board" aria-expanded="true" aria-label="Replier le classement">▴</button>
           <button class="lw-button lw-button--ghost lw-button--sm" id="hud-exit">Quitter</button>
         </div>
         <p class="hud__clock lw-text-sm" id="hud-clock" aria-live="off"></p>
@@ -243,6 +246,21 @@ export class Hud {
     // Le curseur rend le focus au relâchement : les raccourcis clavier restent actifs.
     ratioInput.addEventListener("change", () => ratioInput.blur());
     this.$("#hud-exit").addEventListener("click", () => callbacks.onExit());
+    // Classement repliable ; replié d'office sur un petit écran (il y prendrait un tiers de la vue).
+    const toggle = this.$<HTMLButtonElement>("#hud-board-toggle");
+    const setCollapsed = (collapsed: boolean): void => {
+      this.$("#hud-board-panel").classList.toggle("hud__board--collapsed", collapsed);
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+      toggle.setAttribute(
+        "aria-label",
+        collapsed ? "Déplier le classement" : "Replier le classement",
+      );
+      toggle.textContent = collapsed ? "▾" : "▴";
+    };
+    setCollapsed(window.matchMedia(`(max-width: ${COMPACT_BOARD_MAX_WIDTH}px)`).matches);
+    toggle.addEventListener("click", () =>
+      setCollapsed(toggle.getAttribute("aria-expanded") === "true"),
+    );
     this.$("#hud-modal-exit").addEventListener("click", () => callbacks.onExit());
     this.$("#hud-control").addEventListener("contextmenu", (e) => e.preventDefault());
     for (const button of this.el.querySelectorAll<HTMLButtonElement>(".hud__slot")) {
