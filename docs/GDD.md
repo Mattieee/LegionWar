@@ -418,7 +418,7 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 
 ## 16. Direction artistique et audio
 
-- **Carte :** plate et lisible comme OpenFront (depuis le 2026-10-11) : terrain en aplats par biome, mer bleue, territoires en aplat de la couleur héraldique du joueur, frontières de cette couleur assombrie, bâtiments en icônes simples (forme et pictogramme). Le décor de haute mer (rose des vents, monstres, navires gravés) reste.
+- **Carte :** plate et lisible comme OpenFront (depuis le 2026-10-11) : terrain en aplats par biome, mer bleue, territoires en aplat de l'émail du peuple du seigneur (azur, gueules, pourpre, sinople ; décliné en teinte et en luminance quand plusieurs seigneurs partagent un peuple), tribus en tons grisés, hachures héraldiques en option pour les daltoniens, frontières de cette couleur assombrie, bâtiments en icônes simples (forme et pictogramme). Le décor de haute mer (rose des vents, monstres, navires gravés) reste.
 - **Interface :** cartouches de cartographe en papier, capitales IM Fell et texte EB Garamond, voir [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). Emblèmes par race : ⚜ ⚒ ☠ ❦.
 - **Lisibilité :** le nom et les troupes sont affichés au cœur de chaque royaume, et les bâtiments ont une silhouette distincte (maison, tour crénelée).
 - **Audio** [Prévu] : musique orchestrale médiévale, cors de guerre au début d'une attaque, cloche à l'achèvement d'un bâtiment, sons de sort propres à chaque race.

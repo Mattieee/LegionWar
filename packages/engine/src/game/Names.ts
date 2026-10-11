@@ -38,10 +38,57 @@ const EPITHETS = [
   "du Givre",
 ];
 
-/** Nom de tribu sauvage, unique dans la partie tant que les combinaisons le permettent. */
+/**
+ * Familles de mots clés : deux mots d'une même famille ne se retrouvent jamais dans le peuple et
+ * dans le lieu (« Trolls des marais du Marais Pourpre », « … des Collines du Mont Gris »).
+ */
+const KEYWORD_FAMILIES: readonly (readonly string[])[] = [
+  ["marais", "marecage", "tourbiere"],
+  ["foret", "bois", "sylve", "ronce"],
+  ["colline", "mont", "montagne"],
+  ["val", "vallee", "gouffre"],
+  ["cendre", "brule", "brulee", "braise"],
+];
+
+/** Articles ignorés (les plus courts, « de », « du », « la », tombent sous la longueur minimale). */
+const ARTICLES = new Set(["des", "les", "aux", "une"]);
+
+/**
+ * Mots porteurs d'un nom, ramenés à une racine : minuscules, sans accents ni pluriel, sans les
+ * articles ; un mot d'une famille est remplacé par sa famille.
+ */
+function nameKeywords(text: string): Set<string> {
+  const out = new Set<string>();
+  const words = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z]+/);
+  for (const word of words) {
+    if (word.length < 3 || ARTICLES.has(word)) continue;
+    const root = word.replace(/(s|x)$/, "");
+    const family = KEYWORD_FAMILIES.findIndex((f) => f.includes(root));
+    out.add(family >= 0 ? `famille:${family}` : root);
+  }
+  return out;
+}
+
+/** Pour chaque peuple, les lieux qui ne répètent aucun de ses mots clés (calculé une fois). */
+const EPITHETS_FOR: ReadonlyMap<string, readonly string[]> = new Map(
+  PEOPLES.map((people) => {
+    const keys = nameKeywords(people);
+    return [people, EPITHETS.filter((e) => ![...nameKeywords(e)].some((k) => keys.has(k)))];
+  }),
+);
+
+/**
+ * Nom de tribu sauvage, unique dans la partie tant que les combinaisons le permettent. Le lieu est
+ * tiré parmi ceux qui ne répètent pas un mot du peuple : toujours deux tirages par essai.
+ */
 export function tribeName(rng: PseudoRandom, used: Set<string>): string {
   for (let i = 0; i < 50; i++) {
-    const name = `${rng.pick(PEOPLES)} ${rng.pick(EPITHETS)}`;
+    const people = rng.pick(PEOPLES);
+    const name = `${people} ${rng.pick(EPITHETS_FOR.get(people) ?? EPITHETS)}`;
     if (!used.has(name)) {
       used.add(name);
       return name;
