@@ -70,7 +70,11 @@ export type Intent =
   | { type: "allianceBreak"; ally: number }
   | { type: "donate"; target: number; resource: DonationResource; amount: number }
   /** Ferme (on) ou rouvre durablement ses ports à un royaume. */
-  | { type: "embargo"; target: number; on: boolean };
+  | { type: "embargo"; target: number; on: boolean }
+  /** Arme un navire de guerre au port le plus proche de `tile` (il patrouillera autour). */
+  | { type: "warship"; tile: number }
+  /** Déplace le point de patrouille d'un de ses navires de guerre. */
+  | { type: "moveWarship"; id: number; tile: number };
 
 export type DonationResource = "gold" | "troops";
 
@@ -115,6 +119,8 @@ export interface PlayerView {
   /** Ports possédés (chantiers compris) et or gagné par le commerce depuis le début. */
   ports: number;
   tradeGold: number;
+  /** Navires de guerre en mer. */
+  warships: number;
   /** Marchés possédés (chantiers compris) et or gagné par les caravanes depuis le début. */
   marches: number;
   caravanGold: number;
@@ -135,6 +141,24 @@ export interface NefView {
   id: number;
   owner: number;
   /** Tuile d'eau où elle se trouve. */
+  tile: number;
+}
+
+/** Navire de guerre en mer. */
+export interface WarshipView {
+  id: number;
+  owner: number;
+  tile: number;
+  hp: number;
+  maxHp: number;
+  /** Rentre au port se réparer. */
+  repairing: boolean;
+}
+
+/** Boulet en vol. */
+export interface ShellView {
+  id: number;
+  owner: number;
   tile: number;
 }
 
@@ -197,6 +221,12 @@ export type GameEvent =
   | { type: "spawnPhaseEnd" }
   | { type: "boatLaunched"; attacker: number; target: number; troops: number }
   | { type: "boatLanded"; attacker: number; target: number }
+  /** Une barge coulée par un navire de guerre, avec ses troupes. */
+  | { type: "boatSunk"; owner: number; by: number; troops: number }
+  | { type: "warshipLaunched"; player: number }
+  | { type: "warshipSunk"; owner: number; by: number }
+  /** Une nef capturée par un navire de guerre : `gold` va au capteur. */
+  | { type: "nefCaptured"; owner: number; by: number; gold: number }
   | { type: "boatRejected"; player: number; reason: BoatRejection }
   | { type: "spawnRejected"; player: number }
   | { type: "attackStarted"; attacker: number; target: number; troops: number }
@@ -228,7 +258,7 @@ export type GameEvent =
       player: number;
       tile: number;
       amount: number;
-      source: "nef" | "caravane";
+      source: "nef" | "caravane" | "piraterie";
     }
   /** `from` ferme ses ports à `to` (auto : après une attaque, pour 3 min) ou les rouvre. */
   | { type: "embargo"; from: number; to: number; on: boolean; auto: boolean };
@@ -251,7 +281,15 @@ export type DiplomacyRejection =
  */
 export type WinReason = "dominion" | "twilight" | "lastStanding" | "timeLimit";
 
-export type BuildRejection = "spawnPhase" | "notOwned" | "terrain" | "tooClose" | "gold" | "coast";
+export type BuildRejection =
+  | "spawnPhase"
+  | "notOwned"
+  | "terrain"
+  | "tooClose"
+  | "gold"
+  | "coast"
+  /** Navire de guerre : aucun port sur cette mer. */
+  | "port";
 
 export interface TickResult {
   tick: number;
@@ -273,6 +311,9 @@ export interface TickResult {
   routes: RouteView[] | null;
   /** Caravanes en route. */
   caravans: CaravanView[];
+  /** Navires de guerre et boulets en vol. */
+  warships: WarshipView[];
+  shells: ShellView[];
   events: GameEvent[];
   /** Hash d'état (tous les 10 ticks) pour détecter les désynchronisations, sinon null. */
   hash: number | null;

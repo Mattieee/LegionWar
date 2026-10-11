@@ -237,6 +237,47 @@ export const LANDING_CANDIDATES = 8;
 /** Tuiles de terre explorées au maximum pour trouver une plage depuis la tuile visée. */
 export const LANDING_SEARCH_LIMIT = 4000;
 
+// Navires de guerre (GDD §10) -------------------------------------------------------------------
+/**
+ * Comme OpenFront (warship), distances ramenées à nos cartes 9 à 15 fois plus petites : portée
+ * de tir 60 (130 chez OpenFront), patrouille à ±25 (±50), soin passif à 40 d'un port (150).
+ */
+export const WARSHIP_HP = 1000;
+/** Coût : 250 k × (navires possédés + 1), plafonné à 1 M (× coût de construction du peuple). */
+export const WARSHIP_COST_STEP = 250_000;
+export const WARSHIP_COST_MAX = 1_000_000;
+export const WARSHIP_TILES_PER_TICK = 1;
+export const WARSHIP_RANGE = 60;
+/** Un boulet toutes les 2 s ; après un tir sur une barge, pas de rechargement. */
+export const WARSHIP_FIRE_TICKS = 20;
+export const SHELL_TILES_PER_TICK = 3;
+export const SHELL_DAMAGE_MIN = 200;
+export const SHELL_DAMAGE_MAX = 300;
+export const WARSHIP_PATROL_RADIUS = 25;
+/** Sous 75 % de PV, le navire rentre se réparer au port. */
+export const WARSHIP_REPAIR_PERCENT = 75;
+export const WARSHIP_HEAL_RANGE = 40;
+export const WARSHIP_PASSIVE_HEAL = 1;
+export const WARSHIP_DOCK_HEAL = 5;
+/** Un navire capture une nef ennemie qui passe à cette distance (piraterie). */
+export const NEF_CAPTURE_RANGE = 5;
+/**
+ * Une nef est à l'abri sur ses premières et dernières cases (sortie et entrée de port) : un
+ * navire posté devant un port ennemi ne vide pas chaque cargaison au départ.
+ */
+export const NEF_SAFE_STEPS = 10;
+/** Ordres navals (armer, déplacer) traités par joueur et par tick, au plus. */
+export const MAX_NAVAL_ORDERS_PER_TICK = 3;
+/** Plafond de sécurité des navires de guerre, toutes parties confondues. */
+export const MAX_WARSHIPS = 200;
+
+/** Coût d'un navire de guerre selon le nombre déjà en mer (utilisable côté client). */
+export function warshipCost(owned: number, mods: RaceModifiers): number {
+  return Math.floor(
+    Math.min(WARSHIP_COST_MAX, WARSHIP_COST_STEP * (owned + 1)) * mods.buildCostMult,
+  );
+}
+
 export interface BuildingInfo {
   name: string;
   constructionTicks: number;

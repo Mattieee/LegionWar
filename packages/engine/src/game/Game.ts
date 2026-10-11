@@ -41,6 +41,9 @@ import {
   maxTroops,
   troopIncrease,
   winPercentAt,
+  MAX_NAVAL_ORDERS_PER_TICK,
+  MAX_WARSHIPS,
+  warshipCost,
 } from "../config/Rules";
 import { arrayHash, mixHash } from "../core/hash";
 import { PseudoRandom } from "../core/PseudoRandom";
@@ -53,6 +56,7 @@ import { BotBrain } from "./BotAI";
 import { Diplomacy } from "./Diplomacy";
 import { NationBrain } from "./NationAI";
 import { Caravans, type StopInfo } from "./Caravans";
+import { type SeaUnit, Warships } from "./Warships";
 import { type PortInfo, Trade } from "./Trade";
 import { type Boat, SeaScratch, findSeaRoute, landingCandidates } from "./Naval";
 import { nationName, tribeName } from "./Names";
@@ -134,6 +138,9 @@ export class Game {
   /** Commerce maritime : nefs, routes, embargos (GDD §9). */
   readonly trade: Trade;
   readonly caravans: Caravans;
+  readonly warships: Warships;
+  /** Ports achevés par maître, recalculés une fois par tick pour les navires de guerre. */
+  private portCache: { tick: number; byOwner: Map<number, number[]> } | null = null;
   /** Relations de chaque prétendant envers chaque joueur (−100 à +100). */
   private readonly relations = new Map<number, Int8Array>();
   private attacks: Attack[] = [];
@@ -141,6 +148,8 @@ export class Game {
   private nextBoatId = 1;
   /** Tentatives de lancement de barge pendant le tour courant, par joueur. */
   private readonly boatAttempts = new Map<number, number>();
+  /** Ordres navals de chaque joueur pendant ce tick (chacun coûte une recherche de trajet). */
+  private readonly navalOrders = new Map<number, number>();
   /** Tampon réutilisé par la recherche de route maritime (taille de la carte). */
   private seaScratch: SeaScratch | null = null;
   private readonly buildings = new Map<number, Building>();
@@ -273,6 +282,32 @@ export class Game {
       },
       seed,
     );
+    this.warships = new Warships(
+      {
+        map: this.map,
+        hostile: (a, b) =>
+          a !== b &&
+          (this.player(a)?.alive ?? false) &&
+          (this.player(b)?.alive ?? false) &&
+          !this.diplomacy.allied(a, b),
+        alive: (owner) => this.player(owner)?.alive ?? false,
+        portsOf: (owner) => this.portTilesOf(owner),
+        seaAt: (tile) => this.trade.seaAt(tile),
+        boats: () =>
+          this.boats
+            .filter((b) => !b.done)
+            .map((b) => ({ id: b.id, owner: b.owner.id, tile: b.path[b.step] as number })),
+        nefs: () => this.trade.nefTargets(),
+        sinkBoat: (id, by) => this.sinkBoat(id, by),
+        captureNef: (nef, by) => this.captureNef(nef, by),
+        warshipSunk: (owner, by) => {
+          if (this.player(owner)?.kind === "human" || this.player(by)?.kind === "human") {
+            this.events.push({ type: "warshipSunk", owner, by });
+          }
+        },
+      },
+      seed,
+    );
     this.groveOwners = this.players.filter((p): p is Player => p !== null && p.mods.grove);
     // Calculé une fois ici : à la volée, il provoquait un pic de ~20 ms en cours de partie.
     this.forestDist = this.groveOwners.length > 0 ? this.computeForestDist() : null;
@@ -294,6 +329,7 @@ export class Game {
   /** Applique les intents d'un tour, avance d'un tick et renvoie les changements. */
   executeTurn(turn: Turn): TickResult {
     this.boatAttempts.clear();
+    this.navalOrders.clear();
     for (const stamped of turn.intents) {
       const p = this.byClient.get(stamped.clientId);
       if (p) this.handleIntent(p, stamped.intent);
@@ -349,6 +385,14 @@ export class Game {
       case "allianceBreak":
         this.diplomacyResult(p, this.diplomacy.breakAlliance(p, intent.ally));
         break;
+      case "warship":
+        if (this.navalOrder(p)) this.launchWarship(p, intent.tile);
+        break;
+      case "moveWarship":
+        if (p.alive && !this.inSpawnPhase && this.navalOrder(p)) {
+          this.warships.move(p.id, intent.id, intent.tile);
+        }
+        break;
       case "embargo": {
         const target = this.player(intent.target);
         const invalid = !target || !target.alive || target.kind === "bot" || target === p;
@@ -395,6 +439,7 @@ export class Game {
       if (this.warTicks() === TWILIGHT_START_TICKS) this.events.push({ type: "twilight" });
       for (const brain of this.brains) brain.tick(this.ticks);
       this.updateBoats();
+      this.warships.tick();
       for (const attack of this.attacks) attack.tick();
       this.attacks = this.attacks.filter((a) => a.active);
       if (this.winner === null && this.ticks % WIN_CHECK_INTERVAL === 0) this.checkWin();
@@ -633,6 +678,76 @@ export class Game {
       }
     }
     this.boats = this.boats.filter((b) => !b.done);
+  }
+
+  /** Une barge touchée par un boulet coule avec toutes ses troupes. */
+  private sinkBoat(id: number, by: number): void {
+    const boat = this.boats.find((b) => b.id === id && !b.done);
+    if (!boat) return;
+    boat.done = true;
+    this.boats = this.boats.filter((b) => !b.done);
+    if (boat.owner.kind === "human" || this.player(by)?.kind === "human") {
+      this.events.push({ type: "boatSunk", owner: boat.owner.id, by, troops: boat.troops });
+    }
+  }
+
+  /** Piraterie : la nef disparaît, l'or de sa traversée va au capteur. */
+  private captureNef(nef: SeaUnit, by: number): void {
+    const gold = this.trade.captureNef(nef.id);
+    const captor = this.player(by);
+    if (gold <= 0 || !captor) return;
+    this.payTrade(by, gold);
+    this.events.push({
+      type: "tradeGold",
+      player: by,
+      tile: nef.tile,
+      amount: gold,
+      source: "piraterie",
+    });
+    if (captor.kind === "human" || this.player(nef.owner)?.kind === "human") {
+      this.events.push({ type: "nefCaptured", owner: nef.owner, by, gold });
+    }
+  }
+
+  /** Tuiles des ports achevés d'un maître (cache recalculé une fois par tick). */
+  private portTilesOf(owner: number): number[] {
+    if (this.portCache?.tick !== this.ticks) {
+      const byOwner = new Map<number, number[]>();
+      for (const port of this.portInfos()) {
+        const list = byOwner.get(port.owner);
+        if (list) list.push(port.tile);
+        else byOwner.set(port.owner, [port.tile]);
+      }
+      this.portCache = { tick: this.ticks, byOwner };
+    }
+    return this.portCache.byOwner.get(owner) ?? [];
+  }
+
+  /** Compte un ordre naval du joueur pour ce tick ; faux au-delà du plafond. */
+  private navalOrder(p: Player): boolean {
+    const orders = (this.navalOrders.get(p.id) ?? 0) + 1;
+    this.navalOrders.set(p.id, orders);
+    return orders <= MAX_NAVAL_ORDERS_PER_TICK;
+  }
+
+  /** Arme un navire de guerre au port le plus proche de la tuile visée (sur la même mer). */
+  launchWarship(p: Player, tile: number): boolean {
+    const reject = (reason: BuildRejection): false => {
+      if (p.kind === "human") this.events.push({ type: "buildingRejected", player: p.id, reason });
+      return false;
+    };
+    if (this.inSpawnPhase) return reject("spawnPhase");
+    if (!p.alive || !this.map.isValidRef(tile) || this.warships.total >= MAX_WARSHIPS) {
+      return false;
+    }
+    const port = this.warships.launchPort(p.id, tile);
+    if (port === null) return reject("port");
+    const cost = warshipCost(this.warships.countOf(p.id), p.mods);
+    if (p.gold < cost) return reject("gold");
+    if (this.warships.launch(p.id, port, tile) === null) return reject("port");
+    p.gold -= cost;
+    if (p.kind === "human") this.events.push({ type: "warshipLaunched", player: p.id });
+    return true;
   }
 
   /** Débarquement : la plage est prise, puis l'assaut continue depuis cette tête de pont. */
@@ -1211,6 +1326,7 @@ export class Game {
     h = this.diplomacy.hash(h);
     h = this.trade.hash(h);
     h = this.caravans.hash(h);
+    h = this.warships.hash(h);
     // L'horloge de guerre commande le Crépuscule et la limite de temps.
     h = mixHash(h, this.inSpawnPhase ? -1 : this.warStartTick);
     for (const [id, rel] of this.relations) {
@@ -1264,6 +1380,7 @@ export class Game {
         ports: p.buildingCounts[BuildingKind.Port],
         tradeGold: p.tradeGold,
         marches: p.buildingCounts[BuildingKind.Marche],
+        warships: this.warships.countOf(p.id),
         caravanGold: p.caravanGold,
         regard:
           p.kind === "nation"
@@ -1412,6 +1529,8 @@ export class Game {
       embargoes: this.trade.dirty ? this.trade.embargoViews() : null,
       routes: this.caravans.routesDirty ? this.caravans.routeViews() : null,
       caravans: this.caravans.caravanViews(),
+      warships: this.warships.views(),
+      shells: this.warships.shellViews(),
       events: this.events,
       hash: this.ticks % HASH_INTERVAL === 0 ? this.hash() : null,
       winner: this.winner,

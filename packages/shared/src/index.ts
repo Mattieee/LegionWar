@@ -100,6 +100,10 @@ export function isValidIntent(value: unknown): value is Intent {
       return isPlayerId(value.ally);
     case "embargo":
       return isPlayerId(value.target) && typeof value.on === "boolean";
+    case "warship":
+      return isNonNegativeInt(value.tile);
+    case "moveWarship":
+      return isNonNegativeInt(value.id) && isNonNegativeInt(value.tile);
     case "donate":
       return (
         isPlayerId(value.target) &&

@@ -6,6 +6,7 @@ import {
   TRADE_GOLD_MIN,
   TRADE_GOLD_PER_TILE,
   TRADE_INTERVAL,
+  NEF_SAFE_STEPS,
 } from "../config/Rules";
 import { mixHash } from "../core/hash";
 import { PseudoRandom } from "../core/PseudoRandom";
@@ -286,6 +287,28 @@ export class Trade {
   private canTradeFrom(owner: number): boolean {
     const p = this.game.player(owner);
     return p !== null && p.alive && p.kind !== "bot";
+  }
+
+  /** Mer d'une tuile : la sienne si c'est de l'océan, sinon celle qui la borde ; -1 si aucune. */
+  seaAt(tile: number): number {
+    const own = this.seas[tile] as number;
+    return own !== NO_SEA ? own : this.seaOf(tile);
+  }
+
+  /** Nefs au large, pour la piraterie (ordre de départ) ; à l'abri tant qu'elles sortent du port. */
+  nefTargets(): { id: number; owner: number; tile: number }[] {
+    return this.nefs
+      .filter((n) => n.step >= NEF_SAFE_STEPS && n.step < n.path.length - NEF_SAFE_STEPS)
+      .map((n) => ({ id: n.id, owner: n.owner, tile: n.path[n.step] as number }));
+  }
+
+  /** Capture d'une nef : elle disparaît ; renvoie l'or de sa traversée (0 si elle n'existe plus). */
+  captureNef(id: number): number {
+    const index = this.nefs.findIndex((n) => n.id === id);
+    if (index < 0) return 0;
+    const nef = this.nefs[index] as Nef;
+    this.nefs.splice(index, 1);
+    return tradeGold(nef.path.length);
   }
 
   /** Mer (composante connexe d'océan) bordant une tuile côtière ; NO_SEA s'il n'y en a pas. */

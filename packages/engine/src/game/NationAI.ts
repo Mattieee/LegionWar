@@ -1,4 +1,10 @@
-import { NATION_WEAKEST_EDGE, STRUCTURE_MIN_DIST, buildingCost, maxTroops } from "../config/Rules";
+import {
+  NATION_WEAKEST_EDGE,
+  STRUCTURE_MIN_DIST,
+  buildingCost,
+  maxTroops,
+  warshipCost,
+} from "../config/Rules";
 import { PseudoRandom } from "../core/PseudoRandom";
 import type { Game } from "./Game";
 import type { Player } from "./Player";
@@ -21,6 +27,9 @@ const PORT_SAMPLES = 40;
 const MAX_NATION_MARKETS = 2;
 const BOURGS_PER_MARKET = 2;
 const MARKET_MIN_SCORE = 2;
+/** Navire de guerre : un au plus, une fois le port achevé et 2 Bourgs bâtis. */
+const MAX_NATION_WARSHIPS = 1;
+const WARSHIP_MIN_BOURGS = 2;
 /**
  * Sites de Marché essayés autour de ses Bourgs et Ports : 8 directions à 14, 22 et 30 cases
  * (diagonales à ×0,7 près : 10, 15, 21).
@@ -265,6 +274,17 @@ export class NationBrain {
     ) {
       const tile = this.portSite();
       if (tile !== null && game.build(me, BuildingKind.Port, tile)) return;
+    }
+    // Navire de guerre : il garde les côtes (barges ennemies) et pille les nefs adverses.
+    if (
+      me.completedBourgs >= WARSHIP_MIN_BOURGS &&
+      game.warships.countOf(me.id) < MAX_NATION_WARSHIPS &&
+      me.gold >= warshipCost(game.warships.countOf(me.id), me.mods) * margin
+    ) {
+      const port = game
+        .buildingViews()
+        .find((b) => b.owner === me.id && b.kind === BuildingKind.Port && b.done);
+      if (port && game.launchWarship(me, port.tile)) return;
     }
     // Marché : un pour deux Bourgs achevés (2 au plus), là où il relie le plus d'étapes.
     const marketCap = Math.min(

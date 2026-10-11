@@ -10,4 +10,4 @@ export { MAP_DIMENSIONS, generateMap, type GeneratedMap, type MapSize } from "./
 export * from "./map/Terrain";
 
 /** Version du protocole de simulation : deux clients doivent l'avoir identique pour jouer ensemble. */
-export const ENGINE_VERSION = "0.4.1";
+export const ENGINE_VERSION = "0.5.0";
