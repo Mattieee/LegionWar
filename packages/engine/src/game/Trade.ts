@@ -10,6 +10,7 @@ import {
 import { mixHash } from "../core/hash";
 import { PseudoRandom } from "../core/PseudoRandom";
 import type { GameMap } from "../map/GameMap";
+import { OCEAN_BIT } from "../map/Terrain";
 import type { Game } from "./Game";
 import { SeaScratch } from "./Naval";
 import type { EmbargoView, NefView } from "./Types";
@@ -353,6 +354,8 @@ function labelSeas(map: GameMap): Int32Array {
 /**
  * Parcours en largeur sur l'océan depuis les eaux d'un port : le chemin le plus court vers les
  * eaux de chacun des ports visés (ordre des cibles, puis ordre du parcours : déterministe).
+ * Boucle chaude écrite à plat (pas de fonction de rappel, test de cible par tableau typé) :
+ * elle parcourt parfois tout un océan de grande carte quand un port neuf apparaît.
  */
 function searchSea(
   map: GameMap,
@@ -362,21 +365,25 @@ function searchSea(
 ): Map<number, Int32Array> {
   const found = new Map<number, Int32Array>();
   if (targets.length === 0) return found;
-  // Eaux de chaque cible : la première atteinte donne sa route.
+  const mark = scratch.next();
+  const { prev, stamp, queue, goal } = scratch;
+  const terrain = map.terrain;
+  const w = map.width;
+  const size = map.size;
+  // Eaux de chaque cible, marquées dans `goal` ; la première atteinte donne sa route.
   const goalOf = new Map<number, number[]>();
   for (const target of targets) {
     forEachNeighbor(map, target.tile, (n) => {
-      if (!map.isOcean(n)) return;
+      if (((terrain[n] as number) & OCEAN_BIT) === 0) return;
+      goal[n] = mark;
       const list = goalOf.get(n);
       if (list) list.push(target.id);
       else goalOf.set(n, [target.id]);
     });
   }
-  const mark = scratch.next();
-  const { prev, stamp, queue } = scratch;
   let tail = 0;
   forEachNeighbor(map, from, (n) => {
-    if (map.isOcean(n) && stamp[n] !== mark) {
+    if (((terrain[n] as number) & OCEAN_BIT) !== 0 && stamp[n] !== mark) {
       stamp[n] = mark;
       prev[n] = -1;
       queue[tail++] = n;
@@ -384,22 +391,40 @@ function searchSea(
   });
   for (let head = 0; head < tail && found.size < targets.length; head++) {
     const t = queue[head] as number;
-    const reached = goalOf.get(t);
-    if (reached) {
-      for (const id of reached) {
+    if (goal[t] === mark) {
+      for (const id of goalOf.get(t) as number[]) {
         if (found.has(id)) continue;
         const path: number[] = [];
         for (let cur = t; cur >= 0; cur = prev[cur] as number) path.push(cur);
         found.set(id, Int32Array.from(path.reverse()));
       }
     }
-    forEachNeighbor(map, t, (n) => {
-      if (stamp[n] !== mark && map.isOcean(n)) {
-        stamp[n] = mark;
-        prev[n] = t;
-        queue[tail++] = n;
-      }
-    });
+    // Voisins dans l'ordre haut, bas, gauche, droite (comme forEachNeighbor).
+    const x = t % w;
+    let n = t - w;
+    if (t >= w && stamp[n] !== mark && ((terrain[n] as number) & OCEAN_BIT) !== 0) {
+      stamp[n] = mark;
+      prev[n] = t;
+      queue[tail++] = n;
+    }
+    n = t + w;
+    if (n < size && stamp[n] !== mark && ((terrain[n] as number) & OCEAN_BIT) !== 0) {
+      stamp[n] = mark;
+      prev[n] = t;
+      queue[tail++] = n;
+    }
+    n = t - 1;
+    if (x > 0 && stamp[n] !== mark && ((terrain[n] as number) & OCEAN_BIT) !== 0) {
+      stamp[n] = mark;
+      prev[n] = t;
+      queue[tail++] = n;
+    }
+    n = t + 1;
+    if (x < w - 1 && stamp[n] !== mark && ((terrain[n] as number) & OCEAN_BIT) !== 0) {
+      stamp[n] = mark;
+      prev[n] = t;
+      queue[tail++] = n;
+    }
   }
   return found;
 }

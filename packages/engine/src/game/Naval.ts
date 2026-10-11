@@ -25,12 +25,18 @@ export class SeaScratch {
   readonly prev: Int32Array;
   readonly stamp: Uint32Array;
   readonly queue: Int32Array;
+  /**
+   * Tuiles cibles de la recherche en cours, marquées avec le marqueur de `stamp` : appeler
+   * `next()` avant de les poser (sinon une marque d'avant serait prise pour une cible).
+   */
+  readonly goal: Uint32Array;
   private generation = 0;
 
   constructor(size: number) {
     this.prev = new Int32Array(size);
     this.stamp = new Uint32Array(size);
     this.queue = new Int32Array(size);
+    this.goal = new Uint32Array(size);
   }
 
   /** Commence une nouvelle recherche ; renvoie le marqueur des tuiles visitées. */
@@ -38,6 +44,7 @@ export class SeaScratch {
     this.generation++;
     if (this.generation === 0xffffffff) {
       this.stamp.fill(0);
+      this.goal.fill(0);
       this.generation = 1;
     }
     return this.generation;
