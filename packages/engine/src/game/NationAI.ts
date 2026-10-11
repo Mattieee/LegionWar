@@ -1,11 +1,17 @@
 import {
+  FRONT_FIRST_EDGE,
+  NATION_TEMPERS,
   NATION_WEAKEST_EDGE,
+  NEUTRAL_TEMPER,
+  TEMPER_TRIBE_WEIGHT,
   STRUCTURE_MIN_DIST,
   buildingCost,
   maxTroops,
   warshipCost,
+  type NationTemper,
 } from "../config/Rules";
 import { PseudoRandom } from "../core/PseudoRandom";
+import { TerrainKind } from "../map/Terrain";
 import type { Game } from "./Game";
 import type { Player } from "./Player";
 import { BuildingKind } from "./Types";
@@ -52,15 +58,14 @@ const MARKET_OFFSETS: readonly (readonly [number, number])[] = (
     [-d, -d],
   ] as const;
 });
-/** Part des troupes engagées contre lui au-delà de laquelle il bâtit une tour. */
-const TOWER_THRESHOLD = 0.35;
 
 /**
  * IA d'un prétendant (GDD §13, comme les « Nations » d'OpenFront), version 1 : à chaque cycle,
  * il répond aux demandes d'alliance, trahit éventuellement un allié faible, propose une
  * alliance, construit, puis attaque selon une liste de stratégies. Son niveau (Écuyer à
  * Empereur) règle ses troupes, son rythme, sa prudence et sa propension à trahir ; son peuple
- * ne change pas son caractère (GDD §13.3).
+ * règle son tempérament (`NATION_TEMPERS` : seuils d'attaque, Tours, Bourgs, front de
+ * prédilection), jamais ses modificateurs (GDD §13.3).
  */
 export class NationBrain {
   private readonly rng: PseudoRandom;
@@ -69,6 +74,7 @@ export class NationBrain {
   private readonly triggerRatio: number;
   private readonly reserveRatio: number;
   private readonly prudence: number;
+  private readonly temper: NationTemper;
   /** Propriétaires voisins, calculés une fois par cycle (le territoire ne bouge pas pendant le cycle). */
   private neighbors: Set<number> = new Set();
 
@@ -81,10 +87,11 @@ export class NationBrain {
     const level = player.level;
     this.interval = this.rng.nextInt(level.interval[0], level.interval[1]);
     this.offset = this.rng.nextInt(0, this.interval);
-    // Pas de nuance de peuple : mesurées, elles portaient Kharag à 38–41 % des parties menées.
-    this.triggerRatio = this.rng.nextInt(45, 55) / 100;
-    this.reserveRatio = this.rng.nextInt(25, 35) / 100;
-    this.prudence = level.prudence;
+    const temper = player.race === null ? NEUTRAL_TEMPER : NATION_TEMPERS[player.race];
+    this.temper = temper;
+    this.triggerRatio = this.rng.nextInt(temper.trigger[0], temper.trigger[1]) / 100;
+    this.reserveRatio = this.rng.nextInt(temper.reserve[0], temper.reserve[1]) / 100;
+    this.prudence = level.prudence * temper.prudenceMult;
   }
 
   tick(ticks: number): void {
@@ -257,7 +264,10 @@ export class NationBrain {
           worstId = id;
         }
       }
-      if (worst > me.troops * TOWER_THRESHOLD && me.gold >= buildingCost(BuildingKind.Tour, me)) {
+      if (
+        worst > me.troops * this.temper.towerThreshold &&
+        me.gold >= buildingCost(BuildingKind.Tour, me)
+      ) {
         const front = this.frontTile(worstId);
         if (front !== null) {
           const tile = this.inward(front, TOWER_DEPTH);
@@ -266,6 +276,7 @@ export class NationBrain {
       }
     }
     const margin = level.prudence > 0 ? 1 : 1.5;
+    if (this.temper.bourgFirst && this.buildBourg(margin)) return;
     // Port : s'il est côtier, au plus min(3, 1 + Bourgs/2) ports (GDD §9).
     const portCap = Math.min(MAX_NATION_PORTS, 1 + Math.floor(me.completedBourgs / 2));
     if (
@@ -298,12 +309,17 @@ export class NationBrain {
       const tile = this.marketSite();
       if (tile !== null && game.build(me, BuildingKind.Marche, tile)) return;
     }
-    // Bourg : dès que l'or le permet (avec une marge pour les petits niveaux), au cœur du royaume.
-    if (me.gold >= buildingCost(BuildingKind.Bourg, me) * margin) {
-      for (const tile of this.innerTiles()) {
-        if (game.build(me, BuildingKind.Bourg, tile)) return;
-      }
+    if (!this.temper.bourgFirst) this.buildBourg(margin);
+  }
+
+  /** Bourg : dès que l'or le permet (avec une marge pour les petits niveaux), au cœur du royaume. */
+  private buildBourg(margin: number): boolean {
+    const me = this.player;
+    if (me.gold < buildingCost(BuildingKind.Bourg, me) * margin) return false;
+    for (const tile of this.innerTiles()) {
+      if (this.game.build(me, BuildingKind.Bourg, tile)) return true;
     }
+    return false;
   }
 
   /**
@@ -544,8 +560,26 @@ export class NationBrain {
     const parjure = around.find((p) => game.isParjure(p));
     if (parjure) return { player: parjure, byBoat: false };
 
-    // 6. La tribu voisine la moins dense.
-    const density = (p: Player): number => p.troops / Math.max(1, p.tiles);
+    // 5. Son front de prédilection, s'il en couvre assez et qu'il domine nettement ce voisin.
+    const shares = this.frontShares();
+    const first = this.temper.frontFirst;
+    if (first > 0) {
+      let best: Player | null = null;
+      let bestShare = 0;
+      for (const p of around) {
+        const share = shares.get(p.id) ?? 0;
+        if (share >= first && share > bestShare && me.troops >= p.troops * FRONT_FIRST_EDGE) {
+          best = p;
+          bestShare = share;
+        }
+      }
+      if (best) return { player: best, byBoat: false };
+    }
+
+    // 6. La tribu voisine la moins dense ; son front de prédilection la fait paraître moins
+    // dense (6 et 8).
+    const density = (p: Player): number =>
+      p.troops / Math.max(1, p.tiles) / (1 + this.temper.frontBias * (shares.get(p.id) ?? 0));
     const tribes = around.filter((p) => p.kind === "bot").sort((a, b) => density(a) - density(b));
     if (tribes[0]) return { player: tribes[0], byBoat: false };
 
@@ -576,6 +610,53 @@ export class NationBrain {
         return { player: prey, byBoat: true };
     }
     return null;
+  }
+
+  /**
+   * Part du front commun avec chaque voisin (royaume ou tribu) qui répond à son front de
+   * prédilection : sans charnier (pillage, une tribu comptant à moitié comme son butin),
+   * charnier (bataille ; un voisin déjà en guerre contre un tiers compte en entier) ou forêt.
+   * Vide s'il n'en a pas. Parcours des tuiles frontière dans l'ordre d'insertion : déterministe.
+   */
+  private frontShares(): Map<number, number> {
+    const shares = new Map<number, number>();
+    const temper = this.temper;
+    if (temper.front === "none") return shares;
+    const game = this.game;
+    const map = game.map;
+    const me = this.player.id;
+    const seen = new Map<number, number>();
+    for (const t of this.player.border) {
+      for (const n of map.neighbors(t)) {
+        const owner = map.owner(n);
+        if (owner === me || owner === 0 || !map.isPassableLand(n)) continue;
+        seen.set(owner, (seen.get(owner) ?? 0) + 1);
+        const hit =
+          temper.front === "pillage"
+            ? !map.hasCharnier(n)
+            : temper.front === "battle"
+              ? map.hasCharnier(n)
+              : map.kind(n) === TerrainKind.Forest;
+        if (hit) shares.set(owner, (shares.get(owner) ?? 0) + 1);
+      }
+    }
+    for (const [owner, hits] of shares) {
+      const loot = temper.front === "pillage" && game.player(owner)?.kind === "bot";
+      shares.set(owner, (hits / (seen.get(owner) as number)) * (loot ? TEMPER_TRIBE_WEIGHT : 1));
+    }
+    if (temper.front === "battle") {
+      for (const owner of seen.keys()) {
+        const p = game.player(owner);
+        if (!p) continue;
+        for (const attacker of game.incomingAttacks(p).keys()) {
+          if (attacker !== me) {
+            shares.set(owner, 1);
+            break;
+          }
+        }
+      }
+    }
+    return shares;
   }
 
   /** Une tuile de terre libre outre-mer, tirée au hasard (null si on n'en trouve pas). */

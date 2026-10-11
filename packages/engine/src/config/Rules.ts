@@ -1,5 +1,5 @@
 import { clamp, pow } from "../core/DetMath";
-import type { RaceModifiers } from "./Races";
+import { Race, type RaceModifiers } from "./Races";
 import type { Player } from "../game/Player";
 import { BuildingKind, Difficulty } from "../game/Types";
 import { TerrainKind } from "../map/Terrain";
@@ -133,6 +133,87 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyLevel> = {
  * les siennes (l'ancien seuil, 0,8 × troupes engageables, figeait les fronts entre égaux).
  */
 export const NATION_WEAKEST_EDGE = 1.25;
+
+// Tempérament des prétendants selon leur peuple (GDD §13.3) -------------------------------------
+/**
+ * Comportement d'un prétendant selon son peuple : il règle ses décisions, jamais ses
+ * modificateurs (Races.ts). Les seuils sont en pour cent du plafond de troupes, tirés dans
+ * [min, max[ à la création du prétendant.
+ */
+export interface NationTemper {
+  /** Troupes à partir desquelles il attaque une tribu ou un royaume. */
+  readonly trigger: readonly [number, number];
+  /** Troupes qu'il garde à la maison quand il attaque. */
+  readonly reserve: readonly [number, number];
+  /** Multiplicateur de la prudence de son niveau (réserve face au plus fort voisin). */
+  readonly prudenceMult: number;
+  /** Part de ses troupes engagée contre lui au-delà de laquelle il bâtit une Tour. */
+  readonly towerThreshold: number;
+  /** Bâtit son Bourg avant un Port ou un Marché. */
+  readonly bourgFirst: boolean;
+  /**
+   * Front de prédilection : aucun ; terres à piller (sans charnier, une tribu comptant à moitié
+   * comme son butin) ; bataille (charniers, ou voisin déjà en guerre contre un tiers) ; forêt.
+   */
+  readonly front: "none" | "pillage" | "battle" | "forest";
+  /**
+   * Poids du front de prédilection dans le choix entre deux voisins : un voisin dont tout le
+   * front y répond paraît (1 + poids) fois moins dense (0 = aucun effet).
+   */
+  readonly frontBias: number;
+  /**
+   * Part du front de prédilection à partir de laquelle il attaque ce voisin avant les tribus,
+   * s'il a au moins FRONT_FIRST_EDGE fois ses troupes (0 = jamais).
+   */
+  readonly frontFirst: number;
+}
+
+/** Rapport de troupes exigé pour fondre sur son front de prédilection avant les tribus. */
+export const FRONT_FIRST_EDGE = 1.5;
+/** Kharag (front des terres intactes) : une tribu ne compte qu'à moitié, faute de butin. */
+export const TEMPER_TRIBE_WEIGHT = 0.5;
+
+/** Tempérament neutre : celui des prétendants sans peuple et le point de départ des autres. */
+export const NEUTRAL_TEMPER: NationTemper = {
+  trigger: [45, 55],
+  reserve: [25, 35],
+  prudenceMult: 1,
+  towerThreshold: 0.35,
+  bourgFirst: false,
+  front: "none",
+  frontBias: 0,
+  frontFirst: 0,
+};
+
+/**
+ * Tempéraments par peuple, communs à tous les niveaux. Mesurés sur 1 200 parties (4 Ducs,
+ * 60 tribus, carte moyenne, sièges tournants) : voir GDD §13.3.
+ */
+export const NATION_TEMPERS: Readonly<Record<Race, NationTemper>> = {
+  // Bâtisseur : attaque plus tard, garde une forte garnison, Tour dès 25 % d'attaque entrante.
+  [Race.Aldoria]: {
+    ...NEUTRAL_TEMPER,
+    trigger: [55, 65],
+    reserve: [35, 45],
+    prudenceMult: 1.25,
+    towerThreshold: 0.25,
+    bourgFirst: true,
+  },
+  // Conquérant : attaque plus tôt, garde peu, Tour seulement à 50 % ; fond sur les terres intactes.
+  [Race.Kharag]: {
+    ...NEUTRAL_TEMPER,
+    trigger: [40, 50],
+    reserve: [20, 30],
+    towerThreshold: 0.5,
+    front: "pillage",
+    frontBias: 1,
+    frontFirst: 0.75,
+  },
+  // Charognard : fond sur un voisin déjà en guerre ou couvert de charniers.
+  [Race.Morvane]: { ...NEUTRAL_TEMPER, front: "battle", frontBias: 1, frontFirst: 0.5 },
+  // Gardien des bois : fond sur un voisin au front boisé.
+  [Race.Sylvanor]: { ...NEUTRAL_TEMPER, front: "forest", frontBias: 1, frontFirst: 0.4 },
+};
 
 /** Prétendants par défaut selon la taille de carte. */
 export const DEFAULT_NATIONS = { small: 3, medium: 5, large: 8 } as const;
