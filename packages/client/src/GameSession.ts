@@ -16,6 +16,7 @@ import {
   TWILIGHT_STEP_PERCENT,
   CARAVAN_RULES,
   PORT_SNAP_RADIUS,
+  GOLD_PER_MINE_PER_TICK,
   modifiersOf,
   type AttackView,
   type BoatRejection,
@@ -105,6 +106,11 @@ function dispositionTone(relation: number): "hostile" | "wary" | "neutral" | "fr
   if (relation < 50) return "neutral";
   return "friendly";
 }
+
+/** Tuiles cadrées (côté le plus court de l'écran) quand la caméra se pose sur votre royaume. */
+const START_VIEW_TILES = 90;
+/** Le survol d'une mine réagit dans ce rayon (tuiles), comme son icône. */
+const MINE_HOVER_RADIUS = 1.5;
 
 /** Durée d'un « +X or » au-dessus d'un port (ms). */
 const GOLD_POP_MS = 2000;
@@ -993,6 +999,20 @@ export class GameSession {
       .map((b) => b.tile);
   }
 
+  /** Mine d'or sous le curseur : l'icône couvre plusieurs tuiles autour de la mine. */
+  private mineNear(t: number): number | null {
+    const map = this.map;
+    if (!map) return null;
+    const x = t % map.width;
+    const y = Math.floor(t / map.width);
+    for (const mine of this.mines) {
+      const dx = (mine % map.width) - x;
+      const dy = Math.floor(mine / map.width) - y;
+      if (dx * dx + dy * dy <= MINE_HOVER_RADIUS * MINE_HOVER_RADIUS) return mine;
+    }
+    return null;
+  }
+
   /** Vrai si une côte de mer est assez proche pour y caler un port. */
   private nearOcean(tile: number): boolean {
     const map = this.map;
@@ -1042,7 +1062,13 @@ export class GameSession {
     if (t === null || !this.map || !this.territory || !this.map.isLand(t)) return null;
     const owner = this.territory.owner(t);
     const details = [TERRAIN_NAMES[this.map.kind(t)]];
-    if (this.mines.includes(t)) details.push("Mine d'or");
+    const mine = this.mineNear(t);
+    if (mine !== null) {
+      const holder = this.players.get(this.territory.owner(mine));
+      const perSecond =
+        (GOLD_PER_MINE_PER_TICK * modifiersOf(holder?.race ?? null).goldMult * 1000) / TICK_MS;
+      details.push(`Mine d'or : +${formatNumber(perSecond)} or/s pour son maître`);
+    }
     // L'état des tuiles (marques, charniers) vit dans la couche de territoire, pas dans this.map.
     const state = this.territory.state[t] as number;
     const player = owner === 0 ? null : this.players.get(owner);
@@ -1177,7 +1203,9 @@ export class GameSession {
       this.lastLabelTime = time;
     }
     if (!this.centeredOnSpawn && !this.inSpawnPhase && this.myId !== null) {
-      this.centeredOnSpawn = this.centerOnMe(8);
+      // Après le déploiement, la caméra cadre votre royaume et ses voisins (~90 tuiles).
+      const fit = Math.min(this.camera.viewWidth, this.camera.viewHeight) / START_VIEW_TILES;
+      this.centeredOnSpawn = this.centerOnMe(Math.max(4, Math.min(10, fit)));
     }
     const me = this.me();
     const width = this.map.width;

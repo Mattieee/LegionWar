@@ -415,7 +415,7 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 
 ## 16. Direction artistique et audio
 
-- **Carte :** plate et lisible comme OpenFront (depuis le 2026-10-11) : terrain en aplats par biome, mer bleue, territoires en aplat de l'émail du peuple du seigneur (azur, gueules, pourpre, sinople ; décliné en teinte et en luminance quand plusieurs seigneurs partagent un peuple), tribus en tons grisés, hachures héraldiques en option pour les daltoniens, frontières de cette couleur assombrie, bâtiments en icônes simples (forme et pictogramme). Le décor de haute mer (rose des vents, monstres, navires gravés) reste.
+- **Carte :** plate et lisible comme OpenFront (depuis le 2026-10-11) : terrain en aplats par biome, mer bleue, territoires en aplat de l'émail du peuple du seigneur (azur, gueules, pourpre, sinople ; décliné en teinte et en luminance quand plusieurs seigneurs partagent un peuple), tribus en tons grisés, hachures héraldiques en option pour les daltoniens, frontières de cette couleur assombrie et adoucies en diagonale (Scale2x), mines d'or en icône de pioche, bâtiments en icônes simples (forme et pictogramme). Le décor de haute mer (rose des vents, monstres, navires gravés) reste.
 - **Interface :** cartouches de cartographe en papier, capitales IM Fell et texte EB Garamond, voir [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). Emblèmes par race : ⚜ ⚒ ☠ ❦.
 - **Lisibilité :** le nom et les troupes sont affichés au cœur de chaque royaume, et les bâtiments ont une silhouette distincte (maison, tour crénelée).
 - **Audio** [Prévu] : musique orchestrale médiévale, cors de guerre au début d'une attaque, cloche à l'achèvement d'un bâtiment, sons de sort propres à chaque race.
@@ -437,6 +437,8 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 | Menu radial                | Clic droit (comme OpenFront) : au centre, l'action principale (attaquer, s'étendre, donner des troupes à un allié) ; autour : alliance, barge, renouveler, rompre (avec confirmation), don d'or ; sur ses terres : bâtir                                                        |
 | Fiche du royaume           | Survol : en haut de l'écran, or, troupes (à la maison et engagées), peuple, disposition d'un prétendant, alliance et temps restant, Parjure, Couronne, bâtiments, terrain ; raccourcis Alliance [K], Rompre [L], Barge [B]                                                      |
 | Panneau du bas             | Régénération (+X/s), troupes à la maison et engagées sur le plafond, or (+X lors d'un gain ponctuel), ratio, compteur du peuple, bâtiments [1] à [4] avec coût en infobulle, ligne du commerce (ports, nefs, marchés, caravanes, or par minute) ; masqué pendant le déploiement |
+| Classement                 | Repliable (bouton ▴ / ▾) ; replié d'office sous 600 px de large, il ne garde que votre rang et l'horloge. Sur petit écran, la fiche survolée passe en haut à gauche, sans chevaucher le classement                                                                              |
+| Caméra au départ           | Après le déploiement, elle cadre votre royaume et ses voisins (environ 90 tuiles sur le côté le plus court de l'écran)                                                                                                                                                          |
 
 Le tactile est géré via les Pointer Events : un appui attaque ou se déploie, un glissement déplace la caméra.
 

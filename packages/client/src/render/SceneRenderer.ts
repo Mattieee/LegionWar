@@ -11,7 +11,7 @@ import {
 import type { BattleFx } from "./BattleFx";
 import type { Camera } from "./Camera";
 import { TABLE, type RGB, rgbCss } from "./colors";
-import { drawBuildingIcon, glyphColorFor } from "./Icons";
+import { drawBuildingIcon, drawMineIcon, glyphColorFor } from "./Icons";
 import type { Label } from "./Labels";
 import type { SeaOrnament } from "./SeaDecor";
 import { sprite } from "./Sprites";
@@ -92,7 +92,7 @@ const PALETTE = {
   towerRange: rgbCss(tokenRgb("map.towerRange"), 0.85),
   label: rgbCss(tokenRgb("map.label")),
   labelSelf: rgbCss(tokenRgb("map.labelSelf")),
-  labelHalo: rgbCss(tokenRgb("map.labelHalo"), 0.9),
+  labelHalo: rgbCss(tokenRgb("map.labelHalo")),
   sheetShadow: rgbCss(tokenRgb("map.shadow"), 0.6),
   battleCapture: rgbCss(tokenRgb("map.battle.capture")),
   trade: rgbCss(tokenRgb("map.trade")),
@@ -109,7 +109,15 @@ const FONT_DISPLAY = tokens.font.family.display;
 const FONT_FLAVOR = tokens.font.family.flavor;
 /** Taille des noms sur la carte, en pixels CSS : discrets comme sur un atlas. */
 const LABEL_MAX_PX = 17;
-const LABEL_MIN_PX = 9;
+const LABEL_MIN_PX = 11;
+/** Les troupes, en italique plus petit, ne s'affichent qu'à partir de cette taille. */
+const TROOPS_MIN_PX = 9;
+/** Très dézoomé : seuls les plus grands royaumes (et le vôtre) gardent leur nom. */
+const FEW_LABELS_BELOW_ZOOM = 1.6;
+const FEW_LABELS_MAX = 6;
+/** Mines d'or : 2,6 tuiles, jamais moins de 12 px à l'écran. */
+const MINE_TILES = 2.6;
+const MINE_MIN_PX = 12;
 /** Nefs marchandes : 2,5 tuiles de large, jamais moins de 11 px à l'écran. */
 const NEF_TILES = 2.5;
 const NEF_MIN_PX = 11;
@@ -117,6 +125,8 @@ const NEF_MIN_PX = 11;
 const CARAVAN_TILES = 1.6;
 const CARAVAN_MIN_PX = 7;
 const ROAD_MIN_ZOOM = 0.9;
+/** En dessous de ce zoom (px par tuile), le territoire est lissé à l'affichage. */
+const SMOOTH_BELOW_ZOOM = 4;
 /** Zoom (px par tuile) à partir duquel on voit aussi les fronts des autres seigneurs. */
 const OTHER_FRONTS_MIN_ZOOM = 2.5;
 /** Les seigneurs signent dans la police de leur peuple, dès que la taille la rend lisible. */
@@ -172,8 +182,10 @@ export class SceneRenderer {
     ctx.fillRect(0, 0, width, this.territory.height);
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(this.territory.canvas, 0, 0);
+    // Territoire agrandi ×2 (Scale2x) : lissé quand un sous-pixel fait moins de 2 px à l'écran,
+    // net au-delà.
+    ctx.imageSmoothingEnabled = this.camera.zoom < SMOOTH_BELOW_ZOOM;
+    ctx.drawImage(this.territory.canvas, 0, 0, width, this.territory.height);
     ctx.lineWidth = Math.max(0.25, 1.2 / this.camera.zoom);
     ctx.strokeStyle = PALETTE.ink;
     ctx.strokeRect(0, 0, width, this.territory.height);
@@ -182,8 +194,9 @@ export class SceneRenderer {
     this.drawCaptures(state);
     this.drawRoads(state, width);
 
+    const mineSize = Math.max(MINE_TILES, MINE_MIN_PX / this.camera.zoom);
     for (const mine of state.mines) {
-      this.drawMine((mine % width) + 0.5, Math.floor(mine / width) + 0.5);
+      drawMineIcon(ctx, (mine % width) + 0.5, Math.floor(mine / width) + 0.5, mineSize);
     }
     for (const b of state.buildings) this.drawBuilding(b, state.colorOf(b.owner));
     for (const boat of state.boats) {
@@ -372,21 +385,6 @@ export class SceneRenderer {
       ctx.fillStyle = PALETTE.ink;
       ctx.fillText(text, sx, sy + 10);
     }
-  }
-
-  /** Mine d'or : petit tertre gravé. */
-  private drawMine(x: number, y: number): void {
-    const ctx = this.ctx;
-    ctx.beginPath();
-    ctx.moveTo(x - 1.7, y + 1.2);
-    ctx.lineTo(x, y - 1.7);
-    ctx.lineTo(x + 1.7, y + 1.2);
-    ctx.closePath();
-    ctx.fillStyle = PALETTE.mine;
-    ctx.fill();
-    ctx.lineWidth = 0.3;
-    ctx.strokeStyle = PALETTE.ink;
-    ctx.stroke();
   }
 
   /** Bâtiment : icône plate à la couleur du propriétaire (comme les structures d'OpenFront). */
@@ -593,11 +591,16 @@ export class SceneRenderer {
     const overlaps = (x0: number, y0: number, x1: number, y1: number): boolean =>
       placed.some(([a0, b0, a1, b1]) => x0 < a1 && x1 > a0 && y0 < b1 && y1 > b0);
 
+    let shown = 0;
     for (const label of ordered) {
       const player = state.players.get(label.owner);
       if (!player || !player.alive) continue;
+      const mine = player.id === state.myId;
+      if (!mine && zoom < FEW_LABELS_BELOW_ZOOM && shown >= FEW_LABELS_MAX) continue;
       const span = label.size * zoom; // largeur approximative du territoire à l'écran
+      // Votre nom reste lisible même quand votre royaume est petit à l'écran.
       let fontPx = Math.min(LABEL_MAX_PX, span * 0.17);
+      if (mine) fontPx = Math.max(fontPx, LABEL_MIN_PX);
       if (fontPx < LABEL_MIN_PX) continue;
       const [sx, sy] = this.camera.worldToScreen(label.x + 0.5, label.y + 0.5);
       if (
@@ -614,7 +617,7 @@ export class SceneRenderer {
       // Le nom ne doit pas déborder largement de son territoire.
       ctx.font = `${fontPx}px ${family(fontPx)}`;
       const fit = (span * 1.4) / Math.max(1, ctx.measureText(player.name).width);
-      if (fit < 1) {
+      if (fit < 1 && !mine) {
         fontPx *= fit;
         if (fontPx < LABEL_MIN_PX) continue;
         ctx.font = `${fontPx}px ${family(fontPx)}`;
@@ -627,12 +630,13 @@ export class SceneRenderer {
       const bottom = sy + fontPx * 0.95;
       if (overlaps(sx - half, top, sx + half, bottom)) continue;
       placed.push([sx - half, top, sx + half, bottom]);
+      if (!mine) shown++;
 
-      const mine = player.id === state.myId;
       const parjure = player.parjureUntil > state.tick;
       const nameX = sx + shieldWidth / 2;
       const nameY = sy - fontPx * 0.4;
-      ctx.lineWidth = Math.max(2, fontPx / 5);
+      // Halo épais et opaque : le nom se détache de n'importe quel aplat.
+      ctx.lineWidth = Math.max(3, fontPx / 3.2);
       ctx.strokeStyle = PALETTE.labelHalo;
       ctx.fillStyle = parjure ? PALETTE.parjure : mine ? PALETTE.labelSelf : PALETTE.label;
       ctx.strokeText(player.name, nameX, nameY);
@@ -658,8 +662,9 @@ export class SceneRenderer {
         ctx.fillText("♛", nameX, nameY - fontPx * 0.95);
       }
       const troopsPx = fontPx * 0.72;
+      if (troopsPx < TROOPS_MIN_PX) continue;
       ctx.font = `italic ${troopsPx}px ${FONT_FLAVOR}`;
-      ctx.lineWidth = Math.max(1.5, troopsPx / 5);
+      ctx.lineWidth = Math.max(2.5, troopsPx / 3.2);
       ctx.strokeStyle = PALETTE.labelHalo;
       const troops = formatNumber(player.troops);
       ctx.strokeText(troops, sx, sy + fontPx * 0.45);

@@ -8,6 +8,7 @@ import {
 } from "@legionwar/design-system";
 import { CHARNIER_BIT, MARK_BIT, OWNER_MASK, Race } from "@legionwar/engine";
 import { type RGB, terrainColor } from "./colors";
+import { scale2x } from "./scale2x";
 
 const FILL = tokens.map.territoryFill;
 const BORDER_SHADE = tokens.map.borderShade;
@@ -40,20 +41,25 @@ function speckle(t: number): number {
 }
 
 /**
- * Image de la carte (1 pixel par tuile), en aplats comme OpenFront : terrain uni, royaumes
- * teintés de leur couleur, frontière de leur couleur assombrie.
+ * Image de la carte en aplats comme OpenFront : terrain uni, royaumes teintés de leur couleur,
+ * frontière de leur couleur assombrie. Une couleur est calculée par tuile, puis l'image est
+ * agrandie ×2 par Scale2x : frontières et côtes en diagonale plutôt qu'en escalier.
  * Mise à jour incrémentale : seules les tuiles modifiées et leurs voisines sont repeintes, puis
- * seul le rectangle modifié est renvoyé au canvas.
+ * seul le rectangle modifié (élargi d'une tuile, dont dépend Scale2x) est renvoyé au canvas.
  */
 export class TerritoryLayer {
   readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
+  /** Image agrandie (2 × largeur, 2 × hauteur) et sa vue en pixels 32 bits. */
   private readonly image: ImageData;
+  private readonly pixels: Uint32Array;
+  /** Couleur de chaque tuile, au format des pixels (RGBA petit-boutiste). */
+  private readonly colors: Uint32Array;
   private readonly base: Float32Array;
-  private minX = Infinity;
-  private minY = Infinity;
-  private maxX = -1;
-  private maxY = -1;
+  /** Blocs de CHUNK × CHUNK tuiles à recalculer (Scale2x) et à renvoyer au canvas. */
+  private readonly chunkCols: number;
+  private readonly dirtyChunk: Uint8Array;
+  private dirtyList: number[] = [];
 
   constructor(
     readonly width: number,
@@ -68,12 +74,16 @@ export class TerritoryLayer {
     private readonly hatching = false,
   ) {
     this.canvas = document.createElement("canvas");
-    this.canvas.width = width;
-    this.canvas.height = height;
+    this.canvas.width = width * 2;
+    this.canvas.height = height * 2;
     const ctx = this.canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D indisponible");
     this.ctx = ctx;
-    this.image = ctx.createImageData(width, height);
+    this.image = ctx.createImageData(width * 2, height * 2);
+    this.pixels = new Uint32Array(this.image.data.buffer);
+    this.colors = new Uint32Array(width * height);
+    this.chunkCols = Math.ceil(width / CHUNK);
+    this.dirtyChunk = new Uint8Array(this.chunkCols * Math.ceil(height / CHUNK));
     this.base = new Float32Array(width * height * 3);
     for (let t = 0; t < width * height; t++) {
       const c = terrainColor(terrain[t] as number);
@@ -82,6 +92,7 @@ export class TerritoryLayer {
       this.base[t * 3 + 2] = c[2];
     }
     for (let t = 0; t < width * height; t++) this.paint(t);
+    scale2x(this.colors, width, height, this.pixels, 0, 0, width - 1, height - 1);
     this.ctx.putImageData(this.image, 0, 0);
   }
 
@@ -117,13 +128,10 @@ export class TerritoryLayer {
    */
   repaintOwners(owners: ReadonlySet<number>): void {
     if (owners.size === 0) return;
-    for (let t = 0; t < this.width * this.height; t++) {
-      if (owners.has(this.owner(t))) this.paint(t);
+    const w = this.width;
+    for (let t = 0; t < w * this.height; t++) {
+      if (owners.has(this.owner(t))) this.touch(t, t % w, Math.floor(t / w));
     }
-    this.minX = 0;
-    this.minY = 0;
-    this.maxX = this.width - 1;
-    this.maxY = this.height - 1;
   }
 
   /** Vrai si un voisin direct appartient à un allié (du joueur local) du propriétaire. */
@@ -142,27 +150,43 @@ export class TerritoryLayer {
     );
   }
 
+  /** Recalcule (Scale2x) et renvoie au canvas les seuls blocs modifiés depuis la dernière image. */
   flush(): void {
-    if (this.maxX < 0) return;
-    this.ctx.putImageData(
-      this.image,
-      0,
-      0,
-      this.minX,
-      this.minY,
-      this.maxX - this.minX + 1,
-      this.maxY - this.minY + 1,
-    );
-    this.minX = this.minY = Infinity;
-    this.maxX = this.maxY = -1;
+    for (const chunk of this.dirtyList) {
+      const x0 = (chunk % this.chunkCols) * CHUNK;
+      const y0 = Math.floor(chunk / this.chunkCols) * CHUNK;
+      const x1 = Math.min(this.width, x0 + CHUNK) - 1;
+      const y1 = Math.min(this.height, y0 + CHUNK) - 1;
+      scale2x(this.colors, this.width, this.height, this.pixels, x0, y0, x1, y1);
+      this.ctx.putImageData(this.image, 0, 0, x0 * 2, y0 * 2, (x1 - x0 + 1) * 2, (y1 - y0 + 1) * 2);
+      this.dirtyChunk[chunk] = 0;
+    }
+    this.dirtyList = [];
   }
 
+  /**
+   * Repeint une tuile et marque son bloc ; Scale2x d'une voisine dépend d'elle, donc une tuile
+   * au bord d'un bloc marque aussi le bloc voisin.
+   */
   private touch(t: number, x: number, y: number): void {
     this.paint(t);
-    if (x < this.minX) this.minX = x;
-    if (y < this.minY) this.minY = y;
-    if (x > this.maxX) this.maxX = x;
-    if (y > this.maxY) this.maxY = y;
+    const cx = Math.floor(x / CHUNK);
+    const cy = Math.floor(y / CHUNK);
+    const lx = x - cx * CHUNK;
+    const ly = y - cy * CHUNK;
+    this.markChunk(cx, cy);
+    if (lx === 0) this.markChunk(cx - 1, cy);
+    if (lx === CHUNK - 1) this.markChunk(cx + 1, cy);
+    if (ly === 0) this.markChunk(cx, cy - 1);
+    if (ly === CHUNK - 1) this.markChunk(cx, cy + 1);
+  }
+
+  private markChunk(cx: number, cy: number): void {
+    if (cx < 0 || cy < 0 || cx >= this.chunkCols || cy * CHUNK >= this.height) return;
+    const chunk = cy * this.chunkCols + cx;
+    if (this.dirtyChunk[chunk] === 1) return;
+    this.dirtyChunk[chunk] = 1;
+    this.dirtyList.push(chunk);
   }
 
   /** Vrai si une voisine directe appartient à un autre propriétaire (tuile de frontière). */
@@ -178,8 +202,6 @@ export class TerritoryLayer {
   }
 
   private paint(t: number): void {
-    const data = this.image.data;
-    const i = t * 4;
     const b = t * 3;
     const state = this.state[t] as number;
     const owner = state & OWNER_MASK;
@@ -234,10 +256,10 @@ export class TerritoryLayer {
       }
       if ((state & CHARNIER_BIT) !== 0) out = this.charnier(t, out, race);
     }
-    data[i] = out[0];
-    data[i + 1] = out[1];
-    data[i + 2] = out[2];
-    data[i + 3] = 255;
+    // RGBA en mémoire petit-boutiste : alpha dans l'octet de poids fort.
+    this.colors[t] =
+      (0xff000000 | (Math.round(out[2]) << 16) | (Math.round(out[1]) << 8) | Math.round(out[0])) >>>
+      0;
   }
 
   /** Charnier : cendre et ossements épars ; braises quand les Clans de Kharag tiennent la terre. */
@@ -248,6 +270,9 @@ export class TerritoryLayer {
     return mixRgb(color, MARKS.ash, MARKS.ashStrength);
   }
 }
+
+/** Côté d'un bloc de mise à jour, en tuiles. */
+const CHUNK = 32;
 
 /** Motif héraldique de l'émail d'un peuple. */
 function hatchingOf(race: Race): Hatching {

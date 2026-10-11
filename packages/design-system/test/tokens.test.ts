@@ -68,7 +68,7 @@ describe("accessibilité (WCAG 2.1 AA)", () => {
   });
 
   it("les étiquettes de la carte sont lisibles sur le papier et sur un lavis", () => {
-    for (const label of ["map.label", "map.labelSelf"]) {
+    for (const label of ["map.label", "map.labelSelf", "map.ink"]) {
       for (const bg of ["map.terrain.plain", "map.terrain.mountain", "map.labelHalo"]) {
         expect(contrastRatio(color(label), color(bg)), `${label} / ${bg}`).toBeGreaterThanOrEqual(
           4.5,

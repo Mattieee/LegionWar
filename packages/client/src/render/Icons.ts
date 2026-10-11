@@ -135,6 +135,40 @@ export function drawBuildingIcon(
   ctx.restore();
 }
 
+const MINE = tokenRgb("map.mine");
+/** Pioche, dans la boîte 24 × 24 : fer courbe et manche. */
+let pickaxe: Path2D | null = null;
+
+/**
+ * Mine d'or : disque d'or cerné d'encre, marqué d'une pioche à l'encre (sans légende, l'icône
+ * dit ce qu'elle est). Centrée en (x, y), de diamètre `size`.
+ */
+export function drawMineIcon(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+): void {
+  const r = size / 2;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(r, r);
+  ctx.beginPath();
+  ctx.arc(0, 0, 1, 0, Math.PI * 2);
+  ctx.fillStyle = rgbCss(MINE);
+  ctx.fill();
+  ctx.lineWidth = 0.14;
+  ctx.strokeStyle = rgbCss(INK);
+  ctx.stroke();
+  ctx.scale(1.25 / 24, 1.25 / 24);
+  ctx.translate(-12, -12);
+  pickaxe ??= new Path2D("M3.5 9.5Q12 2 20.5 9.5M12 5.8V21");
+  ctx.lineWidth = 2.6;
+  ctx.lineCap = "round";
+  ctx.stroke(pickaxe);
+  ctx.restore();
+}
+
 const urls = new Map<BuildingKind, string>();
 
 /** Icône du bâtiment en SVG (panneau du bas, menu radial) : forme à l'encre, pictogramme clair. */
