@@ -12,8 +12,9 @@ import {
   type AttackView,
   type BoatView,
   type PlayerView,
+  warshipCost,
 } from "@legionwar/engine";
-import { buildingIconUrl } from "../render/Icons";
+import { buildingIconUrl, warshipIconUrl } from "../render/Icons";
 import { ContextMenu } from "./ContextMenu";
 import { DealCards } from "./DealCards";
 import { RadialMenu } from "./RadialMenu";
@@ -21,7 +22,7 @@ import { escapeHtml, formatClock, formatNumber, formatPercent } from "./format";
 
 export interface HudCallbacks {
   onRatioChange(ratio: number): void;
-  onBuildMode(kind: BuildingKind | null): void;
+  onBuildMode(kind: BuildMode | null): void;
   onExit(): void;
 }
 
@@ -32,7 +33,7 @@ export interface HudState {
   boats: readonly BoatView[];
   inSpawnPhase: boolean;
   ratio: number;
-  buildMode: BuildingKind | null;
+  buildMode: BuildMode | null;
   landTiles: number;
   goldPerSecond: number;
   /** Tick courant (statut de Parjure). */
@@ -78,6 +79,12 @@ export type InfoModel =
 export type EventTone = "info" | "good" | "bad";
 
 const LOG_SIZE = 6;
+/** Ce que le prochain clic pose : un bâtiment, ou un navire de guerre armé au port. */
+export type BuildMode = BuildingKind | "warship";
+
+const WARSHIP_HELP =
+  "Sort de votre port le plus proche. Coule les barges ennemies, canonne leurs navires et capture leurs nefs. Cliquez sur un de vos navires puis sur la mer pour le déplacer.";
+
 /** En dessous de cette largeur d'écran (px), le classement démarre replié. */
 const COMPACT_BOARD_MAX_WIDTH = 600;
 const ALERT_COOLDOWN_MS = 15_000;
@@ -216,6 +223,11 @@ export class Hud {
                 </button>`,
               )
               .join("")}
+            <button type="button" class="hud__slot" data-kind="warship" aria-pressed="false" aria-label="Navire de guerre">
+              <span class="hud__slot-key">5</span>
+              <img class="hud__slot-icon" src="${warshipIconUrl()}" alt="" width="256" height="256" />
+              <span class="hud__slot-count lw-numeric" data-count="warship">0</span>
+            </button>
           </div>
         </section>
       </div>
@@ -265,7 +277,7 @@ export class Hud {
     this.$("#hud-control").addEventListener("contextmenu", (e) => e.preventDefault());
     for (const button of this.el.querySelectorAll<HTMLButtonElement>(".hud__slot")) {
       button.addEventListener("click", () => {
-        const kind = button.dataset.kind as BuildingKind;
+        const kind = button.dataset.kind as BuildMode;
         callbacks.onBuildMode(button.getAttribute("aria-pressed") === "true" ? null : kind);
       });
     }
@@ -355,6 +367,12 @@ export class Hud {
       button.setAttribute("aria-pressed", String(state.buildMode === kind));
       button.dataset.tooltip = `${BUILDINGS[kind].name} [${BUILD_KEYS[kind]}] — ${BUILD_HELP[kind]} ${formatNumber(cost)} or`;
     }
+    const shipCost = warshipCost(me.warships, mods);
+    const ship = this.$<HTMLButtonElement>(`.hud__slot[data-kind="warship"]`);
+    this.$(`[data-count="warship"]`).textContent = String(me.warships);
+    ship.disabled = state.inSpawnPhase || !me.alive || me.ports === 0 || me.gold < shipCost;
+    ship.setAttribute("aria-pressed", String(state.buildMode === "warship"));
+    ship.dataset.tooltip = `Navire de guerre [5] — ${me.ports === 0 ? "Il faut d'abord un port. " : ""}${WARSHIP_HELP} ${formatNumber(shipCost)} or`;
   }
 
   /** Gain d'or ponctuel (conquête, don…) : « +X » au-dessus de la case d'or pendant 2 s. */

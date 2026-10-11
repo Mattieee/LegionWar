@@ -4,6 +4,7 @@ import {
   RACES,
   STRUCTURE_MIN_DIST,
   TOWER_RANGE,
+  WARSHIP_RANGE,
   type BuildingView,
   type PlayerView,
   type RouteView,
@@ -11,7 +12,8 @@ import {
 import type { BattleFx } from "./BattleFx";
 import type { Camera } from "./Camera";
 import { TABLE, type RGB, rgbCss } from "./colors";
-import { drawBuildingIcon, drawMineIcon, glyphColorFor } from "./Icons";
+import { drawBuildingIcon, drawMineIcon, drawWarship, glyphColorFor } from "./Icons";
+import type { BuildMode } from "../ui/Hud";
 import type { Label } from "./Labels";
 import type { SeaOrnament } from "./SeaDecor";
 import { sprite } from "./Sprites";
@@ -34,6 +36,17 @@ export interface NefSprite {
   y: number;
   /** −1 vers l'ouest, 1 vers l'est : la gravure est retournée selon le cap. */
   heading: number;
+}
+
+/** Navire de guerre prêt à dessiner, position interpolée (tuiles). */
+export interface WarshipSprite {
+  id: number;
+  owner: number;
+  x: number;
+  y: number;
+  heading: number;
+  hp: number;
+  maxHp: number;
 }
 
 /** Caravane prête à dessiner, position interpolée (tuiles). */
@@ -60,6 +73,10 @@ export interface SceneState {
   /** Routes des caravanes (la même liste tant qu'elles ne changent pas) et caravanes en route. */
   routes: readonly RouteView[];
   caravans: readonly CaravanSprite[];
+  /** Navires de guerre, boulets en vol (tuiles) et navire sélectionné. */
+  warships: readonly WarshipSprite[];
+  shells: readonly { x: number; y: number }[];
+  selectedWarship: number | null;
   /** Pose d'un Marché : sa portée et les étapes qu'il relierait (tuiles). */
   marketRange: number;
   marketStops: readonly number[];
@@ -67,7 +84,7 @@ export interface SceneState {
   labels: readonly Label[];
   myId: number | null;
   hoverTile: number | null;
-  buildMode: BuildingKind | null;
+  buildMode: BuildMode | null;
   /** Portée effective des tours du joueur local (bonus de race inclus). */
   towerRange: number;
   colorOf: (owner: number) => RGB;
@@ -121,6 +138,9 @@ const MINE_MIN_PX = 12;
 /** Nefs marchandes : 2,5 tuiles de large, jamais moins de 11 px à l'écran. */
 const NEF_TILES = 2.5;
 const NEF_MIN_PX = 11;
+/** Navires de guerre : 3,2 tuiles de long, jamais moins de 15 px à l'écran. */
+const WARSHIP_TILES = 3.2;
+const WARSHIP_MIN_PX = 15;
 /** Caravanes : 1,6 tuile, jamais moins de 7 px ; sous ce zoom, routes et caravanes s'effacent. */
 const CARAVAN_TILES = 1.6;
 const CARAVAN_MIN_PX = 7;
@@ -204,6 +224,21 @@ export class SceneRenderer {
     }
     for (const nef of state.nefs) this.drawNef(nef, state.colorOf(nef.owner));
     for (const c of state.caravans) this.drawCaravan(c, state.colorOf(c.owner));
+    for (const ship of state.warships) {
+      const size = Math.max(WARSHIP_TILES, WARSHIP_MIN_PX / this.camera.zoom);
+      const color = state.colorOf(ship.owner);
+      drawWarship(
+        ctx,
+        ship.x,
+        ship.y,
+        size,
+        color,
+        ship.heading,
+        ship.id === state.selectedWarship,
+      );
+      if (ship.hp < ship.maxHp) this.drawHealth(ship, size);
+    }
+    this.drawShells(state);
     for (const boat of state.boats) this.drawBoat(boat, state.colorOf(boat.owner));
     if (state.hoverTile !== null) this.drawHover(state, width);
 
@@ -425,6 +460,36 @@ export class SceneRenderer {
     ctx.restore();
   }
 
+  /** Barre de vie sous un navire blessé : verte, puis rouge sous 75 % (il rentre au port). */
+  private drawHealth(ship: WarshipSprite, size: number): void {
+    const ctx = this.ctx;
+    const w = size * 0.9;
+    const h = Math.max(0.25, size * 0.09);
+    const x = ship.x - w / 2;
+    const y = ship.y + size * 0.42;
+    const ratio = Math.max(0, ship.hp / ship.maxHp);
+    ctx.fillStyle = PALETTE.ink;
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = ratio * 100 < 75 ? PALETTE.battleIncoming : PALETTE.battleOutgoing;
+    ctx.fillRect(x, y, w * ratio, h);
+  }
+
+  /** Boulets : petits points d'encre cerclés de clair. */
+  private drawShells(state: SceneState): void {
+    if (state.shells.length === 0) return;
+    const ctx = this.ctx;
+    const r = Math.max(0.35, 2.2 / this.camera.zoom);
+    ctx.fillStyle = PALETTE.ink;
+    ctx.strokeStyle = PALETTE.labelHalo;
+    ctx.lineWidth = r * 0.5;
+    for (const s of state.shells) {
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
   /** Routes des caravanes : trait fin continu à l'encre, sous les bâtiments. */
   private drawRoads(state: SceneState, width: number): void {
     if (state.routes.length === 0 || this.camera.zoom < ROAD_MIN_ZOOM) return;
@@ -493,7 +558,15 @@ export class SceneRenderer {
     const x = tile % width;
     const y = Math.floor(tile / width);
     ctx.lineWidth = Math.max(0.15, 1.4 / this.camera.zoom);
-    if (state.buildMode !== null) {
+    if (state.buildMode === "warship") {
+      // Navire de guerre : sa portée de tir autour du point visé (il patrouillera autour).
+      ctx.strokeStyle = PALETTE.towerRange;
+      ctx.setLineDash([2, 0.8]);
+      ctx.beginPath();
+      ctx.arc(x + 0.5, y + 0.5, WARSHIP_RANGE, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else if (state.buildMode !== null) {
       const valid = state.myId !== null && this.territory.owner(tile) === state.myId;
       ctx.strokeStyle = valid ? PALETTE.buildValid : PALETTE.buildInvalid;
       ctx.setLineDash([0.8, 0.6]);

@@ -256,8 +256,16 @@ Comme l'usine d'OpenFront et ses trains (spécification du game designer, 2026-1
   - **Route :** la plus courte en tuiles d'eau, depuis une côte du joueur jusqu'à la plage la plus proche de la terre visée (8 plages candidates au plus). Il faut une côte sur la même mer.
   - **Vitesse et limite :** **1 tuile par tick** (10 tuiles/s, comme OpenFront ; 3 avant le rythme du §6), soit environ 10 s pour une traversée moyenne ; **3 barges** en mer au plus par seigneur (et 3 tentatives de lancement par tick).
   - **Débarquement :** la plage est prise, puis l'assaut continue depuis cette tête de pont contre le propriétaire de la plage. Si la plage est déjà à soi à l'arrivée, les troupes rentrent sans perte.
-  - [Prévu] Annulation en mer (25 % de pertes), barges coulées par les navires de guerre.
-- **Navire de guerre :** 1 000 PV ; tire sur les barges en priorité ; se répare au port ; trois niveaux de vétérance.
+  - [Prévu] Annulation en mer (25 % de pertes).
+- **Navire de guerre** [Proto] (`WARSHIP_*`, `SHELL_*`, `NEF_CAPTURE_RANGE` dans `Rules.ts`), comme celui d'OpenFront, distances ramenées à nos cartes :
+  - **Armement :** touche <kbd>5</kbd> ou case [5], puis un clic sur la mer (ou menu radial sur l'eau) : le navire sort du **port achevé le plus proche sur cette mer** et patrouille autour du point visé. Coût **250 k × (navires en mer + 1)**, plafonné à 1 M (× coût de construction du peuple). Sans port sur cette mer : refusé.
+  - **Patrouille :** étapes tirées à ±25 tuiles du point de patrouille (±50 chez OpenFront), 1 tuile par tick. Cliquer sur un de ses navires le sélectionne ; un clic sur la mer y déplace sa patrouille (même mer seulement).
+  - **Tir :** **1 000 PV** ; portée **60** tuiles (130 chez OpenFront) ; boulet à tête chercheuse (3 tuiles par tick) de **200 à 300 dégâts**, un toutes les **2 s**. Priorité aux **barges ennemies** (un boulet suffit à couler une barge et toutes ses troupes ; pas de rechargement après un tir sur une barge), puis aux navires ennemis. « Ennemi » = tout royaume non allié.
+  - **Piraterie :** une nef d'un royaume non allié qui passe à **5 tuiles** est capturée : l'or de sa traversée va au capteur (compté dans l'or du commerce). Une nef est à l'abri sur ses 10 premières et 10 dernières cases (sortie et entrée de port) : un navire posté devant un port ennemi ne vide pas chaque cargaison au départ.
+  - **Réparation :** sous **75 %** de PV, le navire rentre à quai au port le plus proche de sa mer (+5 PV par tick) puis repart ; à 40 tuiles d'un de ses ports, +1 PV par tick.
+  - **Ordres :** 3 ordres navals (armer, déplacer) au plus par joueur et par tick ; un point de patrouille trop lointain est rejoint par étapes.
+  - **IA :** un prétendant qui a un port achevé et 2 Bourgs arme **un** navire de guerre. Les tribus n'en ont pas.
+  - [Prévu, v2] **Vétérance** (3 niveaux, +20 % de PV et de dégâts par niveau ; couler un navire, 10 barges ou 25 nefs donne un niveau) et noms par peuple.
 - **Noms par race :** Galère royale (Aldoria), Drakkar de guerre (Kharag), Navire spectral (Morvane), Voilier lunaire (Sylvanor).
 
 ## 11. Magie [Prévu]
@@ -431,6 +439,7 @@ Comme sur OpenFront, avec la granularité de ses types de joueurs (§13). Consta
 | Annuler                    | <kbd>Échap</kbd>, clic droit                                                                                                                                                                                                                                                    |
 | Caméra                     | Glisser, molette, <kbd>+</kbd> / <kbd>−</kbd>, <kbd>C</kbd> pour centrer                                                                                                                                                                                                        |
 | Commerce                   | <kbd>3</kbd> Port (sur une côte de mer), <kbd>4</kbd> Marché (aperçu de sa portée et des étapes reliées) ; <kbd>E</kbd> sur un royaume : fermer ou rouvrir nos ports                                                                                                            |
+| Navire de guerre           | <kbd>5</kbd> (ou case [5], ou clic droit sur la mer) puis clic sur la mer : armé au port le plus proche ; clic sur un de vos navires pour le sélectionner, puis clic sur la mer pour y déplacer sa patrouille ; <kbd>Échap</kbd> désélectionne                                  |
 | Débarquer                  | Clic sur une terre au-delà de la mer, ou <kbd>B</kbd> sur la terre visée                                                                                                                                                                                                        |
 | Alliance                   | <kbd>K</kbd> sur un royaume : proposer, accepter sa demande, ou renouveler (fenêtre des 30 dernières secondes)                                                                                                                                                                  |
 | Rompre une alliance        | <kbd>L</kbd> deux fois en moins de 2 s sur un allié (vous devenez Parjure 60 s)                                                                                                                                                                                                 |

@@ -169,6 +169,68 @@ export function drawMineIcon(
   ctx.restore();
 }
 
+/** Navire de guerre (boîte −1..1, proue à droite) : coque, deux mâts, voiles claires. */
+const WARSHIP_HULL = "M-1 0.15L1 0.15L0.72 0.6L-0.78 0.6Z";
+
+/**
+ * Navire de guerre aux couleurs de son maître, retourné selon son cap ; `size` = longueur.
+ * Sélectionné : cerclé de clair.
+ */
+export function drawWarship(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  color: RGB,
+  heading: number,
+  selected: boolean,
+): void {
+  const u = size / 2;
+  ctx.save();
+  ctx.translate(x, y);
+  if (selected) {
+    ctx.beginPath();
+    ctx.arc(0, 0.1 * u, u * 1.25, 0, Math.PI * 2);
+    ctx.lineWidth = Math.max(0.2, u * 0.12);
+    ctx.strokeStyle = rgbCss(LIGHT);
+    ctx.stroke();
+  }
+  ctx.scale(heading < 0 ? -u : u, u);
+  ctx.lineWidth = 0.12;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = rgbCss(INK);
+  ctx.fillStyle = rgbCss(color);
+  const hull = new Path2D(WARSHIP_HULL);
+  ctx.fill(hull);
+  ctx.stroke(hull);
+  // Deux mâts et leurs voiles.
+  ctx.fillStyle = rgbCss(LIGHT);
+  for (const [mx, top] of [
+    [-0.4, -0.75],
+    [0.3, -0.95],
+  ] as const) {
+    ctx.beginPath();
+    ctx.moveTo(mx, 0.15);
+    ctx.lineTo(mx, top);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mx + 0.04, top + 0.08);
+    ctx.quadraticCurveTo(mx + 0.42, (top + 0.15) / 2, mx + 0.04, 0.05);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Icône SVG du navire de guerre (panneau du bas, menu radial). */
+export function warshipIconUrl(): string {
+  const fill = rgbCss(INK);
+  const light = rgbCss(LIGHT);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.2 -1.2 2.4 2.4"><circle r="1.15" fill="${fill}"/><path d="M-0.8 0.15L0.8 0.15L0.58 0.5L-0.62 0.5Z" fill="${light}"/><path d="M-0.3 0.15V-0.6M0.25 0.15V-0.75" stroke="${light}" stroke-width="0.09"/><path d="M-0.27 -0.55Q0.05 -0.2 -0.27 0.08ZM0.28 -0.7Q0.62 -0.3 0.28 0.08Z" fill="${light}"/></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 const urls = new Map<BuildingKind, string>();
 
 /** Icône du bâtiment en SVG (panneau du bas, menu radial) : forme à l'encre, pictogramme clair. */

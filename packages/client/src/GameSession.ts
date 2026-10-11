@@ -18,6 +18,7 @@ import {
   PORT_SNAP_RADIUS,
   GOLD_PER_MINE_PER_TICK,
   modifiersOf,
+  warshipCost,
   type AttackView,
   type BoatRejection,
   type BoatView,
@@ -28,6 +29,8 @@ import {
   type CaravanView,
   type EmbargoView,
   type NefView,
+  type ShellView,
+  type WarshipView,
   type RouteView,
   type GameConfig,
   type GameEvent,
@@ -40,14 +43,14 @@ import { Input } from "./input/Input";
 import { LocalServer } from "./LocalServer";
 import { BattleFx } from "./render/BattleFx";
 import { Camera } from "./render/Camera";
-import { buildingIconUrl } from "./render/Icons";
+import { buildingIconUrl, warshipIconUrl } from "./render/Icons";
 import type { RGB } from "./render/colors";
 import { type Label, computeLabels } from "./render/Labels";
 import { SceneRenderer } from "./render/SceneRenderer";
 import { placeSeaOrnaments } from "./render/SeaDecor";
 import { TerritoryLayer } from "./render/TerritoryLayer";
 import { formatClock, formatNumber } from "./ui/format";
-import { Hud, type EventTone, type InfoModel, ownedOf } from "./ui/Hud";
+import { type BuildMode, Hud, type EventTone, type InfoModel, ownedOf } from "./ui/Hud";
 import type { RadialAction, RadialModel } from "./ui/RadialMenu";
 import type { DealCard } from "./ui/DealCards";
 import type { MenuChoice } from "./ui/Menu";
@@ -66,6 +69,7 @@ const REJECTION_TEXT: Record<BuildRejection, string> = {
   tooClose: "Trop près d'un autre bâtiment.",
   gold: "Or insuffisant.",
   coast: "Un port se bâtit sur une de vos côtes de mer : cliquez près du rivage.",
+  port: "Il faut un de vos ports sur cette mer pour armer un navire de guerre.",
 };
 
 const BOAT_REJECTION_TEXT: Record<BoatRejection, string> = {
@@ -178,7 +182,13 @@ export class GameSession {
   private myId: number | null = null;
   private inSpawnPhase = true;
   private ratio = DEFAULT_RATIO;
-  private buildMode: BuildingKind | null = null;
+  private buildMode: BuildMode | null = null;
+  private warships: WarshipView[] = [];
+  private warshipFrom = new Map<number, number>();
+  private shells: ShellView[] = [];
+  private shellFrom = new Map<number, number>();
+  /** Navire de guerre sélectionné : le prochain clic sur la mer y déplace sa patrouille. */
+  private selectedWarship: number | null = null;
   private hoverTile: number | null = null;
   private goldPerSecond = 0;
   private lastGold: number | null = null;
@@ -336,6 +346,20 @@ export class GameSession {
     this.nefs = result.nefs;
     if (result.embargoes) this.embargoes = result.embargoes;
     if (result.routes) this.routes = result.routes;
+    const previousShips = new Map(this.warships.map((w) => [w.id, w.tile]));
+    this.warshipFrom = new Map(
+      result.warships.map((w) => [w.id, previousShips.get(w.id) ?? w.tile]),
+    );
+    this.warships = result.warships;
+    if (
+      this.selectedWarship !== null &&
+      !this.warships.some((w) => w.id === this.selectedWarship)
+    ) {
+      this.selectedWarship = null;
+    }
+    const previousShells = new Map(this.shells.map((s) => [s.id, s.tile]));
+    this.shellFrom = new Map(result.shells.map((s) => [s.id, previousShells.get(s.id) ?? s.tile]));
+    this.shells = result.shells;
     const previousCaravans = new Map(this.caravans.map((c) => [c.id, c.tile]));
     this.caravanFrom = new Map(
       result.caravans.map((c) => [c.id, previousCaravans.get(c.id) ?? c.tile]),
@@ -559,6 +583,34 @@ export class GameSession {
         return e.target === me
           ? [`Des barges de ${this.nameOf(e.attacker)} font voile vers vos côtes !`, "bad"]
           : null;
+      case "boatSunk":
+        if (e.owner === me) {
+          return [
+            `${this.nameOf(e.by)} coule une de vos barges (${formatNumber(e.troops)} troupes perdues).`,
+            "bad",
+          ];
+        }
+        return e.by === me
+          ? [
+              `Votre navire coule une barge de ${this.nameOf(e.owner)} (${formatNumber(e.troops)} troupes).`,
+              "good",
+            ]
+          : null;
+      case "warshipLaunched":
+        return e.player === me ? ["Votre navire de guerre quitte le port.", "info"] : null;
+      case "warshipSunk":
+        if (e.owner === me) return [`${this.nameOf(e.by)} a coulé votre navire de guerre.`, "bad"];
+        return e.by === me
+          ? [`Vous coulez le navire de guerre de ${this.nameOf(e.owner)}.`, "good"]
+          : null;
+      case "nefCaptured":
+        if (e.owner === me) return [`${this.nameOf(e.by)} capture une de vos nefs.`, "bad"];
+        return e.by === me
+          ? [
+              `Vos marins capturent une nef de ${this.nameOf(e.owner)} : +${formatNumber(e.gold)} or.`,
+              "good",
+            ]
+          : null;
       case "boatLanded":
         if (e.attacker === me)
           return ["Débarquement réussi : la tête de pont est établie.", "good"];
@@ -694,9 +746,25 @@ export class GameSession {
     }
     const me = this.me();
     if (!me || !me.alive) return;
+    if (this.buildMode === "warship") {
+      this.server.submit({ type: "warship", tile });
+      this.buildMode = null;
+      return;
+    }
     if (this.buildMode !== null) {
       this.server.submit({ type: "build", building: this.buildMode, tile });
       this.buildMode = null;
+      return;
+    }
+    // Un de vos navires sous le curseur : sélection ; navire sélectionné puis la mer : patrouille.
+    const ship = this.warshipAt(sx, sy, me.id);
+    if (ship !== null) {
+      this.selectedWarship = ship === this.selectedWarship ? null : ship;
+      return;
+    }
+    if (this.selectedWarship !== null && this.map.isOcean(tile)) {
+      this.server.submit({ type: "moveWarship", id: this.selectedWarship, tile });
+      this.selectedWarship = null;
       return;
     }
     if (!this.map.isPassableLand(tile)) return;
@@ -766,7 +834,9 @@ export class GameSession {
   private radialFor(me: PlayerView, tile: number): RadialModel | null {
     const territory = this.territory;
     const map = this.map;
-    if (!territory || !map || !map.isPassableLand(tile)) return null;
+    if (!territory || !map) return null;
+    if (map.isOcean(tile)) return this.seaRadial(me, tile);
+    if (!map.isPassableLand(tile)) return null;
     const owner = territory.owner(tile);
     const troops = Math.floor(me.troops * this.ratio);
     const engaged = `${Math.round(this.ratio * 100)} % · ${formatNumber(troops)} troupes`;
@@ -999,6 +1069,61 @@ export class GameSession {
       .map((b) => b.tile);
   }
 
+  /** Menu radial sur la mer : armer un navire de guerre, ou y envoyer le navire sélectionné. */
+  private seaRadial(me: PlayerView, tile: number): RadialModel | null {
+    const cost = warshipCost(me.warships, modifiersOf(me.race));
+    const arm: RadialAction = {
+      label: "Armer un navire de guerre",
+      hint:
+        me.ports === 0
+          ? "il faut d'abord un port · touche 5"
+          : `${formatNumber(cost)} or · sort du port le plus proche · touche 5`,
+      icon: { image: warshipIconUrl() },
+      tone: "build",
+      disabled: me.ports === 0 || me.gold < cost,
+      run: () => this.server.submit({ type: "warship", tile }),
+    };
+    const selected = this.selectedWarship;
+    const ring: RadialAction[] = [arm];
+    if (selected !== null) {
+      ring.push({
+        label: "Patrouiller ici",
+        hint: "le navire sélectionné vient garder cette mer",
+        icon: "⚓",
+        tone: "boat",
+        run: () => {
+          this.server.submit({ type: "moveWarship", id: selected, tile });
+          this.selectedWarship = null;
+        },
+      });
+    }
+    return {
+      center: { label: "Haute mer", icon: "🌊", tone: "neutral", disabled: true },
+      ring,
+    };
+  }
+
+  /** Votre navire de guerre sous le curseur (à 12 px ou 2 tuiles près), ou null. */
+  private warshipAt(sx: number, sy: number, me: number): number | null {
+    const map = this.map;
+    if (!map) return null;
+    const [wx, wy] = this.camera.screenToWorld(sx, sy);
+    const reach = Math.max(2, 12 / this.camera.zoom);
+    let best: number | null = null;
+    let bestSq = reach * reach;
+    for (const w of this.warships) {
+      if (w.owner !== me) continue;
+      const dx = (w.tile % map.width) + 0.5 - wx;
+      const dy = Math.floor(w.tile / map.width) + 0.5 - wy;
+      const d = dx * dx + dy * dy;
+      if (d <= bestSq) {
+        bestSq = d;
+        best = w.id;
+      }
+    }
+    return best;
+  }
+
   /** Mine d'or sous le curseur : l'icône couvre plusieurs tuiles autour de la mine. */
   private mineNear(t: number): number | null {
     const map = this.map;
@@ -1151,11 +1276,15 @@ export class GameSession {
       case "4":
         this.buildMode = BuildingKind.Marche;
         break;
+      case "5":
+        this.buildMode = "warship";
+        break;
       case "e":
         this.embargoAtHover();
         break;
       case "escape":
         this.buildMode = null;
+        this.selectedWarship = null;
         this.hud?.menu.close();
         this.hud?.radial.close();
         break;
@@ -1260,6 +1389,33 @@ export class GameSession {
       goldPops,
       routes: this.routes,
       caravans,
+      warships: this.warships.map((w) => {
+        const from = this.warshipFrom.get(w.id) ?? w.tile;
+        const fx = from % width;
+        const tx = w.tile % width;
+        return {
+          id: w.id,
+          owner: w.owner,
+          x: fx + (tx - fx) * progress + 0.5,
+          y:
+            Math.floor(from / width) +
+            (Math.floor(w.tile / width) - Math.floor(from / width)) * progress +
+            0.5,
+          heading: tx < fx ? -1 : 1,
+          hp: w.hp,
+          maxHp: w.maxHp,
+        };
+      }),
+      shells: this.shells.map((s) => {
+        const from = this.shellFrom.get(s.id) ?? s.tile;
+        const fx = from % width;
+        const fy = Math.floor(from / width);
+        return {
+          x: fx + ((s.tile % width) - fx) * progress + 0.5,
+          y: fy + (Math.floor(s.tile / width) - fy) * progress + 0.5,
+        };
+      }),
+      selectedWarship: this.selectedWarship,
       marketRange: CARAVAN_RULES.range,
       marketStops: this.marketStops(),
       mines: this.mines,

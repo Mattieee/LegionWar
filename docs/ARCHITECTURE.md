@@ -137,6 +137,15 @@ Le budget est de 100 ms par tick ; l'objectif est de rester sous 5 ms en moyenne
   - intents horodatés avec l'identifiant attribué par le serveur (impossible à usurper).
 - **Reconnexion :** `rejoin` renvoie les tours manquants depuis `lastTurn`.
 
+### Intents navals
+
+| Intent        | Champs       | Validation dans `shared` (forme uniquement) |
+| ------------- | ------------ | ------------------------------------------- |
+| `warship`     | `tile`       | entier ≥ 0                                  |
+| `moveWarship` | `id`, `tile` | entiers ≥ 0                                 |
+
+- **Règles dans le moteur** (`game/Warships.ts`, `Game.launchWarship`) : port achevé sur la mer visée, or, plafond de sécurité ; un navire ne se déplace que sur sa mer. Les navires tirent après le mouvement des barges, dans le même tick.
+
 ### Intents de diplomatie
 
 | Intent            | Champs                                             | Validation dans `shared` (forme uniquement)               |
