@@ -1,9 +1,17 @@
-import { tokenRgb, tokens } from "@legionwar/design-system";
+import {
+  type Hatching,
+  TINCTURE_HATCHING,
+  hatchHit,
+  raceTincture,
+  tokenRgb,
+  tokens,
+} from "@legionwar/design-system";
 import { CHARNIER_BIT, MARK_BIT, OWNER_MASK, Race } from "@legionwar/engine";
 import { type RGB, terrainColor } from "./colors";
 
 const FILL = tokens.map.territoryFill;
 const BORDER_SHADE = tokens.map.borderShade;
+const HATCH = tokens.map.hatching;
 const INK = tokenRgb("map.ink");
 const ALLY = tokenRgb("map.ally");
 
@@ -56,6 +64,8 @@ export class TerritoryLayer {
     private readonly raceOf: (owner: number) => Race | null,
     /** Vrai si a et b sont alliés et que l'un des deux est le joueur local (liseré allié). */
     private readonly alliedWithMe: (a: number, b: number) => boolean,
+    /** Hachures héraldiques sur les territoires des seigneurs (aide aux daltoniens). */
+    private readonly hatching = false,
   ) {
     this.canvas = document.createElement("canvas");
     this.canvas.width = width;
@@ -214,6 +224,13 @@ export class TerritoryLayer {
       } else {
         // Aplat : la couleur du royaume posée sur le terrain.
         out = mixRgb([r, g, bl], c, FILL);
+        const motif = this.hatching && race !== null ? hatchingOf(race) : "plain";
+        if (motif !== "plain") {
+          const x = t % this.width;
+          if (hatchHit(motif, x, (t - x) / this.width, HATCH.spacing)) {
+            out = mixRgb(out, border, HATCH.strength);
+          }
+        }
       }
       if ((state & CHARNIER_BIT) !== 0) out = this.charnier(t, out, race);
     }
@@ -230,6 +247,11 @@ export class TerritoryLayer {
     if (s > 88) return mixRgb(color, MARKS.bone, 0.6);
     return mixRgb(color, MARKS.ash, MARKS.ashStrength);
   }
+}
+
+/** Motif héraldique de l'émail d'un peuple. */
+function hatchingOf(race: Race): Hatching {
+  return TINCTURE_HATCHING[raceTincture(race)];
 }
 
 function lerp(a: number, b: number, t: number): number {

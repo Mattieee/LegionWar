@@ -1,3 +1,4 @@
+import { lordColor, tribeColor } from "@legionwar/design-system";
 import {
   ALLIANCE_RENEW_WINDOW,
   ALLIANCE_REQUEST_TICKS,
@@ -39,7 +40,7 @@ import { LocalServer } from "./LocalServer";
 import { BattleFx } from "./render/BattleFx";
 import { Camera } from "./render/Camera";
 import { buildingIconUrl } from "./render/Icons";
-import { type RGB, playerColor } from "./render/colors";
+import type { RGB } from "./render/colors";
 import { type Label, computeLabels } from "./render/Labels";
 import { SceneRenderer } from "./render/SceneRenderer";
 import { placeSeaOrnaments } from "./render/SeaDecor";
@@ -124,6 +125,7 @@ export class GameSession {
   private readonly camera = new Camera();
   private readonly abort = new AbortController();
   private readonly colors = new Map<number, RGB>();
+  private readonly hatching: boolean;
   /** Second appui attendu sur L pour rompre une alliance : allié visé et instant du premier. */
   private pendingBreak: { ally: number; at: number } | null = null;
 
@@ -184,6 +186,7 @@ export class GameSession {
     private readonly onExit: () => void,
   ) {
     this.nationLevel = DIFFICULTIES[choice.difficulty].name;
+    this.hatching = choice.hatching;
     this.container = document.createElement("div");
     this.container.className = "game";
     this.canvas = document.createElement("canvas");
@@ -263,6 +266,7 @@ export class GameSession {
       (a, b) =>
         this.myId !== null &&
         ((a === this.myId && this.myAllies.has(b)) || (b === this.myId && this.myAllies.has(a))),
+      this.hatching,
     );
     this.scene = new SceneRenderer(
       this.canvas,
@@ -1266,9 +1270,19 @@ export class GameSession {
   private colorOf(owner: number): RGB {
     let color = this.colors.get(owner);
     if (!color) {
-      // Tribus en couleurs sourdes, seigneurs et prétendants en couleurs franches.
+      // Seigneurs et prétendants aux armoiries de leur peuple, déclinées selon leur rang parmi
+      // les seigneurs de ce peuple ; tribus en couleurs sourdes.
       const player = this.players.get(owner);
-      color = playerColor(owner, player?.kind === "bot");
+      const race = player?.race ?? null;
+      if (!player || player.kind === "bot" || race === null) {
+        color = tribeColor(owner);
+      } else {
+        let rank = 0;
+        for (const other of this.players.values()) {
+          if (other.kind !== "bot" && other.race === race && other.id < owner) rank++;
+        }
+        color = lordColor(race, rank);
+      }
       // On ne garde la couleur qu'une fois le joueur connu (avant le premier tick, il ne l'est pas).
       if (player) this.colors.set(owner, color);
     }

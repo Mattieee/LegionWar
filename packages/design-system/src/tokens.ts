@@ -315,8 +315,30 @@ export const tokens = {
       deadland: "#6a5a7c",
       deadlandStrength: 0.4,
     },
-    playerHuman: { saturation: 0.62, lightness: 0.4 },
-    playerBot: { saturation: 0.28, lightness: 0.46 },
+    /**
+     * Seigneurs et prétendants : l'émail de leur peuple (teinte), saturé et éclairci pour la
+     * carte, puis décliné selon leur rang parmi les seigneurs du même peuple (écart de teinte en
+     * degrés, ±10 au plus, pour ne pas glisser vers le peuple voisin ; écart de luminance) : deux
+     * seigneurs d'un même peuple restent de la même famille. Ordre : du plus distinct au moins distinct.
+     */
+    lord: { minSaturation: 0.6, lightness: 0.4 },
+    lordVariants: {
+      0: { hue: 0, lightness: 0 },
+      1: { hue: 0, lightness: 0.16 },
+      2: { hue: 0, lightness: -0.12 },
+      3: { hue: 0, lightness: 0.08 },
+      4: { hue: 10, lightness: 0.08 },
+      5: { hue: -10, lightness: 0.08 },
+      6: { hue: 10, lightness: 0.16 },
+      7: { hue: -10, lightness: -0.04 },
+    },
+    /** Tribus sauvages : teintes réparties par l'angle d'or, très sourdes et sombres. */
+    tribe: { saturation: 0.16, lightness: 0.36 },
+    /**
+     * Hachures héraldiques (aide aux daltoniens, en option) : motif de l'émail du peuple tracé
+     * toutes les `spacing` tuiles dans le territoire, vers la couleur de frontière.
+     */
+    hatching: { spacing: 4, strength: 0.45 },
   },
 } as const;
 

@@ -24,6 +24,24 @@ export function hslToRgb(hue: number, saturation: number, lightness: number): RG
   return [f(0), f(8), f(4)];
 }
 
+/** [r, g, b] (0-255) → [teinte en degrés, saturation, luminance] (0-1). */
+export function rgbToHsl([r, g, b]: RGB): [number, number, number] {
+  const rr = r / 255;
+  const gg = g / 255;
+  const bb = b / 255;
+  const max = Math.max(rr, gg, bb);
+  const min = Math.min(rr, gg, bb);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  if (max === rr) h = (gg - bb) / d + (gg < bb ? 6 : 0);
+  else if (max === gg) h = (bb - rr) / d + 2;
+  else h = (rr - gg) / d + 4;
+  return [h * 60, s, l];
+}
+
 export function rgbCss(c: RGB, alpha = 1): string {
   return `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${alpha})`;
 }

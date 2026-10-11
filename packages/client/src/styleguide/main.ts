@@ -220,6 +220,7 @@ ${section(
     <label class="lw-field"><span class="lw-field__label">Carte</span>
       <select class="lw-select"><option>Moyenne (512×320)</option><option>Grande (768×480)</option></select></label>
     <label class="lw-field"><span class="lw-field__label">Curseur</span><input class="lw-range" type="range" value="40" /></label>
+    <label class="lw-check"><input type="checkbox" checked /><span>Case à cocher <span class="lw-field__hint">(.lw-check)</span></span></label>
   </div>
 
   <h3 class="lw-title-3">Panneau, statistiques, jauge</h3>

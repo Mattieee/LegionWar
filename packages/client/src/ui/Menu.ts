@@ -22,6 +22,8 @@ export interface MenuChoice {
   nations: number;
   difficulty: Difficulty;
   seed: number;
+  /** Hachures héraldiques sur les territoires (aide aux daltoniens). */
+  hatching: boolean;
 }
 
 const MAP_LABELS: Record<MapSize, string> = {
@@ -30,7 +32,11 @@ const MAP_LABELS: Record<MapSize, string> = {
   large: "Grande",
 };
 
-const STORAGE_KEYS = { name: "legionwar.name", race: "legionwar.race" } as const;
+const STORAGE_KEYS = {
+  name: "legionwar.name",
+  race: "legionwar.race",
+  hatching: "legionwar.hatching",
+} as const;
 
 /** Écran d'accueil : pseudo, race, carte, nombre de tribus. */
 export function showMenu(root: HTMLElement, onStart: (choice: MenuChoice) => void): () => void {
@@ -98,6 +104,12 @@ export function showMenu(root: HTMLElement, onStart: (choice: MenuChoice) => voi
           <input class="lw-input" id="menu-seed" inputmode="numeric" value="${randomSeed()}" />
           <span class="lw-field__hint">Même graine, même carte.</span>
         </label>
+        <label class="lw-check">
+          <input type="checkbox" id="menu-hatching" ${storage.get(STORAGE_KEYS.hatching) === "1" ? "checked" : ""} />
+          <span>Hachures héraldiques
+            <span class="lw-field__hint">Chaque peuple garde le motif de son émail (gueules : traits verticaux, azur : horizontaux…), pour les daltoniens.</span>
+          </span>
+        </label>
       </div>
       <p class="lw-field__error" id="menu-error" role="alert"></p>
       <div class="menu__cta">
@@ -157,7 +169,10 @@ export function showMenu(root: HTMLElement, onStart: (choice: MenuChoice) => voi
     const seed = /^\d+$/.test(seedText) ? Number(seedText) >>> 0 : randomSeed();
     storage.set(STORAGE_KEYS.name, name);
     storage.set(STORAGE_KEYS.race, race);
+    const hatching = $<HTMLInputElement>("menu-hatching").checked;
+    storage.set(STORAGE_KEYS.hatching, hatching ? "1" : "0");
     onStart({
+      hatching,
       name,
       race,
       mapSize: $<HTMLSelectElement>("menu-map").value as MapSize,

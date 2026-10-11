@@ -1,4 +1,4 @@
-import { playerColor as dsPlayerColor, rgbCss, tokenRgb, type RGB } from "@legionwar/design-system";
+import { rgbCss, tokenRgb, type RGB } from "@legionwar/design-system";
 import {
   LAND_BIT,
   LOW_MASK,
@@ -32,10 +32,6 @@ const LAND_COLORS: Record<number, RGB> = {
   [TerrainKind.Mountain]: TERRAIN.mountain,
   [TerrainKind.Impassable]: TERRAIN.peaks,
 };
-
-export function playerColor(id: number, isBot: boolean): RGB {
-  return dsPlayerColor(id, isBot);
-}
 
 function mix(a: RGB, b: RGB, t: number): RGB {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];

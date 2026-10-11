@@ -277,6 +277,29 @@
   accent-color: var(--lw-text-accent);
 }
 
+/* Case à cocher : libellé à droite, coche aux couleurs de l'accent. */
+.lw-check {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--lw-space-2);
+  cursor: pointer;
+  color: var(--lw-text-primary);
+}
+
+.lw-check input {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0.15em 0 0;
+  accent-color: var(--lw-text-accent);
+  cursor: pointer;
+}
+
+.lw-check input:focus-visible {
+  outline: 2px solid var(--lw-border-strong);
+  outline-offset: 2px;
+}
+
 /* Touche clavier ------------------------------------------------------------------------------- */
 .lw-kbd {
   display: inline-block;
